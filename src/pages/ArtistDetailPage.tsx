@@ -1,0 +1,323 @@
+import { useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import {
+  Play, Heart, Share2, MapPin, Users, Music, BadgeCheck,
+  Globe, Calendar, ChevronLeft
+} from 'lucide-react';
+import { artists, events } from '@data/mockData';
+import { getGenreColor } from '@data/genreColors';
+import { useAppState } from '@context/AppStateContext';
+import { usePlayer } from '@context/PlayerContext';
+import { useToast } from '@components/Toast';
+import { shareContent, buildShareUrl } from '@utils/share';
+import { getWaveform } from '@components/Waveform';
+import { formatPlays } from '@utils/format';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@components/ui/tabs';
+
+export default function ArtistDetailPage() {
+  const { id } = useParams();
+  const [activeTab, setActiveTab] = useState('nummers');
+  const { followedArtists, toggleFollow, likedTracks, toggleLike } = useAppState();
+
+  // TODO: Vervang met API-aanroep naar /api/artiesten/:id
+  const artist = artists.find(a => a.id === Number(id));
+
+  if (!artist) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-64 text-slate-400">
+        <p className="text-xl font-semibold">Artiest niet gevonden</p>
+        <Link to="/artists" className="text-violet-400 mt-2 hover:underline">← Terug naar artiesten</Link>
+      </div>
+    );
+  }
+
+  const addToast = useToast();
+  const { playTrack, track: currentTrack, isPlaying } = usePlayer();
+  const [activeTrack, setActiveTrack] = useState(0);
+  const following = followedArtists.includes(artist.id);
+
+  // Build full track objects for the player from artist.tracks
+  const artistPlayerTracks = artist.tracks.map(t => ({
+    ...t,
+    artist: artist.name,
+    artistId: artist.id,
+    cover: artist.cover || artist.image,
+    genre: artist.genre,
+  }));
+  const artistEvents = events.filter(e => artist.events.includes(e.id));
+  const genreColor = getGenreColor(artist.genre);
+  const tabs = [
+    { key: 'nummers', label: 'Nummers' },
+    { key: 'albums', label: 'Albums' },
+    { key: 'evenementen', label: 'Evenementen' },
+    { key: 'over', label: 'Over' },
+  ];
+
+  return (
+    <div>
+      {/* Header */}
+      <div className="relative h-64 lg:h-80 overflow-hidden">
+        <img src={artist.cover} alt={artist.name} fetchPriority="high" className="w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#1a1528] via-[#1a1528]/40 to-transparent" />
+        <Link
+          to="/artists"
+          className="absolute top-4 left-4 lg:left-6 flex items-center gap-1.5 bg-black/40 backdrop-blur-sm text-white text-sm px-3 py-1.5 rounded-lg hover:bg-black/60 transition-colors"
+        >
+          <ChevronLeft size={16} /> Artiesten
+        </Link>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 lg:px-6">
+        {/* Artiest info */}
+        <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-12 mb-6 relative z-10">
+          <img
+            src={artist.image}
+            alt={artist.name}
+            className="w-24 h-24 lg:w-32 lg:h-32 rounded-full object-cover ring-4 ring-[#1a1528] shrink-0"
+          />
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <h1 className="text-3xl lg:text-4xl font-bold text-white">{artist.name}</h1>
+              {artist.verified && <BadgeCheck size={24} className="text-blue-400" />}
+            </div>
+            <div className="flex items-center gap-3 text-sm text-slate-400 flex-wrap">
+              <span className={`font-medium text-sm px-2.5 py-0.5 rounded-full ${genreColor.bg} ${genreColor.text}`}>{artist.genre}</span>
+              <span className="flex items-center gap-1"><MapPin size={12} />{artist.location}</span>
+              <span className="flex items-center gap-1"><Users size={12} />{formatPlays(artist.followers)} volgers</span>
+              <span className="flex items-center gap-1"><Music size={12} />{formatPlays(artist.monthlyListeners)} maandelijkse luisteraars</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 sm:mb-1">
+            <button
+              onClick={() => playTrack(artistPlayerTracks[0], artistPlayerTracks)}
+              className="flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white font-semibold px-4 py-2 rounded-xl transition-colors"
+            >
+              <Play size={16} fill="white" /> Afspelen
+            </button>
+            <button
+              onClick={() => {
+                toggleFollow(artist.id);
+                addToast(following ? `Je volgt ${artist.name} niet meer` : `Je volgt nu ${artist.name}`, following ? 'info' : 'success');
+              }}
+              className={`font-semibold px-4 py-2 rounded-xl transition-colors border ${
+                following
+                  ? 'border-violet-500 text-violet-400 hover:border-violet-400'
+                  : 'border-white/20 text-slate-300 hover:border-white/40 hover:text-white'
+              }`}
+            >
+              {following ? 'Volgend' : 'Volgen'}
+            </button>
+            <button
+              onClick={async () => {
+                const result = await shareContent({
+                  title: artist.name,
+                  text: `Ontdek ${artist.name} op Ho-orbit`,
+                  url: buildShareUrl(`/artists/${artist.id}`),
+                });
+                if (result === 'copied') addToast('Link gekopieerd naar klembord!', 'success');
+                else if (result === 'shared') addToast('Gedeeld!', 'success');
+              }}
+              className="p-2 rounded-xl border border-white/20 text-slate-400 hover:text-white hover:border-white/40 transition-colors"
+            >
+              <Share2 size={18} />
+            </button>
+          </div>
+        </div>
+
+        {/* Sociale links */}
+        <div className="flex gap-3 mb-6 flex-wrap">
+          {artist.social.instagram && (
+            <a
+              href={`https://instagram.com/${artist.social.instagram.replace('@', '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors"
+            >
+              <span className="text-pink-400 font-bold text-[10px]">IG</span> {artist.social.instagram}
+            </a>
+          )}
+          {artist.social.twitter && (
+            <a
+              href={`https://x.com/${artist.social.twitter.replace('@', '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors"
+            >
+              <span className="font-bold text-[10px]">𝕏</span> {artist.social.twitter}
+            </a>
+          )}
+          {artist.social.spotify && (
+            <a
+              href={`https://open.spotify.com/artist/${artist.social.spotify}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors"
+            >
+              <Globe size={13} /> Spotify
+            </a>
+          )}
+        </div>
+
+        {/* Tags */}
+        <div className="flex gap-2 mb-8 flex-wrap">
+          {artist.tags.map(tag => (
+            <span key={tag} className="text-xs bg-white/8 text-slate-300 px-3 py-1 rounded-full border border-white/10">
+              {tag}
+            </span>
+          ))}
+        </div>
+
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
+          <TabsList className="border-b border-white/10 gap-0 rounded-none bg-transparent p-0 w-full h-auto">
+            {tabs.map(tab => (
+              <TabsTrigger
+                key={tab.key}
+                value={tab.key}
+                className="rounded-none border-b-2 border-transparent px-4 py-2.5 text-sm font-medium transition-colors data-[state=active]:border-violet-500 data-[state=active]:text-violet-400 data-[state=active]:bg-transparent data-[state=active]:shadow-none text-slate-400 hover:text-white"
+              >
+                {tab.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          {/* Tab: Nummers */}
+          <TabsContent value="nummers">
+            {/* TODO: Vervang met API-aanroep naar /api/artiesten/:id/nummers */}
+            <div className="space-y-1 mb-6">
+              {artistPlayerTracks.map((track, i) => {
+                const isActive = currentTrack?.id === track.id;
+                const liked = likedTracks.includes(track.id);
+                return (
+                  <div
+                    key={track.id}
+                    onClick={() => { setActiveTrack(i); playTrack(track, artistPlayerTracks); }}
+                    className={`flex items-center gap-4 p-3 rounded-xl group cursor-pointer transition-colors ${
+                      isActive ? 'bg-violet-600/10 border border-violet-500/20' : 'hover:bg-white/4'
+                    }`}
+                  >
+                    {isActive
+                      ? <Play size={14} className="text-violet-400 w-5 shrink-0" fill="currentColor" />
+                      : <span className="w-5 text-center text-sm text-slate-500 group-hover:hidden">{i + 1}</span>
+                    }
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium ${isActive ? 'text-violet-400' : 'text-white'}`}>{track.title}</p>
+                      <p className="text-xs text-slate-400">{track.album}</p>
+                    </div>
+                    <span className="text-xs text-slate-500 hidden sm:block">{formatPlays(track.plays)} streams</span>
+                    <span className="text-xs text-slate-500">{track.duration}</span>
+                    <button
+                      onClick={e => { e.stopPropagation(); toggleLike(track.id); }}
+                      className={`p-1.5 opacity-0 group-hover:opacity-100 transition-all ${liked ? 'text-violet-400 !opacity-100' : 'text-slate-600 hover:text-slate-300'}`}
+                    >
+                      <Heart size={14} fill={liked ? 'currentColor' : 'none'} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Waveform visualizer */}
+            <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-sm font-semibold text-white">{artist.tracks[activeTrack]?.title}</p>
+                  <p className="text-xs text-slate-500">{artist.tracks[activeTrack]?.album} · {artist.tracks[activeTrack]?.duration}</p>
+                </div>
+                <button
+                  onClick={() => playTrack(artistPlayerTracks[activeTrack], artistPlayerTracks)}
+                  className="w-9 h-9 bg-violet-600 rounded-full flex items-center justify-center hover:bg-violet-500 transition-colors"
+                >
+                  <Play size={14} className="text-white ml-0.5" fill="white" />
+                </button>
+              </div>
+
+              {/* Waveform bars */}
+              <div className="flex items-end gap-[2px] h-16 cursor-pointer">
+                {getWaveform(activeTrack + 1).map((h, i) => {
+                  const played = i < 30;
+                  return (
+                    <div
+                      key={i}
+                      className={`flex-1 rounded-sm transition-all hover:opacity-80 ${
+                        played ? 'bg-violet-500' : 'bg-white/15'
+                      }`}
+                      style={{ height: `${h}%` }}
+                    />
+                  );
+                })}
+              </div>
+              <div className="flex justify-between text-[10px] text-slate-600 mt-1.5">
+                <span>1:45</span>
+                <span>{artist.tracks[activeTrack]?.duration}</span>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Tab: Albums */}
+          <TabsContent value="albums" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {/* TODO: Vervang met API-aanroep naar /api/artiesten/:id/albums */}
+            {artist.albums.map(album => (
+              <div
+                key={album.id}
+                className="group bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl overflow-hidden cursor-pointer transition-all"
+              >
+                <div className="relative aspect-square overflow-hidden">
+                  <img src={album.cover} alt={album.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                    <button className="w-12 h-12 bg-violet-600 rounded-full flex items-center justify-center">
+                      <Play size={20} className="text-white ml-0.5" fill="white" />
+                    </button>
+                  </div>
+                </div>
+                <div className="p-3">
+                  <p className="text-sm font-semibold text-white">{album.title}</p>
+                  <p className="text-xs text-slate-400">{album.year} · {album.tracks} nummers</p>
+                </div>
+              </div>
+            ))}
+          </TabsContent>
+
+          {/* Tab: Evenementen */}
+          <TabsContent value="evenementen" className="space-y-4">
+            {/* TODO: Vervang met API-aanroep naar /api/artiesten/:id/evenementen */}
+            {artistEvents.length === 0 ? (
+              <p className="text-slate-400 text-center py-8">Geen aankomende evenementen</p>
+            ) : (
+              artistEvents.map(event => (
+                <Link
+                  key={event.id}
+                  to={`/events/${event.id}`}
+                  className="flex flex-col sm:flex-row gap-4 p-4 bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl transition-colors"
+                >
+                  <img src={event.poster} alt={event.title} className="w-full sm:w-20 sm:h-28 object-cover rounded-lg" />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Calendar size={14} className="text-violet-400" />
+                      <span className="text-sm text-violet-400 font-medium">{event.date} · {event.time}</span>
+                    </div>
+                    <h3 className="font-semibold text-white mb-1">{event.title}</h3>
+                    <p className="text-sm text-slate-400">{event.venue}, {event.city}</p>
+                    <p className="text-sm text-slate-500 mt-1">{event.price}</p>
+                  </div>
+                  <div className="sm:self-center">
+                    <span className="bg-violet-600/20 text-violet-400 text-xs font-medium px-3 py-1.5 rounded-lg">
+                      Tickets
+                    </span>
+                  </div>
+                </Link>
+              ))
+            )}
+          </TabsContent>
+
+          {/* Tab: Over */}
+          <TabsContent value="over" className="max-w-2xl">
+            <p className="text-slate-300 leading-relaxed">{artist.bio}</p>
+          </TabsContent>
+        </Tabs>
+
+        <div className="pb-16" />
+      </div>
+    </div>
+  );
+}

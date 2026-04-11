@@ -1,0 +1,107 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import 'leaflet/dist/leaflet.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background:           222 21% 13%;   /* #1a1528 */
+    --foreground:           270 33% 92%;   /* #ede8f5 */
+    --card:                 248 29% 17%;   /* #231d3a */
+    --card-foreground:      270 33% 92%;
+    --popover:              248 29% 17%;
+    --popover-foreground:   270 33% 92%;
+    --primary:              263 69% 57%;   /* violet-600 #7c3aed */
+    --primary-foreground:   0 0% 100%;
+    --secondary:            248 25% 25%;   /* orbit-800 #2d2750 */
+    --secondary-foreground: 270 33% 92%;
+    --muted:                248 25% 25%;
+    --muted-foreground:     215 16% 47%;   /* slate-400 */
+    --accent:               263 69% 57%;
+    --accent-foreground:    0 0% 100%;
+    --destructive:          0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border:               0 0% 100% / 0.10;   /* white/10 */
+    --input:                0 0% 100% / 0.05;   /* white/5  */
+    --ring:                 263 69% 57%;
+    --radius:               0.75rem;            /* rounded-xl */
+  }
+
+  .dark {
+    /* identical — app is always dark */
+    --background:           222 21% 13%;
+    --foreground:           270 33% 92%;
+    --card:                 248 29% 17%;
+    --card-foreground:      270 33% 92%;
+    --popover:              248 29% 17%;
+    --popover-foreground:   270 33% 92%;
+    --primary:              263 69% 57%;
+    --primary-foreground:   0 0% 100%;
+    --secondary:            248 25% 25%;
+    --secondary-foreground: 270 33% 92%;
+    --muted:                248 25% 25%;
+    --muted-foreground:     215 16% 47%;
+    --accent:               263 69% 57%;
+    --accent-foreground:    0 0% 100%;
+    --destructive:          0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border:               0 0% 100% / 0.10;
+    --input:                0 0% 100% / 0.05;
+    --ring:                 263 69% 57%;
+    --radius:               0.75rem;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  overflow-x: hidden;
+  width: 100%;
+}
+
+body {
+  margin: 0;
+  width: 100%;
+  overflow-x: hidden;
+  background: #1a1528;
+  color: #ede8f5;
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 10% 0%, rgba(139, 92, 246, 0.22) 0%, transparent 50%),
+    radial-gradient(ellipse at 90% 5%, rgba(245, 158, 11, 0.10) 0%, transparent 40%),
+    radial-gradient(ellipse at 50% 100%, rgba(109, 40, 217, 0.14) 0%, transparent 55%);
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #231d3a;
+}
+::-webkit-scrollbar-thumb {
+  background: #2d2750;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #8b5cf6;
+}
