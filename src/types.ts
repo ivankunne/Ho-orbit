@@ -1,5 +1,5 @@
 /**
- * Ho-orbit Domain Types
+ * h-orbit Domain Types
  *
  * Central source of truth for all entity types in the application.
  * Resolves three key inconsistencies found in the codebase:

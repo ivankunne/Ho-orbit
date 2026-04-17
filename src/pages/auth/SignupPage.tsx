@@ -73,7 +73,7 @@ export default function SignupPage() {
         <div className="absolute inset-0 bg-gradient-to-r from-[#1a1528]/10 via-[#1a1528]/40 to-[#1a1528]" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#1a1528] via-transparent to-transparent" />
         <div className="absolute bottom-16 left-10 right-10">
-          <p className="text-violet-400 text-xs font-bold uppercase tracking-widest mb-3">Word lid van Ho-orbit</p>
+          <p className="text-violet-400 text-xs font-bold uppercase tracking-widest mb-3">Word lid van h-orbit</p>
           <h2 className="text-white text-2xl font-bold leading-tight mb-4">
             De plek voor Nederlandse muziek, artiesten en fans.
           </h2>
@@ -98,7 +98,7 @@ export default function SignupPage() {
             <div className="w-10 h-10 rounded-xl bg-violet-600 flex items-center justify-center">
               <Music size={22} className="text-white" />
             </div>
-            <span className="font-bold text-2xl text-white tracking-tight">Ho-orbit</span>
+            <span className="font-bold text-2xl text-white tracking-tight">h-orbit</span>
           </Link>
         </div>
 
@@ -278,7 +278,7 @@ export default function SignupPage() {
                   className="mt-0.5 shrink-0"
                 />
                 <span className="text-sm text-slate-300 leading-relaxed">
-                  Ik ga akkoord met de <span className="text-violet-400 cursor-pointer hover:underline">gebruiksvoorwaarden</span> en het <span className="text-violet-400 cursor-pointer hover:underline">privacybeleid</span> van Ho-orbit.
+                  Ik ga akkoord met de <span className="text-violet-400 cursor-pointer hover:underline">gebruiksvoorwaarden</span> en het <span className="text-violet-400 cursor-pointer hover:underline">privacybeleid</span> van h-orbit.
                 </span>
               </label>
               {errors.agreeTerms && <p className="text-red-400 text-xs -mt-3">{errors.agreeTerms}</p>}

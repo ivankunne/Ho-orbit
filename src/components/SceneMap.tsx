@@ -205,14 +205,14 @@ export default function SceneMap() {
   const showCities = zoom < 10;
 
   return (
-    <div className="relative rounded-2xl overflow-hidden border border-white/10" style={{ height: '520px' }}>
+    <div className="relative rounded-2xl overflow-hidden border border-white/10 scene-map-wrapper" style={{ height: '520px' }}>
       {/* Zoom hint */}
-      <div className="absolute top-3 left-3 z-[1000] bg-[#231d3a]/90 backdrop-blur-sm border border-white/10 text-xs text-slate-400 px-3 py-2 rounded-lg pointer-events-none">
+      <div className="absolute top-3 left-3 z-10 bg-[#231d3a]/90 backdrop-blur-sm border border-white/10 text-xs text-slate-400 px-3 py-2 rounded-lg pointer-events-none">
         {showVenues ? '🎵 Klik op een podium voor meer info' : '🔍 Klik op een stad om in te zoomen'}
       </div>
 
       {/* Legenda */}
-      <div className="absolute bottom-3 right-3 z-[1000] bg-[#231d3a]/90 backdrop-blur-sm border border-white/10 rounded-xl p-3">
+      <div className="absolute bottom-3 right-3 z-10 bg-[#231d3a]/90 backdrop-blur-sm border border-white/10 rounded-xl p-3">
         <p className="text-xs text-slate-400 font-semibold mb-2 uppercase tracking-wider">Legenda</p>
         {showCities ? (
           <div className="space-y-1.5">
@@ -308,8 +308,28 @@ export default function SceneMap() {
         ))}
       </MapContainer>
 
-      {/* Leaflet popup stijloverschrijving */}
       <style>{`
+        .scene-map-wrapper {
+          position: relative;
+          z-index: 0;
+        }
+        .scene-map-wrapper .leaflet-pane,
+        .scene-map-wrapper .leaflet-top,
+        .scene-map-wrapper .leaflet-bottom,
+        .scene-map-wrapper .leaflet-control {
+          z-index: auto !important;
+        }
+        .scene-map-wrapper .leaflet-map-pane {
+          z-index: 0 !important;
+        }
+        .scene-map-wrapper .leaflet-tile-pane { z-index: 1 !important; }
+        .scene-map-wrapper .leaflet-overlay-pane { z-index: 2 !important; }
+        .scene-map-wrapper .leaflet-shadow-pane { z-index: 3 !important; }
+        .scene-map-wrapper .leaflet-marker-pane { z-index: 4 !important; }
+        .scene-map-wrapper .leaflet-tooltip-pane { z-index: 5 !important; }
+        .scene-map-wrapper .leaflet-popup-pane { z-index: 6 !important; }
+        .scene-map-wrapper .leaflet-top,
+        .scene-map-wrapper .leaflet-bottom { z-index: 7 !important; }
         .leaflet-popup-content-wrapper {
           background: transparent !important;
           box-shadow: none !important;

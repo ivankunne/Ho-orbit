@@ -1,5 +1,5 @@
 /**
- * Centralized API client for Ho-orbit.
+ * Centralized API client for h-orbit.
  *
  * Currently all service functions use localStorage mock data.
  * When the backend is ready, services swap their implementation

@@ -78,7 +78,7 @@ export default function OnboardingPage() {
           <div className="w-9 h-9 rounded-xl bg-violet-600 flex items-center justify-center">
             <Music size={20} className="text-white" />
           </div>
-          <span className="font-bold text-xl text-white">Ho-orbit</span>
+          <span className="font-bold text-xl text-white">h-orbit</span>
         </div>
 
         {/* Progress */}
@@ -241,7 +241,7 @@ export default function OnboardingPage() {
             {step < steps.length - 1 ? (
               <><span>Volgende</span> <ArrowRight size={16} /></>
             ) : (
-              <><Check size={16} /> <span>Ho-orbit verkennen</span></>
+              <><Check size={16} /> <span>h-orbit verkennen</span></>
             )}
           </button>
         </div>

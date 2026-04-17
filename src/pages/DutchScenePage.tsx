@@ -126,7 +126,7 @@ export default function DutchScenePage() {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <Music size={18} className="text-violet-400" />
-            <h2 className="text-xl font-bold text-white">Dutch Artists on Ho-orbit</h2>
+            <h2 className="text-xl font-bold text-white">Dutch Artists on h-orbit</h2>
           </div>
           <Link to="/artists" className="text-sm text-violet-400 hover:text-violet-300 transition-colors">
             View all →

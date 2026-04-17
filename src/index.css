@@ -105,3 +105,23 @@ body::before {
 ::-webkit-scrollbar-thumb:hover {
   background: #8b5cf6;
 }
+
+/* Landing page bento grid */
+@media (min-width: 768px) {
+  .landing-grid {
+    grid-template-areas:
+      "a a b c"
+      "a a d e"
+      "f f g h";
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+  }
+  .landing-tile-a { grid-area: a; }
+  .landing-tile-b { grid-area: b; }
+  .landing-tile-c { grid-area: c; }
+  .landing-tile-d { grid-area: d; }
+  .landing-tile-e { grid-area: e; }
+  .landing-tile-f { grid-area: f; }
+  .landing-tile-g { grid-area: g; }
+  .landing-tile-h { grid-area: h; }
+}

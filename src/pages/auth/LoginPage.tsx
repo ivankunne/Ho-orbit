@@ -37,7 +37,7 @@ export default function LoginPage() {
           <blockquote className="text-white text-2xl font-light leading-relaxed italic mb-4">
             "Nederlandse muziek op één plek."
           </blockquote>
-          <p className="text-violet-400 font-medium">Ho-orbit · Jouw muziekplatform</p>
+          <p className="text-violet-400 font-medium">h-orbit · Jouw muziekplatform</p>
         </div>
 
         {/* Drijvende muziekkaartjes decoratie */}
@@ -77,13 +77,13 @@ export default function LoginPage() {
             <div className="w-10 h-10 rounded-xl bg-violet-600 flex items-center justify-center">
               <Music size={22} className="text-white" />
             </div>
-            <span className="font-bold text-2xl text-white tracking-tight">Ho-orbit</span>
+            <span className="font-bold text-2xl text-white tracking-tight">h-orbit</span>
           </Link>
         </div>
 
         <div className="max-w-sm w-full">
           <h1 className="text-3xl font-bold text-white mb-2">Welkom terug</h1>
-          <p className="text-slate-400 mb-8">Log in op je Ho-orbit account</p>
+          <p className="text-slate-400 mb-8">Log in op je h-orbit account</p>
 
           {/* Foutmelding */}
           {error && (

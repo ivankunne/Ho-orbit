@@ -111,7 +111,7 @@ export default function ArtistDetailPage() {
               onClick={async () => {
                 const result = await shareContent({
                   title: artist.name,
-                  text: `Ontdek ${artist.name} op Ho-orbit`,
+                  text: `Ontdek ${artist.name} op h-orbit`,
                   url: buildShareUrl(`/artists/${artist.id}`),
                 });
                 if (result === 'copied') addToast('Link gekopieerd naar klembord!', 'success');

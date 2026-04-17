@@ -38,7 +38,7 @@ export default function ProfilePage() {
     displayName: username || currentUser?.displayName,
     avatar: `https://picsum.photos/seed/${username}/200/200`,
     banner: `https://picsum.photos/seed/${username}-banner/1200/400`,
-    bio: 'Muziekliefhebber en actief lid van de Ho-orbit gemeenschap.',
+    bio: 'Muziekliefhebber en actief lid van de h-orbit gemeenschap.',
     location: 'Nederland',
     role: 'Luisteraar',
     verified: false,

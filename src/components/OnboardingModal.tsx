@@ -63,10 +63,10 @@ export default function OnboardingModal({ open, onOpenChange, onComplete }) {
               <div className="w-8 h-8 bg-violet-600 rounded-lg flex items-center justify-center">
                 <Music size={16} className="text-white" />
               </div>
-              <DialogTitle>Ho-orbit</DialogTitle>
+              <DialogTitle>h-orbit</DialogTitle>
             </div>
           </DialogHeader>
-          <p className="text-slate-400 text-sm mb-4">Vertel ons wat je leuk vindt zodat we Ho-orbit voor jou kunnen personaliseren.</p>
+          <p className="text-slate-400 text-sm mb-4">Vertel ons wat je leuk vindt zodat we h-orbit voor jou kunnen personaliseren.</p>
 
           {/* Step indicators */}
           <div className="flex items-center gap-2">
@@ -112,7 +112,7 @@ export default function OnboardingModal({ open, onOpenChange, onComplete }) {
 
           {step === 1 && (
             <div>
-              <p className="text-sm font-medium text-slate-300 mb-4">Hoe gebruik jij Ho-orbit?</p>
+              <p className="text-sm font-medium text-slate-300 mb-4">Hoe gebruik jij h-orbit?</p>
               <div className="space-y-2">
                 {ROLES.map(r => {
                   const Icon = r.icon;
@@ -199,7 +199,7 @@ export default function OnboardingModal({ open, onOpenChange, onComplete }) {
               onClick={handleFinish}
               className="flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white font-semibold px-6 py-2.5 rounded-xl transition-colors"
             >
-              <Check size={16} /> Ho-orbit starten
+              <Check size={16} /> h-orbit starten
             </button>
           )}
         </div>

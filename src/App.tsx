@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useMatch } from 'react-router-dom';
 import { useEffect, useState, lazy, Suspense } from 'react';
 import { AuthProvider, useAuth } from '@context/AuthContext';
 import { AppStateProvider, useAppState } from '@context/AppStateContext';
@@ -54,6 +54,8 @@ const NotFoundPage = lazy(() => import('@pages/NotFoundPage'));
 const LoginPage = lazy(() => import('@pages/auth/LoginPage'));
 const SignupPage = lazy(() => import('@pages/auth/SignupPage'));
 const OnboardingPage = lazy(() => import('@pages/OnboardingPage'));
+const LandingPage = lazy(() => import('@pages/LandingPage'));
+// const HubPage = lazy(() => import('@pages/HubPage')); // Hidden for now
 
 function PageLoader() {
   return (
@@ -121,6 +123,7 @@ function ProtectedApp() {
   const { user } = useAuth();
   const [showSearch, setShowSearch] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const isLanding = !!useMatch('/');
 
   if (!user) {
     return (
@@ -148,12 +151,13 @@ function ProtectedApp() {
         onOpenSearch={() => setShowSearch(true)}
         onToggleShortcutsModal={() => setShowShortcuts(v => !v)}
       />
-      <Navbar externalShowSearch={showSearch} onExternalSearchClose={() => setShowSearch(false)} />
-      <main className="pb-28 lg:pb-20">
+      {!isLanding && <Navbar externalShowSearch={showSearch} onExternalSearchClose={() => setShowSearch(false)} />}
+      <main className={isLanding ? '' : 'pb-28 lg:pb-20'}>
         <ErrorBoundary>
           <Suspense fallback={<PageLoader />}>
             <Routes>
-              <Route path="/" element={<HomePage />} />
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/muziek" element={<HomePage />} />
               <Route path="/artists" element={<ArtistsPage />} />
               <Route path="/artists/:id" element={<ArtistDetailPage />} />
               <Route path="/upload" element={<UploadPage />} />
@@ -167,6 +171,7 @@ function ProtectedApp() {
               <Route path="/venue/:id" element={<VenueDetailPage />} />
               <Route path="/forums" element={<ForumsPage />} />
               <Route path="/forums/thread/:threadId" element={<ForumThreadPage />} />
+              {/* <Route path="/hub" element={<HubPage />} /> */}
               <Route path="/events" element={<EventsPage />} />
               <Route path="/events/:id" element={<EventDetailPage />} />
               <Route path="/profiel" element={<ProfilePage />} />
@@ -180,13 +185,13 @@ function ProtectedApp() {
           </Suspense>
         </ErrorBoundary>
       </main>
-      <MusicPlayer />
-      <MobileBottomNav />
+      {!isLanding && <MusicPlayer />}
+      {!isLanding && <MobileBottomNav />}
 
       {/* Floating ? badge — desktop only */}
       <button
         onClick={() => setShowShortcuts(true)}
-        className="fixed bottom-24 right-5 z-50 hidden lg:flex items-center justify-center w-8 h-8 rounded-full bg-white/8 border border-white/15 text-slate-400 hover:text-white hover:bg-white/15 transition-colors text-sm font-bold"
+        className={`fixed bottom-24 right-5 z-50 items-center justify-center w-8 h-8 rounded-full bg-white/8 border border-white/15 text-slate-400 hover:text-white hover:bg-white/15 transition-colors text-sm font-bold ${isLanding ? 'hidden' : 'hidden lg:flex'}`}
         title="Sneltoetsen tonen (?)"
       >
         ?

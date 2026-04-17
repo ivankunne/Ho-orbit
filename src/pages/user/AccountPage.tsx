@@ -250,7 +250,7 @@ function MeldingenSection({ user, updateProfile }) {
     { label: 'Evenementherinneringen', desc: 'Herinnering 24 uur voor aangemelde evenementen' },
     { label: 'Nieuwe berichten in forums', desc: 'Reacties in discussions die je volgt' },
     { label: 'Aanbevelingen', desc: 'Gepersonaliseerde muziekaanbevelingen' },
-    { label: 'Nieuwsbrief', desc: 'Wekelijkse Ho-orbit nieuwsbrief' },
+    { label: 'Nieuwsbrief', desc: 'Wekelijkse h-orbit nieuwsbrief' },
   ];
 
   const handleSave = () => {

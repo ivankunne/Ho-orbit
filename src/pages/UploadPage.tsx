@@ -109,7 +109,7 @@ export default function UploadPage() {
         <p className="text-slate-400 mb-2">
           <span className="text-white font-medium">"{form.title || trackFile?.name || 'Je nummer'}"</span> is ingediend voor beoordeling.
         </p>
-        <p className="text-slate-500 text-sm mb-8">Het staat binnen enkele minuten live op Ho-orbit na onze geautomatiseerde moderatiecontrole.</p>
+        <p className="text-slate-500 text-sm mb-8">Het staat binnen enkele minuten live op h-orbit na onze geautomatiseerde moderatiecontrole.</p>
         <div className="flex justify-center gap-3">
           <Button onClick={handleReset}>
             Nog een uploaden
@@ -126,7 +126,7 @@ export default function UploadPage() {
     <div className="max-w-3xl mx-auto px-4 lg:px-6 py-10">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-white mb-2">Muziek uploaden</h1>
-        <p className="text-slate-400">Deel je muziek met de Ho-orbit gemeenschap</p>
+        <p className="text-slate-400">Deel je muziek met de h-orbit gemeenschap</p>
       </div>
 
       <div className="space-y-6">

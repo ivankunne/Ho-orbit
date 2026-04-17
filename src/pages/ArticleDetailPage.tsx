@@ -23,7 +23,7 @@ const BODY = {
   ],
   default: [
     "Dit is een uitgebreid artikel over een onderwerp dat diep verbonden is met de Nederlandse muziekscene. De auteur neemt je mee op een reis langs de mensen, plekken en klanken die ons muzikale landschap vormgeven.",
-    "Van de clubcircuits in Amsterdam tot de underground scenes in Tilburg en Groningen — overal bruist het van creativiteit. Artiesten vinden elkaar buiten de traditionele kanalen, dankzij platforms als Ho-orbit.",
+    "Van de clubcircuits in Amsterdam tot de underground scenes in Tilburg en Groningen — overal bruist het van creativiteit. Artiesten vinden elkaar buiten de traditionele kanalen, dankzij platforms als h-orbit.",
     "\"Het is een bijzonder moment voor Nederlandse muziek,\" zegt één van onze gesprekspartners. \"We exporteren niet alleen klanken, we exporteren een houding — eigenzinnig, direct, zonder toeters en bellen.\"",
     "De cijfers bevestigen het gevoel. Streamingdata laat zien dat Nederlandstalige muziek de afgelopen drie jaar met meer dan 40 procent is gegroeid buiten Nederland. Belgen en Zuid-Afrikanen zijn de grootste nieuwe afnemers.",
     "Het verhaal van de Nederlandse muziek is verre van af. Dit artikel is één hoofdstuk — en de volgende wordt al geschreven in de repetitieruimtes, thuisstudio's en podia van het land.",
@@ -159,7 +159,7 @@ export default function ArticleDetailPage() {
               </div>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Schrijft over de Nederlandse muziekscene voor Ho-orbit Magazine. Gespecialiseerd in {article.category.toLowerCase()} en live-verslaggeving.
+              Schrijft over de Nederlandse muziekscene voor h-orbit Magazine. Gespecialiseerd in {article.category.toLowerCase()} en live-verslaggeving.
             </p>
           </div>
 

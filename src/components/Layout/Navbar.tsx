@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   Music, Search, Bell, ChevronDown, Menu, X,
   Upload, Home, Users, BookOpen, FileText, Globe, MessageSquare,
-  Calendar, User, Settings, LogOut, Library, Sun, Moon
+  Calendar, User, Settings, LogOut, Library, Sun, Moon, Zap
 } from 'lucide-react';
 import { useState as useThemeState } from 'react';
 import { getTheme, toggleTheme } from '@utils/theme';
@@ -12,13 +12,14 @@ import SearchOverlay from '../SearchOverlay';
 import NotificationsPanel, { useNotificationCount } from '../NotificationsPanel';
 
 const navItems = [
-  { label: 'Ontdekken', path: '/', icon: Home },
+  { label: 'Muziek', path: '/muziek', icon: Home },
   { label: 'Artiesten', path: '/artists', icon: Users },
   { label: 'Evenementen', path: '/events', icon: Calendar },
   { label: 'Magazine', path: '/magazine', icon: FileText },
   { label: 'Tutorials', path: '/tutorials', icon: BookOpen },
   { label: 'Nederlandse Scene', path: '/dutch-scene', icon: Globe },
   { label: 'Forums', path: '/forums', icon: MessageSquare },
+  // { label: 'Musician Network', path: '/hub', icon: Zap }, // Hidden for now
 ];
 
 export default function Navbar({ externalShowSearch = false, onExternalSearchClose }) {
@@ -51,11 +52,11 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
       <div className="max-w-7xl mx-auto px-4 lg:px-6">
         <div className="flex items-center h-16 gap-4">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 shrink-0">
+          <Link to="/muziek" className="flex items-center gap-2 shrink-0">
             <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center">
               <Music size={18} className="text-white" />
             </div>
-            <span className="font-bold text-xl text-white tracking-tight">Ho-orbit</span>
+            <span className="font-bold text-xl text-white tracking-tight">h-orbit</span>
           </Link>
 
           {/* Desktop Nav */}
