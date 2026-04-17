@@ -76,8 +76,8 @@ export default function UploadPage() {
             if (user?.id) {
               addNotification(user.id, {
                 type: 'system',
-                title: 'Upload succesvol',
-                body: `"${track.title}" is toegevoegd aan jouw profiel`,
+                title: 'Upload ontvangen',
+                body: `"${track.title}" is ingediend en wacht op goedkeuring`,
                 link: '/profiel',
               });
             }
@@ -105,11 +105,11 @@ export default function UploadPage() {
         <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
           <CheckCircle size={40} className="text-green-400" />
         </div>
-        <h2 className="text-2xl font-bold text-white mb-3">Nummer geüpload!</h2>
+        <h2 className="text-2xl font-bold text-white mb-3">Upload ontvangen!</h2>
         <p className="text-slate-400 mb-2">
           <span className="text-white font-medium">"{form.title || trackFile?.name || 'Je nummer'}"</span> is ingediend voor beoordeling.
         </p>
-        <p className="text-slate-500 text-sm mb-8">Het staat binnen enkele minuten live op h-orbit na onze geautomatiseerde moderatiecontrole.</p>
+        <p className="text-slate-500 text-sm mb-8">Ons team bekijkt je upload zo snel mogelijk. Je ontvangt een melding zodra het is goedgekeurd.</p>
         <div className="flex justify-center gap-3">
           <Button onClick={handleReset}>
             Nog een uploaden

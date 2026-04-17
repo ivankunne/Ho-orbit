@@ -55,7 +55,8 @@ const LoginPage = lazy(() => import('@pages/auth/LoginPage'));
 const SignupPage = lazy(() => import('@pages/auth/SignupPage'));
 const OnboardingPage = lazy(() => import('@pages/OnboardingPage'));
 const LandingPage = lazy(() => import('@pages/LandingPage'));
-// const HubPage = lazy(() => import('@pages/HubPage')); // Hidden for now
+const HubPage = lazy(() => import('@pages/HubPage'));
+const AdminPage = lazy(() => import('@pages/AdminPage'));
 
 function PageLoader() {
   return (
@@ -171,7 +172,8 @@ function ProtectedApp() {
               <Route path="/venue/:id" element={<VenueDetailPage />} />
               <Route path="/forums" element={<ForumsPage />} />
               <Route path="/forums/thread/:threadId" element={<ForumThreadPage />} />
-              {/* <Route path="/hub" element={<HubPage />} /> */}
+              <Route path="/hub" element={<HubPage />} />
+              <Route path="/admin" element={user?.isAdmin ? <AdminPage /> : <Navigate to="/" replace />} />
               <Route path="/events" element={<EventsPage />} />
               <Route path="/events/:id" element={<EventDetailPage />} />
               <Route path="/profiel" element={<ProfilePage />} />

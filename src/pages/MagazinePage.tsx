@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Clock, User, ChevronRight } from 'lucide-react';
 import { articles } from '@data/mockData';
 import BlurImage from '@components/BlurImage';
@@ -70,9 +70,12 @@ function ArticleCard({ article, featured = false }) {
 const PAGE_SIZE = 6;
 
 export default function MagazinePage() {
-  const [activeCategory, setActiveCategory] = useState('Alles');
+  const [searchParams] = useSearchParams();
+  const catParam = searchParams.get('cat');
+  const [activeCategory, setActiveCategory] = useState(catParam || 'Alles');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   useEffect(() => setVisibleCount(PAGE_SIZE), [activeCategory]);
+  useEffect(() => { if (catParam) setActiveCategory(catParam); }, [catParam]);
 
   const filtered = activeCategory === 'Alles'
     ? articles
