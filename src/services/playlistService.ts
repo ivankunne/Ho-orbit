@@ -1,5 +1,4 @@
 import { supabase } from '@/lib/supabase';
-import { tracks } from '@data/mockData.js';
 
 export async function getPlaylists(userId: string) {
   const { data } = await supabase
@@ -71,6 +70,9 @@ export async function reorderPlaylistTracks(userId: string, playlistId: string |
   return getPlaylists(userId);
 }
 
-export function resolveTrackObjects(trackIds: (number | string)[]) {
-  return trackIds.map((id) => tracks.find((t) => t.id === id)).filter(Boolean);
+export async function resolveTrackObjects(trackIds: (number | string)[]) {
+  if (!trackIds.length) return [];
+  const { data } = await supabase.from('tracks').select('*').in('id', trackIds);
+  const map = new Map((data ?? []).map(t => [String(t.id), t]));
+  return trackIds.map(id => map.get(String(id))).filter(Boolean);
 }

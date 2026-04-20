@@ -1,6 +1,5 @@
-import { tracks } from '@data/mockData.js';
+import { supabase } from '@/lib/supabase';
 
-// Royalty-free demo audio URLs (SoundHelix)
 const DEMO_URLS = [
   'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
   'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
@@ -8,18 +7,18 @@ const DEMO_URLS = [
   'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3',
 ];
 
-// TODO: replace with → stream from CDN or API endpoint per track ID
 export async function getStreamUrl(trackId) {
   const index = (trackId - 1) % DEMO_URLS.length;
   return DEMO_URLS[index];
 }
 
-// TODO: replace with → api.get('/queue') or user-defined queue from backend
 export async function getQueue(trackIds) {
-  return tracks.filter(t => trackIds.includes(t.id));
+  if (!trackIds.length) return [];
+  const { data } = await supabase.from('tracks').select('*').in('id', trackIds);
+  return data ?? [];
 }
 
-// TODO: replace with → api.get('/tracks')
 export async function getAllTracks() {
-  return tracks;
+  const { data } = await supabase.from('tracks').select('*');
+  return data ?? [];
 }

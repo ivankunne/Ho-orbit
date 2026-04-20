@@ -1,17 +1,16 @@
 import { supabase } from '@/lib/supabase';
-import { tracks as allTracks } from '@data/mockData.js';
 
 export async function getHistory(userId: string) {
   const { data } = await supabase
     .from('play_history')
-    .select('track_id, played_at')
+    .select('track_id, played_at, tracks(*)')
     .eq('user_id', userId)
     .order('played_at', { ascending: false })
     .limit(50);
   if (!data) return [];
   return data
-    .map((e) => ({ trackId: e.track_id, playedAt: e.played_at, track: allTracks.find((t) => t.id === e.track_id) }))
-    .filter((e) => e.track);
+    .filter((e) => e.tracks)
+    .map((e) => ({ trackId: e.track_id, playedAt: e.played_at, track: e.tracks }));
 }
 
 export async function addToHistory(userId: string, trackId: number) {
