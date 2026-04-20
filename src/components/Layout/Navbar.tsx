@@ -235,6 +235,15 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
               <Search size={18} />
             </button>
 
+            {/* Uploadknop — altijd zichtbaar, route vereist login */}
+            <Link
+              to="/upload"
+              className="hidden sm:flex items-center gap-1.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors"
+            >
+              <Upload size={14} />
+              Uploaden
+            </Link>
+
             {user ? (
               <>
                 {/* Admin knop */}
@@ -247,15 +256,6 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
                     Admin
                   </Link>
                 )}
-
-                {/* Uploadknop */}
-                <Link
-                  to="/upload"
-                  className="hidden sm:flex items-center gap-1.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors"
-                >
-                  <Upload size={14} />
-                  Uploaden
-                </Link>
 
                 {/* Thema toggle */}
                 <button
