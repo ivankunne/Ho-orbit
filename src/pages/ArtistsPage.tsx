@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, Users, ChevronRight, BadgeCheck, ArrowUpDown } from 'lucide-react';
-import { artists } from '@data/mockData';
+import { supabase } from '@/lib/supabase';
 import { getGenreColor } from '@data/genreColors';
 import EmptyState from '@components/EmptyState';
 import BlurImage from '@components/BlurImage';
@@ -25,24 +25,29 @@ export default function ArtistsPage() {
   const [locationFilter, setLocationFilter] = useState('Alle steden');
   const [genreFilter, setGenreFilter] = useState('Alle genres');
   const [sortBy, setSortBy] = useState('trending');
+  const [artists, setArtists] = useState([]);
+
+  useEffect(() => {
+    supabase.from('artists').select('*').then(({ data }) => setArtists(data ?? []));
+  }, []);
 
   const filtered = useMemo(() =>
     artists.filter(a => {
       const locMatch = locationFilter === 'Alle steden' ||
-        a.location.toLowerCase().includes(locationFilter.toLowerCase());
+        (a.location ?? '').toLowerCase().includes(locationFilter.toLowerCase());
       const genreMatch = genreFilter === 'Alle genres' ||
-        a.genre.toLowerCase().includes(genreFilter.toLowerCase()) ||
-        a.tags.some(t => t.toLowerCase().includes(genreFilter.toLowerCase()));
+        (a.genre ?? '').toLowerCase().includes(genreFilter.toLowerCase()) ||
+        (a.tags ?? []).some(t => t.toLowerCase().includes(genreFilter.toLowerCase()));
       return locMatch && genreMatch;
     }),
-    [locationFilter, genreFilter]
+    [artists, locationFilter, genreFilter]
   );
 
   const sorted = useMemo(() =>
     [...filtered].sort((a, b) => {
-      if (sortBy === 'followers') return b.followers - a.followers;
+      if (sortBy === 'followers') return (b.followers_count ?? 0) - (a.followers_count ?? 0);
       if (sortBy === 'az') return a.name.localeCompare(b.name, 'nl');
-      return b.monthlyListeners - a.monthlyListeners; // trending
+      return (b.monthly_listeners ?? 0) - (a.monthly_listeners ?? 0);
     }),
     [filtered, sortBy]
   );
@@ -58,12 +63,12 @@ export default function ArtistsPage() {
             <span className="text-violet-400 text-xs font-bold uppercase tracking-widest">Uitgelichte artiest</span>
           </div>
           <div className="relative rounded-2xl overflow-hidden h-56 lg:h-72">
-            <BlurImage src={featuredArtist.cover} alt={featuredArtist.name} className="w-full h-full" imgClassName="object-cover" />
+            <BlurImage src={featuredArtist.cover_url} alt={featuredArtist.name} className="w-full h-full" imgClassName="object-cover" />
             <div className="absolute inset-0 bg-gradient-to-r from-[#1a1528] via-[#1a1528]/60 to-transparent" />
             <div className="absolute inset-0 flex items-center px-8 lg:px-12">
               <div className="flex items-center gap-6">
                 <BlurImage
-                  src={featuredArtist.image}
+                  src={featuredArtist.image_url}
                   alt={featuredArtist.name}
                   className="w-20 h-20 lg:w-28 lg:h-28 rounded-full ring-4 ring-violet-500/50 shrink-0"
                   imgClassName="object-cover"
@@ -77,12 +82,12 @@ export default function ArtistsPage() {
                   <p className="text-slate-300 text-sm leading-relaxed max-w-lg line-clamp-2 mb-4">{featuredArtist.bio}</p>
                   <div className="flex items-center gap-4">
                     <div>
-                      <p className="text-lg font-bold text-white">{formatFollowers(featuredArtist.monthlyListeners)}</p>
+                      <p className="text-lg font-bold text-white">{formatFollowers(featuredArtist.monthly_listeners)}</p>
                       <p className="text-xs text-slate-400">Maandelijkse luisteraars</p>
                     </div>
                     <div className="w-px h-8 bg-white/10" />
                     <div>
-                      <p className="text-lg font-bold text-white">{formatFollowers(featuredArtist.followers)}</p>
+                      <p className="text-lg font-bold text-white">{formatFollowers(featuredArtist.followers_count)}</p>
                       <p className="text-xs text-slate-400">Volgers</p>
                     </div>
                     <Link
@@ -172,7 +177,7 @@ export default function ArtistsPage() {
             >
               <div className="relative h-48 overflow-hidden">
                 <BlurImage
-                  src={artist.cover}
+                  src={artist.cover_url}
                   alt={artist.name}
                   className="w-full h-full"
                   imgClassName="object-cover group-hover:scale-105 transition-transform duration-300"
@@ -182,7 +187,7 @@ export default function ArtistsPage() {
               <div className="relative px-4 pb-4">
                 <div className="-mt-8 mb-3">
                   <BlurImage
-                    src={artist.image}
+                    src={artist.image_url}
                     alt={artist.name}
                     className="w-16 h-16 rounded-full ring-3 ring-[#231d3a]"
                     imgClassName="object-cover"
@@ -201,10 +206,10 @@ export default function ArtistsPage() {
                   <MapPin size={11} />{artist.location}
                 </div>
                 <div className="flex items-center gap-1 mt-1 text-xs text-slate-500">
-                  <Users size={11} />{formatFollowers(artist.followers)} volgers
+                  <Users size={11} />{formatFollowers(artist.followers_count)} volgers
                 </div>
                 <div className="flex gap-1.5 mt-3 flex-wrap">
-                  {artist.tags.slice(0, 3).map(tag => (
+                  {(artist.tags ?? []).slice(0, 3).map(tag => (
                     <span key={tag} className="text-xs bg-white/8 text-slate-300 px-2 py-0.5 rounded-full">{tag}</span>
                   ))}
                 </div>

@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useCallback } from 'react';
+import { useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Play, Pause, SkipBack, SkipForward, Heart, Volume2,
   Shuffle, Repeat, Repeat1, ChevronDown, ListMusic, Mic2
 } from 'lucide-react';
 import { usePlayer, usePlayerProgress } from '@context/PlayerContext';
-import { tracks as allTracks } from '@data/mockData';
 import { useState } from 'react';
 import { getWaveform, EqBars } from '@components/Waveform';
 
@@ -28,15 +27,6 @@ export default function MusicPlayer() {
 
   const [expanded, setExpanded] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
-
-  // Seed queue with all tracks on first load so the player bar is always visible
-  useEffect(() => {
-    if (queue.length === 0 && allTracks.length > 0) {
-      playTrack(allTracks[0], allTracks);
-      // Don't auto-play — just load the queue silently
-      setTimeout(() => setIsPlaying(false), 0);
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
   const waveformBars = useMemo(() => getWaveform(currentIndex + 1, 60, 'player'), [currentIndex]);
@@ -97,7 +87,7 @@ export default function MusicPlayer() {
                       onClick={() => playTrack(t)}
                       className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 cursor-pointer transition-colors group"
                     >
-                      <img src={t.cover} alt={t.title} className="w-9 h-9 rounded-lg object-cover" />
+                      <img src={t.cover_url} alt={t.title} className="w-9 h-9 rounded-lg object-cover" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-white font-medium truncate group-hover:text-violet-300 transition-colors">{t.title}</p>
                         <p className="text-xs text-slate-500 truncate">{t.artist}</p>
@@ -113,7 +103,7 @@ export default function MusicPlayer() {
             ) : (
               <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
                 <img
-                  src={track.cover}
+                  src={track.cover_url}
                   alt={track.title}
                   className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl object-cover shadow-2xl shadow-black/60 shrink-0 mx-auto sm:mx-0"
                 />
@@ -190,7 +180,7 @@ export default function MusicPlayer() {
             onClick={() => setExpanded(e => !e)}
           >
             <div className="relative shrink-0">
-              <img src={track.cover} alt={track.title} className="w-10 h-10 rounded-lg object-cover" />
+              <img src={track.cover_url} alt={track.title} className="w-10 h-10 rounded-lg object-cover" />
               {isPlaying && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg">
                   <EqBars playing={isPlaying} />

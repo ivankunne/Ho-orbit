@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { MessageSquare, Sliders, Users, Calendar, Coffee, Pin, ChevronLeft, X, Send } from 'lucide-react';
-import { forumCategories, forumThreads } from '@data/mockData';
+import { getCategories, getThreadsByCategory, createThread } from '@services/forumService';
 import { useAuth } from '@context/AuthContext';
 import { useToast } from '@components/Toast';
 
@@ -22,23 +22,25 @@ function CategoryCard({ cat, onClick }) {
       className="group bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl p-5 cursor-pointer transition-all hover:-translate-y-0.5"
     >
       <div className="flex items-start gap-4">
-        <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${colorMap[cat.color]}`}>
+        <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${colorMap[cat.color] ?? colorMap.gray}`}>
           <Icon size={20} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-1">
             <h3 className="font-semibold text-white group-hover:text-violet-300 transition-colors">{cat.name}</h3>
             <div className="flex items-center gap-3 text-xs text-slate-500">
-              <span>{cat.threadCount} discussies</span>
-              <span>{cat.postCount} reacties</span>
+              <span>{cat.thread_count ?? 0} discussies</span>
+              <span>{cat.post_count ?? 0} reacties</span>
             </div>
           </div>
           <p className="text-sm text-slate-400 mb-3">{cat.description}</p>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500">Laatste:</span>
-            <span className="text-xs text-slate-300 truncate">{cat.lastPost.threadTitle}</span>
-            <span className="text-xs text-slate-500 shrink-0">· {cat.lastPost.time}</span>
-          </div>
+          {cat.last_post && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500">Laatste:</span>
+              <span className="text-xs text-slate-300 truncate">{cat.last_post.threadTitle}</span>
+              <span className="text-xs text-slate-500 shrink-0">· {cat.last_post.time}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -51,7 +53,7 @@ function ThreadRow({ thread }) {
       to={`/forums/thread/${thread.id}`}
       className="flex items-center gap-4 p-4 bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl transition-colors group"
     >
-      <img src={thread.author.avatar} alt={thread.author.name} className="w-10 h-10 rounded-full object-cover shrink-0" />
+      <img src={thread.author.avatar || `https://picsum.photos/seed/${thread.author.name}/40/40`} alt={thread.author.name} className="w-10 h-10 rounded-full object-cover shrink-0" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           {thread.pinned && <Pin size={12} className="text-violet-400 shrink-0" />}
@@ -60,7 +62,7 @@ function ThreadRow({ thread }) {
         <div className="flex items-center gap-3 text-xs text-slate-500">
           <span>door {thread.author.name}</span>
           <span>· {thread.createdAt}</span>
-          {thread.tags.map(tag => (
+          {(thread.tags ?? []).map(tag => (
             <span key={tag} className="bg-white/6 text-slate-400 px-1.5 py-0.5 rounded hidden sm:inline">{tag}</span>
           ))}
         </div>
@@ -70,8 +72,8 @@ function ThreadRow({ thread }) {
         <p className="text-xs text-slate-500">reacties</p>
       </div>
       <div className="text-right shrink-0 hidden sm:block">
-        <p className="text-xs text-slate-500">{thread.lastPost.user}</p>
-        <p className="text-xs text-slate-600">{thread.lastPost.time}</p>
+        <p className="text-xs text-slate-500">{thread.lastPost?.user}</p>
+        <p className="text-xs text-slate-600">{thread.lastPost?.time}</p>
       </div>
     </Link>
   );
@@ -113,7 +115,6 @@ function NewThreadModal({ defaultCategory, categories, onSubmit, onClose }) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          {/* Category */}
           <div>
             <label className="block text-xs font-medium text-slate-400 mb-1.5">Categorie</label>
             <select
@@ -127,7 +128,6 @@ function NewThreadModal({ defaultCategory, categories, onSubmit, onClose }) {
             </select>
           </div>
 
-          {/* Title */}
           <div>
             <label className="block text-xs font-medium text-slate-400 mb-1.5">Titel *</label>
             <input
@@ -140,7 +140,6 @@ function NewThreadModal({ defaultCategory, categories, onSubmit, onClose }) {
             />
           </div>
 
-          {/* Body */}
           <div>
             <label className="block text-xs font-medium text-slate-400 mb-1.5">Bericht *</label>
             <textarea
@@ -152,7 +151,6 @@ function NewThreadModal({ defaultCategory, categories, onSubmit, onClose }) {
             />
           </div>
 
-          {/* Tags */}
           <div>
             <label className="block text-xs font-medium text-slate-400 mb-1.5">Labels (max 3)</label>
             <div className="flex gap-2">
@@ -203,8 +201,8 @@ function NewThreadModal({ defaultCategory, categories, onSubmit, onClose }) {
   );
 }
 
-function ThreadList({ category, allCategories, onBack, localThreads, onNewThread }) {
-  const threads = [...localThreads, ...forumThreads].filter(t => t.categoryId === category.id);
+function ThreadList({ category, onBack, dbThreads, localThreads, onNewThread }) {
+  const threads = [...localThreads, ...dbThreads].filter(t => t.categoryId === category.id);
 
   return (
     <div>
@@ -241,37 +239,39 @@ export default function ForumsPage() {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [showNewThread, setShowNewThread] = useState(false);
   const [newThreadCategory, setNewThreadCategory] = useState(null);
+  const [categories, setCategories] = useState([]);
+  const [threads, setThreads] = useState([]);
   const [localThreads, setLocalThreads] = useState([]);
+
+  useEffect(() => {
+    getCategories().then(setCategories);
+    getThreadsByCategory().then(setThreads);
+  }, []);
 
   const openNewThread = (cat = null) => {
     setNewThreadCategory(cat);
     setShowNewThread(true);
   };
 
-  const handleSubmitThread = ({ title, body, categoryId, tags }) => {
-    const thread = {
-      id: `local-${Date.now()}`,
-      categoryId,
-      title,
-      body,
-      tags,
-      pinned: false,
-      replies: 0,
-      createdAt: 'zojuist',
-      author: {
-        name: user?.displayName || user?.username || 'Jij',
-        avatar: user?.avatar || 'https://picsum.photos/seed/me/40/40',
-      },
-      lastPost: { user: user?.displayName || 'Jij', time: 'zojuist' },
-    };
-    setLocalThreads(prev => [thread, ...prev]);
-    setShowNewThread(false);
-    addToast('Discussie geplaatst!', 'success');
-
-    // Navigate to that category if not already there
-    const cat = forumCategories.find(c => c.id === categoryId);
-    if (cat) { setSelectedCategory(cat); setView('threads'); }
+  const handleSubmitThread = async ({ title, body, categoryId, tags }) => {
+    if (!user) {
+      addToast('Je moet inloggen om een discussie te starten.', 'error');
+      setShowNewThread(false);
+      return;
+    }
+    try {
+      const newThread = await createThread({ categoryId, title, body, tags, authorId: user.id });
+      setThreads(prev => [newThread, ...prev]);
+      setShowNewThread(false);
+      addToast('Discussie geplaatst!', 'success');
+      const cat = categories.find(c => c.id === categoryId);
+      if (cat) { setSelectedCategory(cat); setView('threads'); }
+    } catch {
+      addToast('Er is iets misgegaan. Probeer het opnieuw.', 'error');
+    }
   };
+
+  const allThreads = [...localThreads, ...threads];
 
   return (
     <div className="max-w-4xl mx-auto px-4 lg:px-6 py-10">
@@ -290,44 +290,49 @@ export default function ForumsPage() {
             </button>
           </div>
 
-          <div className="space-y-3">
-            {forumCategories.map(cat => (
-              <CategoryCard
-                key={cat.id}
-                cat={cat}
-                onClick={(c) => { setSelectedCategory(c); setView('threads'); }}
-              />
-            ))}
-          </div>
-
-          {/* Recente activiteit */}
-          <div className="mt-10">
-            <h2 className="text-lg font-bold text-white mb-4">Recente activiteit</h2>
-            <div className="space-y-2">
-              {[...localThreads, ...forumThreads].map(thread => (
-                <Link
-                  key={thread.id}
-                  to={`/forums/thread/${thread.id}`}
-                  className="flex items-center gap-3 p-3 hover:bg-white/4 rounded-xl transition-colors group"
-                >
-                  <img src={thread.author.avatar} alt={thread.author.name} className="w-8 h-8 rounded-full shrink-0 object-cover" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-white group-hover:text-violet-300 transition-colors truncate">{thread.title}</p>
-                    <p className="text-xs text-slate-500">{thread.author.name} · {thread.lastPost.time}</p>
-                  </div>
-                  <span className="text-xs text-slate-500 shrink-0">{thread.replies} reacties</span>
-                </Link>
+          {categories.length === 0 ? (
+            <p className="text-slate-500 text-sm">Nog geen categorieën beschikbaar.</p>
+          ) : (
+            <div className="space-y-3">
+              {categories.map(cat => (
+                <CategoryCard
+                  key={cat.id}
+                  cat={cat}
+                  onClick={(c) => { setSelectedCategory(c); setView('threads'); }}
+                />
               ))}
             </div>
-          </div>
+          )}
+
+          {allThreads.length > 0 && (
+            <div className="mt-10">
+              <h2 className="text-lg font-bold text-white mb-4">Recente activiteit</h2>
+              <div className="space-y-2">
+                {allThreads.map(thread => (
+                  <Link
+                    key={thread.id}
+                    to={`/forums/thread/${thread.id}`}
+                    className="flex items-center gap-3 p-3 hover:bg-white/4 rounded-xl transition-colors group"
+                  >
+                    <img src={thread.author.avatar || `https://picsum.photos/seed/${thread.author.name}/40/40`} alt={thread.author.name} className="w-8 h-8 rounded-full shrink-0 object-cover" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-white group-hover:text-violet-300 transition-colors truncate">{thread.title}</p>
+                      <p className="text-xs text-slate-500">{thread.author.name} · {thread.lastPost?.time}</p>
+                    </div>
+                    <span className="text-xs text-slate-500 shrink-0">{thread.replies} reacties</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
         </>
       )}
 
       {view === 'threads' && selectedCategory && (
         <ThreadList
           category={selectedCategory}
-          allCategories={forumCategories}
           onBack={() => setView('categories')}
+          dbThreads={threads}
           localThreads={localThreads}
           onNewThread={openNewThread}
         />
@@ -336,7 +341,7 @@ export default function ForumsPage() {
       {showNewThread && (
         <NewThreadModal
           defaultCategory={newThreadCategory}
-          categories={forumCategories}
+          categories={categories}
           onSubmit={handleSubmitThread}
           onClose={() => setShowNewThread(false)}
         />

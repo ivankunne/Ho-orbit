@@ -235,131 +235,151 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
               <Search size={18} />
             </button>
 
-            {/* Admin knop */}
-            {user?.isAdmin && (
-              <Link
-                to="/admin"
-                className="hidden sm:flex items-center gap-1.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors"
-              >
-                <ShieldCheck size={14} />
-                Admin
-              </Link>
-            )}
-
-            {/* Uploadknop */}
-            <Link
-              to="/upload"
-              className="hidden sm:flex items-center gap-1.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors"
-            >
-              <Upload size={14} />
-              Uploaden
-            </Link>
-
-            {/* Thema toggle */}
-            <button
-              onClick={handleToggleTheme}
-              className="hidden md:block p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
-              title={theme === 'dark' ? 'Lichte modus' : 'Donkere modus'}
-            >
-              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
-
-            {/* Meldingen */}
-            <div className="relative">
-              <button
-                onClick={() => setShowNotifications(!showNotifications)}
-                className="relative p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
-              >
-                <Bell size={18} />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-violet-600 rounded-full text-[9px] font-bold text-white flex items-center justify-center px-0.5">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
+            {user ? (
+              <>
+                {/* Admin knop */}
+                {user.isAdmin && (
+                  <Link
+                    to="/admin"
+                    className="hidden sm:flex items-center gap-1.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    <ShieldCheck size={14} />
+                    Admin
+                  </Link>
                 )}
-              </button>
-              {showNotifications && <NotificationsPanel onClose={() => setShowNotifications(false)} />}
-            </div>
 
-            {/* Gebruikersmenu */}
-            <div className="relative">
-              <button
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center gap-2 p-1 rounded-lg hover:bg-white/5 transition-colors"
-              >
-                <img
-                  src={user?.avatar}
-                  alt={user?.displayName}
-                  className="w-8 h-8 rounded-full object-cover ring-2 ring-violet-500/30"
-                />
-                <span className="hidden sm:block text-sm text-slate-300 font-medium">
-                  {user?.displayName?.split(' ')[0] || user?.username}
-                </span>
-                <ChevronDown size={14} className="hidden sm:block text-slate-500" />
-              </button>
+                {/* Uploadknop */}
+                <Link
+                  to="/upload"
+                  className="hidden sm:flex items-center gap-1.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors"
+                >
+                  <Upload size={14} />
+                  Uploaden
+                </Link>
 
-              {userMenuOpen && (
-                <div className="absolute right-0 top-full mt-2 w-56 sm:w-60 max-w-[calc(100vw-1rem)] bg-[#231d3a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
-                  <div className="p-4 border-b border-white/5">
-                    <div className="flex items-center gap-3">
-                      <img src={user?.avatar} alt="" className="w-10 h-10 rounded-full object-cover" />
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-white truncate">{user?.displayName}</p>
-                        <p className="text-xs text-slate-500">@{user?.username}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="p-2">
-                    <Link
-                      to={`/profiel/${user?.username}`}
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-3 w-full px-3 py-2 text-sm text-slate-300 hover:bg-white/5 rounded-lg transition-colors"
-                    >
-                      <User size={15} className="text-slate-500" /> Mijn profiel
-                    </Link>
-                    <Link
-                      to="/account"
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-3 w-full px-3 py-2 text-sm text-slate-300 hover:bg-white/5 rounded-lg transition-colors"
-                    >
-                      <Settings size={15} className="text-slate-500" /> Instellingen
-                    </Link>
-                    <Link
-                      to="/library"
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-3 w-full px-3 py-2 text-sm text-slate-300 hover:bg-white/5 rounded-lg transition-colors"
-                    >
-                      <Library size={15} className="text-slate-500" /> Mijn bibliotheek
-                    </Link>
-                    <Link
-                      to="/upload"
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-3 w-full px-3 py-2 text-sm text-slate-300 hover:bg-white/5 rounded-lg transition-colors"
-                    >
-                      <Upload size={15} className="text-slate-500" /> Muziek uploaden
-                    </Link>
-                    {user?.isAdmin && (
-                      <div className="border-t border-white/5 mt-1 pt-1">
-                        <Link
-                          to="/admin"
-                          onClick={() => setUserMenuOpen(false)}
-                          className="flex items-center gap-3 w-full px-3 py-2 text-sm text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors"
-                        >
-                          <ShieldCheck size={15} /> Admin Panel
-                        </Link>
-                      </div>
+                {/* Thema toggle */}
+                <button
+                  onClick={handleToggleTheme}
+                  className="hidden md:block p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                  title={theme === 'dark' ? 'Lichte modus' : 'Donkere modus'}
+                >
+                  {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                </button>
+
+                {/* Meldingen */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowNotifications(!showNotifications)}
+                    className="relative p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                    <Bell size={18} />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-violet-600 rounded-full text-[9px] font-bold text-white flex items-center justify-center px-0.5">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
                     )}
-                    <div className="border-t border-white/5 mt-1 pt-1">
-                      <button
-                        onClick={handleLogout}
-                        className="flex items-center gap-3 w-full px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                      >
-                        <LogOut size={15} /> Uitloggen
-                      </button>
-                    </div>
-                  </div>
+                  </button>
+                  {showNotifications && <NotificationsPanel onClose={() => setShowNotifications(false)} />}
                 </div>
-              )}
-            </div>
+
+                {/* Gebruikersmenu */}
+                <div className="relative">
+                  <button
+                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                    className="flex items-center gap-2 p-1 rounded-lg hover:bg-white/5 transition-colors"
+                  >
+                    <img
+                      src={user.avatar}
+                      alt={user.displayName}
+                      className="w-8 h-8 rounded-full object-cover ring-2 ring-violet-500/30"
+                    />
+                    <span className="hidden sm:block text-sm text-slate-300 font-medium">
+                      {user.displayName?.split(' ')[0] || user.username}
+                    </span>
+                    <ChevronDown size={14} className="hidden sm:block text-slate-500" />
+                  </button>
+
+                  {userMenuOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-56 sm:w-60 max-w-[calc(100vw-1rem)] bg-[#231d3a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
+                      <div className="p-4 border-b border-white/5">
+                        <div className="flex items-center gap-3">
+                          <img src={user.avatar} alt="" className="w-10 h-10 rounded-full object-cover" />
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-white truncate">{user.displayName}</p>
+                            <p className="text-xs text-slate-500">@{user.username}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-2">
+                        <Link
+                          to={`/profiel/${user.username}`}
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-3 w-full px-3 py-2 text-sm text-slate-300 hover:bg-white/5 rounded-lg transition-colors"
+                        >
+                          <User size={15} className="text-slate-500" /> Mijn profiel
+                        </Link>
+                        <Link
+                          to="/account"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-3 w-full px-3 py-2 text-sm text-slate-300 hover:bg-white/5 rounded-lg transition-colors"
+                        >
+                          <Settings size={15} className="text-slate-500" /> Instellingen
+                        </Link>
+                        <Link
+                          to="/library"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-3 w-full px-3 py-2 text-sm text-slate-300 hover:bg-white/5 rounded-lg transition-colors"
+                        >
+                          <Library size={15} className="text-slate-500" /> Mijn bibliotheek
+                        </Link>
+                        <Link
+                          to="/upload"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-3 w-full px-3 py-2 text-sm text-slate-300 hover:bg-white/5 rounded-lg transition-colors"
+                        >
+                          <Upload size={15} className="text-slate-500" /> Muziek uploaden
+                        </Link>
+                        {user.isAdmin && (
+                          <div className="border-t border-white/5 mt-1 pt-1">
+                            <Link
+                              to="/admin"
+                              onClick={() => setUserMenuOpen(false)}
+                              className="flex items-center gap-3 w-full px-3 py-2 text-sm text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors"
+                            >
+                              <ShieldCheck size={15} /> Admin Panel
+                            </Link>
+                          </div>
+                        )}
+                        <div className="border-t border-white/5 mt-1 pt-1">
+                          <button
+                            onClick={handleLogout}
+                            className="flex items-center gap-3 w-full px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                          >
+                            <LogOut size={15} /> Uitloggen
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              /* Niet ingelogd: toon login / aanmelden knoppen */
+              <div className="hidden sm:flex items-center gap-2">
+                <Link
+                  to="/login"
+                  className="text-sm font-medium text-slate-400 hover:text-white transition-colors px-3 py-2 rounded-lg hover:bg-white/5"
+                >
+                  Inloggen
+                </Link>
+                <Link
+                  to="/signup"
+                  className="flex items-center gap-1.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all hover:scale-105"
+                >
+                  Aanmelden
+                </Link>
+              </div>
+            )}
 
             {/* Mobiel menu toggle */}
             <button
@@ -463,34 +483,55 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
                 </Link>
               );
             })}
-            <Link
-              to="/profiel"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
-            >
-              <User size={16} /> Mijn profiel
-            </Link>
-            <Link
-              to="/library"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
-            >
-              <Library size={16} /> Mijn bibliotheek
-            </Link>
-            <Link
-              to="/upload"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-violet-600 text-white mt-2"
-            >
-              <Upload size={16} />
-              Muziek uploaden
-            </Link>
-            <button
-              onClick={() => { setMobileMenuOpen(false); logout(); }}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 w-full transition-colors mt-1"
-            >
-              <LogOut size={16} /> Uitloggen
-            </button>
+            {user ? (
+              <>
+                <Link
+                  to="/profiel"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                >
+                  <User size={16} /> Mijn profiel
+                </Link>
+                <Link
+                  to="/library"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                >
+                  <Library size={16} /> Mijn bibliotheek
+                </Link>
+                <Link
+                  to="/upload"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-violet-600 text-white mt-2"
+                >
+                  <Upload size={16} />
+                  Muziek uploaden
+                </Link>
+                <button
+                  onClick={() => { setMobileMenuOpen(false); logout(); }}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 w-full transition-colors mt-1"
+                >
+                  <LogOut size={16} /> Uitloggen
+                </button>
+              </>
+            ) : (
+              <div className="flex flex-col gap-2 mt-2 pt-2 border-t border-white/5">
+                <Link
+                  to="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-center px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 border border-white/10 transition-colors"
+                >
+                  Inloggen
+                </Link>
+                <Link
+                  to="/signup"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-center px-3 py-2.5 rounded-lg text-sm font-semibold bg-violet-600 hover:bg-violet-500 text-white transition-colors"
+                >
+                  Gratis aanmelden
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       )}

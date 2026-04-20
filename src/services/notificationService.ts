@@ -1,52 +1,39 @@
-// Notification types: 'like', 'follow', 'rsvp', 'comment', 'forum_reply', 'system'
+import { supabase } from '@/lib/supabase';
 
-// TODO: replace with → api.get('/notifications?userId=X')
-export async function getNotifications(userId) {
-  try {
-    return JSON.parse(localStorage.getItem(`ho_notifications_${userId}`) || '[]');
-  } catch {
-    return [];
-  }
+export async function getNotifications(userId: string) {
+  const { data } = await supabase
+    .from('notifications')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(50);
+  return data ?? [];
 }
 
-// TODO: replace with → api.post('/notifications', payload) — triggered by backend events
-export async function addNotification(userId, { type, title, body, link = '' }) {
+export async function addNotification(
+  userId: string,
+  { type, title, body, link = '' }: { type: string; title: string; body: string; link?: string }
+) {
   if (!userId) return;
-  const stored = await getNotifications(userId);
-  const notification = {
-    id: Date.now(),
-    type,
-    title,
-    body,
-    link,
-    read: false,
-    createdAt: new Date().toISOString(),
-  };
-  const next = [notification, ...stored].slice(0, 50); // cap at 50
-  localStorage.setItem(`ho_notifications_${userId}`, JSON.stringify(next));
-  return notification;
+  const { data } = await supabase
+    .from('notifications')
+    .insert({ user_id: userId, type, title, body, link })
+    .select()
+    .single();
+  return data;
 }
 
-// TODO: replace with → api.patch('/notifications/:id/read')
-export async function markAsRead(userId, notificationId) {
-  const stored = await getNotifications(userId);
-  const next = stored.map(n => n.id === notificationId ? { ...n, read: true } : n);
-  localStorage.setItem(`ho_notifications_${userId}`, JSON.stringify(next));
-  return next;
+export async function markAsRead(userId: string, notificationId: number) {
+  await supabase.from('notifications').update({ read: true }).eq('id', notificationId).eq('user_id', userId);
+  return getNotifications(userId);
 }
 
-// TODO: replace with → api.patch('/notifications/read-all?userId=X')
-export async function markAllAsRead(userId) {
-  const stored = await getNotifications(userId);
-  const next = stored.map(n => ({ ...n, read: true }));
-  localStorage.setItem(`ho_notifications_${userId}`, JSON.stringify(next));
-  return next;
+export async function markAllAsRead(userId: string) {
+  await supabase.from('notifications').update({ read: true }).eq('user_id', userId).eq('read', false);
+  return getNotifications(userId);
 }
 
-// TODO: replace with → api.delete('/notifications/:id')
-export async function deleteNotification(userId, notificationId) {
-  const stored = await getNotifications(userId);
-  const next = stored.filter(n => n.id !== notificationId);
-  localStorage.setItem(`ho_notifications_${userId}`, JSON.stringify(next));
-  return next;
+export async function deleteNotification(userId: string, notificationId: number) {
+  await supabase.from('notifications').delete().eq('id', notificationId).eq('user_id', userId);
+  return getNotifications(userId);
 }

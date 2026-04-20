@@ -17,7 +17,8 @@ import {
   getHiddenItems, hideForumItem, unhideForumItem,
   type ManagedUser, type PendingEvent, type ContentReport, type HiddenItem,
 } from '@services/adminService';
-import { forumThreads, threadReplies } from '@data/mockData';
+import { supabase } from '@/lib/supabase';
+import { getThreadsByCategory } from '@services/forumService';
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -260,13 +261,29 @@ function ForumSection() {
   const [search, setSearch] = useState('');
   const [view, setView] = useState<'threads' | 'hidden'>('threads');
   const [hidingItem, setHidingItem] = useState<{ type: 'thread' | 'reply'; id: number; title: string } | null>(null);
+  const [dbThreads, setDbThreads] = useState<any[]>([]);
+  const [dbReplies, setDbReplies] = useState<any[]>([]);
 
   const load = () => setHidden(getHiddenItems());
   useEffect(() => { load(); }, []);
+  useEffect(() => {
+    getThreadsByCategory().then(setDbThreads);
+    supabase.from('forum_replies')
+      .select('*, profiles:author_id(username, display_name, avatar_url)')
+      .order('created_at', { ascending: false }).limit(30)
+      .then(({ data }) => setDbReplies((data ?? []).map((r: any) => ({
+        id: r.id,
+        content: r.content,
+        createdAt: r.created_at,
+        author: {
+          name: r.profiles?.display_name ?? r.profiles?.username ?? 'Unknown',
+          avatar: r.profiles?.avatar_url ?? '',
+        },
+      }))));
+  }, []);
 
-  const threads = forumThreads.filter(t => !search || t.title.toLowerCase().includes(search.toLowerCase()) || t.author.name.toLowerCase().includes(search.toLowerCase()));
-
-  const replies = threadReplies.filter(r => !search || r.content.toLowerCase().includes(search.toLowerCase()) || r.author.name.toLowerCase().includes(search.toLowerCase())).slice(0, 30);
+  const threads = dbThreads.filter(t => !search || t.title.toLowerCase().includes(search.toLowerCase()) || t.author.name.toLowerCase().includes(search.toLowerCase()));
+  const replies = dbReplies.filter(r => !search || r.content.toLowerCase().includes(search.toLowerCase()) || r.author.name.toLowerCase().includes(search.toLowerCase())).slice(0, 30);
 
   return (
     <div className="space-y-5">

@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { MessageCircle, Home, Users, Network, Send, X } from 'lucide-react';
 import { useToast } from '@components/Toast';
 import SpacesMap from '@components/SpacesMap';
-import {
-  networkForumThreads, networkSpaceReviews,
-  networkConnectGenres, networkConnectThreads,
-} from '@data/mockData';
+const NETWORK_FORUM_THREADS: HubThread[] = [];
+const NETWORK_SPACE_REVIEWS: HubThread[] = [];
+const NETWORK_CONNECT_THREADS: HubThread[] = [];
+const NETWORK_CONNECT_GENRES = ['Hip-Hop', 'Pop', 'Elektronisch', 'Jazz', 'Folk', 'Rock', 'R&B', 'Klassiek'];
 
 interface HubThread {
   id: string;
@@ -173,7 +173,7 @@ function ForumsSection() {
   const [localThreads, setLocalThreads] = useState<HubThread[]>([]);
   const [selectedThread, setSelectedThread] = useState<HubThread | null>(null);
 
-  const allThreads = [...localThreads, ...networkForumThreads];
+  const allThreads = [...localThreads, ...NETWORK_FORUM_THREADS];
 
   return (
     <div className="space-y-4 pb-32">
@@ -197,7 +197,7 @@ function SpacesSection() {
   const [localThreads, setLocalThreads] = useState<HubThread[]>([]);
   const [selectedThread, setSelectedThread] = useState<HubThread | null>(null);
 
-  const allThreads = [...localThreads, ...networkSpaceReviews];
+  const allThreads = [...localThreads, ...NETWORK_SPACE_REVIEWS];
 
   return (
     <div className="space-y-4 pb-32">
@@ -226,7 +226,7 @@ function NetworkingSection() {
   const [localThreads, setLocalThreads] = useState<HubThread[]>([]);
   const [selectedThread, setSelectedThread] = useState<HubThread | null>(null);
 
-  const allThreads = [...localThreads, ...networkConnectThreads];
+  const allThreads = [...localThreads, ...NETWORK_CONNECT_THREADS];
   const filtered = activeGenre === 'Alle' ? allThreads : allThreads.filter(t => t.categoryId === activeGenre);
 
   return (
@@ -235,7 +235,7 @@ function NetworkingSection() {
         <p className="text-slate-400 text-sm mb-4">Vind samenwerkingspartners, muzikale vrienden, en bouw je netwerk. Zoek producers, zangers, bandleden, of iemand om mee te creëren.</p>
 
         <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 mb-6 scrollbar-hide">
-          {['Alle', ...networkConnectGenres].map(genre => (
+          {['Alle', ...NETWORK_CONNECT_GENRES].map(genre => (
             <button
               key={genre}
               onClick={() => setActiveGenre(genre)}

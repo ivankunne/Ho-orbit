@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useMatch } from 'react-router-dom';
-import { useEffect, useState, lazy, Suspense } from 'react';
+import { useEffect, useState, lazy, Suspense, type ReactNode } from 'react';
 import { AuthProvider, useAuth } from '@context/AuthContext';
 import { AppStateProvider, useAppState } from '@context/AppStateContext';
 import { PlayerProvider, usePlayer } from '@context/PlayerContext';
@@ -120,25 +120,21 @@ function GlobalShortcuts({ onOpenSearch, onToggleShortcutsModal }) {
   return null;
 }
 
+function ProtectedRoute({ children }: { children: ReactNode }) {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+  if (loading) return <PageLoader />;
+  if (!user) return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+  return <>{children}</>;
+}
+
 function ProtectedApp() {
   const { user } = useAuth();
   const [showSearch, setShowSearch] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const isLanding = !!useMatch('/');
 
-  if (!user) {
-    return (
-      <Suspense fallback={<PageLoader />}>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </Suspense>
-    );
-  }
-
-  if (user.needsOnboarding) {
+  if (user?.needsOnboarding) {
     return (
       <Suspense fallback={<PageLoader />}>
         <OnboardingPage />
@@ -148,40 +144,50 @@ function ProtectedApp() {
 
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-[#1a1528] text-slate-100">
-      <GlobalShortcuts
-        onOpenSearch={() => setShowSearch(true)}
-        onToggleShortcutsModal={() => setShowShortcuts(v => !v)}
-      />
+      {user && (
+        <GlobalShortcuts
+          onOpenSearch={() => setShowSearch(true)}
+          onToggleShortcutsModal={() => setShowShortcuts(v => !v)}
+        />
+      )}
       {!isLanding && <Navbar externalShowSearch={showSearch} onExternalSearchClose={() => setShowSearch(false)} />}
       <main className={isLanding ? '' : 'pb-28 lg:pb-20'}>
         <ErrorBoundary>
           <Suspense fallback={<PageLoader />}>
             <Routes>
+              {/* Public landing */}
               <Route path="/" element={<LandingPage />} />
+
+              {/* Auth pages — redirect to /muziek if already logged in */}
+              <Route path="/login" element={user ? <Navigate to="/muziek" replace /> : <LoginPage />} />
+              <Route path="/signup" element={user ? <Navigate to="/muziek" replace /> : <SignupPage />} />
+
+              {/* Publicly browsable */}
               <Route path="/muziek" element={<HomePage />} />
               <Route path="/artists" element={<ArtistsPage />} />
               <Route path="/artists/:id" element={<ArtistDetailPage />} />
-              <Route path="/upload" element={<UploadPage />} />
-              <Route path="/tutorials" element={<TutorialsPage />} />
-              <Route path="/tutorials/:id" element={<TutorialDetailPage />} />
+              <Route path="/events" element={<EventsPage />} />
+              <Route path="/events/:id" element={<EventDetailPage />} />
               <Route path="/magazine" element={<MagazinePage />} />
               <Route path="/magazine/:id" element={<ArticleDetailPage />} />
-              <Route path="/library" element={<LibraryPage />} />
+              <Route path="/tutorials" element={<TutorialsPage />} />
+              <Route path="/tutorials/:id" element={<TutorialDetailPage />} />
               <Route path="/dutch-scene" element={<DutchScenePage />} />
               <Route path="/dutch-scene/:slug" element={<SceneDetailPage />} />
               <Route path="/venue/:id" element={<VenueDetailPage />} />
               <Route path="/forums" element={<ForumsPage />} />
               <Route path="/forums/thread/:threadId" element={<ForumThreadPage />} />
-              <Route path="/hub" element={<HubPage />} />
+
+              {/* Requires login */}
+              <Route path="/upload" element={<ProtectedRoute><UploadPage /></ProtectedRoute>} />
+              <Route path="/library" element={<ProtectedRoute><LibraryPage /></ProtectedRoute>} />
+              <Route path="/library/playlists/:id" element={<ProtectedRoute><PlaylistDetailPage /></ProtectedRoute>} />
+              <Route path="/hub" element={<ProtectedRoute><HubPage /></ProtectedRoute>} />
+              <Route path="/profiel" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+              <Route path="/profiel/:username" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+              <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
               <Route path="/admin" element={user?.isAdmin ? <AdminPage /> : <Navigate to="/" replace />} />
-              <Route path="/events" element={<EventsPage />} />
-              <Route path="/events/:id" element={<EventDetailPage />} />
-              <Route path="/profiel" element={<ProfilePage />} />
-              <Route path="/profiel/:username" element={<ProfilePage />} />
-              <Route path="/account" element={<AccountPage />} />
-              <Route path="/library/playlists/:id" element={<PlaylistDetailPage />} />
-              <Route path="/login" element={<Navigate to="/" replace />} />
-              <Route path="/signup" element={<Navigate to="/" replace />} />
+
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>
@@ -190,14 +196,16 @@ function ProtectedApp() {
       {!isLanding && <MusicPlayer />}
       {!isLanding && <MobileBottomNav />}
 
-      {/* Floating ? badge — desktop only */}
-      <button
-        onClick={() => setShowShortcuts(true)}
-        className={`fixed bottom-24 right-5 z-50 items-center justify-center w-8 h-8 rounded-full bg-white/8 border border-white/15 text-slate-400 hover:text-white hover:bg-white/15 transition-colors text-sm font-bold ${isLanding ? 'hidden' : 'hidden lg:flex'}`}
-        title="Sneltoetsen tonen (?)"
-      >
-        ?
-      </button>
+      {/* Floating ? badge — desktop only, logged-in only */}
+      {user && (
+        <button
+          onClick={() => setShowShortcuts(true)}
+          className={`fixed bottom-24 right-5 z-50 items-center justify-center w-8 h-8 rounded-full bg-white/8 border border-white/15 text-slate-400 hover:text-white hover:bg-white/15 transition-colors text-sm font-bold ${isLanding ? 'hidden' : 'hidden lg:flex'}`}
+          title="Sneltoetsen tonen (?)"
+        >
+          ?
+        </button>
+      )}
 
       <KeyboardShortcutsModal open={showShortcuts} onOpenChange={setShowShortcuts} />
     </div>

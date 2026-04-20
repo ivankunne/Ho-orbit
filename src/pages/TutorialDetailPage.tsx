@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Play, Clock, Eye, ChevronLeft, BookOpen, Video, CheckCircle2, Wrench } from 'lucide-react';
-import { tutorials } from '@data/mockData';
+import { supabase } from '@/lib/supabase';
 import CommentSection from '@components/CommentSection';
 
 const difficultyColors = {
@@ -17,9 +17,24 @@ function formatViews(n) {
 
 export default function TutorialDetailPage() {
   const { id } = useParams();
-  const tutorial = tutorials.find(t => t.id === Number(id));
+  const [tutorial, setTutorial] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [moreTutorials, setMoreTutorials] = useState([]);
   const [activeTab, setActiveTab] = useState('guide');
   const [completedSteps, setCompletedSteps] = useState(new Set());
+
+  useEffect(() => {
+    supabase.from('tutorials').select('*').eq('id', Number(id)).single()
+      .then(({ data }) => { setTutorial(data); setLoading(false); });
+  }, [id]);
+
+  useEffect(() => {
+    if (!tutorial) return;
+    supabase.from('tutorials').select('*').neq('id', tutorial.id).limit(4)
+      .then(({ data }) => setMoreTutorials(data ?? []));
+  }, [tutorial?.id]);
+
+  if (loading) return null;
 
   if (!tutorial) {
     return (
@@ -75,7 +90,7 @@ export default function TutorialDetailPage() {
             <div className="flex flex-wrap items-center gap-5 text-sm text-slate-500">
               <span>door <span className="text-violet-400 font-medium">{tutorial.instructor}</span></span>
               <span className="flex items-center gap-1.5"><Clock size={14} /> {tutorial.duration}</span>
-              <span className="flex items-center gap-1.5"><Eye size={14} /> {formatViews(tutorial.views)} weergaven</span>
+              <span className="flex items-center gap-1.5"><Eye size={14} /> {formatViews(tutorial.views_count)} weergaven</span>
             </div>
           </div>
 
@@ -111,7 +126,7 @@ export default function TutorialDetailPage() {
               {/* Video placeholder */}
               <div className="relative rounded-2xl overflow-hidden bg-[#231d3a] border border-white/8 mb-6 aspect-video flex items-center justify-center">
                 <img
-                  src={tutorial.thumbnail}
+                  src={tutorial.thumbnail_url}
                   alt={tutorial.title}
                   className="absolute inset-0 w-full h-full object-cover opacity-30"
                 />
@@ -232,7 +247,7 @@ export default function TutorialDetailPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Weergaven</span>
-                <span className="text-slate-300">{formatViews(tutorial.views)}</span>
+                <span className="text-slate-300">{formatViews(tutorial.views_count)}</span>
               </div>
               {tutorial.steps && (
                 <div className="flex justify-between">
@@ -289,14 +304,14 @@ export default function TutorialDetailPage() {
           <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
             <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4">Meer tutorials</h3>
             <div className="space-y-3">
-              {tutorials.filter(t => t.id !== tutorial.id).slice(0, 4).map(t => (
+              {moreTutorials.map(t => (
                 <Link
                   key={t.id}
                   to={`/tutorials/${t.id}`}
                   className="flex items-center gap-3 group"
                 >
                   <img
-                    src={t.thumbnail}
+                    src={t.thumbnail_url}
                     alt={t.title}
                     className="w-16 h-10 rounded-lg object-cover shrink-0 group-hover:opacity-80 transition-opacity"
                   />

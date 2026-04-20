@@ -4,7 +4,7 @@ import {
   ChevronLeft, Pin, ThumbsUp, MessageSquare, Eye, Flag,
   Send, Quote, Bold, Italic, Smile,
 } from 'lucide-react';
-import { forumCategories } from '@data/mockData';
+import { supabase } from '@/lib/supabase';
 import { getThread, getReplies, createReply, toggleReplyLike } from '@services/forumService';
 import { addNotification } from '@services/notificationService';
 import { useAuth } from '@context/AuthContext';
@@ -104,8 +104,7 @@ export default function ForumThreadPage() {
   const [replyText, setReplyText] = useState('');
   const [likedReplies, setLikedReplies] = useState(new Set());
   const [loading, setLoading]   = useState(true);
-
-  const category = thread ? forumCategories.find(c => c.id === thread.categoryId) : null;
+  const [category, setCategory] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -113,6 +112,10 @@ export default function ForumThreadPage() {
         const [t, r] = await Promise.all([getThread(threadId), getReplies(threadId)]);
         setThread(t);
         setReplies(r);
+        if (t?.categoryId) {
+          supabase.from('forum_categories').select('id, name').eq('id', t.categoryId).single()
+            .then(({ data }) => setCategory(data));
+        }
       } catch {
         addToast('Er is iets misgegaan. Probeer het opnieuw.', 'error');
       } finally {
@@ -138,8 +141,6 @@ export default function ForumThreadPage() {
         threadId,
         body: replyText.trim(),
         authorId: user.id,
-        authorName: user.displayName || user.username,
-        authorAvatar: user.avatar || `https://picsum.photos/seed/${user.username}/40/40`,
       });
 
       setReplies(prev => [...prev, newReply]);

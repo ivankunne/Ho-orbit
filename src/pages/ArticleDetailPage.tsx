@@ -1,6 +1,7 @@
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ChevronLeft, Clock, User, Calendar, Share2, BookOpen, ArrowRight } from 'lucide-react';
-import { articles } from '@data/mockData';
+import { supabase } from '@/lib/supabase';
 import CommentSection from '@components/CommentSection';
 import { useToast } from '@components/Toast';
 import { shareContent, buildShareUrl } from '@utils/share';
@@ -37,20 +38,25 @@ function getBody(id) {
 export default function ArticleDetailPage() {
   const { id } = useParams();
   const addToast = useToast();
-  const article = articles.find(a => a.id === Number(id));
+  const [article, setArticle] = useState(null);
+  const [related, setRelated] = useState([]);
+
+  useEffect(() => {
+    supabase.from('articles').select('*').eq('id', Number(id)).single()
+      .then(({ data }) => setArticle(data));
+  }, [id]);
+
+  useEffect(() => {
+    if (!article) return;
+    supabase.from('articles').select('*').neq('id', article.id).limit(3)
+      .then(({ data }) => setRelated(data ?? []));
+  }, [article?.id]);
 
   if (!article) {
-    return (
-      <div className="max-w-3xl mx-auto px-4 py-20 text-center text-slate-400">
-        <p className="text-xl font-semibold text-white mb-2">Artikel niet gevonden</p>
-        <Link to="/magazine" className="text-violet-400 hover:underline">← Terug naar magazine</Link>
-      </div>
-    );
+    return null;
   }
 
   const body = getBody(article.id);
-  const related = articles.filter(a => a.id !== article.id && a.category === article.category).slice(0, 3);
-  const moreArticles = related.length < 2 ? articles.filter(a => a.id !== article.id).slice(0, 3) : related;
 
   return (
     <div className="max-w-7xl mx-auto px-4 lg:px-6 py-8">
@@ -94,10 +100,10 @@ export default function ArticleDetailPage() {
             <div className="flex items-center gap-4 text-xs text-slate-500">
               <span className="flex items-center gap-1.5">
                 <Calendar size={12} />
-                {new Date(article.date).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' })}
+                {new Date(article.published_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' })}
               </span>
               <span className="flex items-center gap-1.5">
-                <Clock size={12} /> {article.readTime} leestijd
+                <Clock size={12} /> {article.read_time} leestijd
               </span>
             </div>
             <button
@@ -118,7 +124,7 @@ export default function ArticleDetailPage() {
 
           {/* Cover image */}
           <div className="rounded-2xl overflow-hidden mb-8 aspect-video">
-            <img src={article.cover} alt={article.title} className="w-full h-full object-cover" />
+            <img src={article.cover_url} alt={article.title} className="w-full h-full object-cover" />
           </div>
 
           {/* Body */}
@@ -170,31 +176,31 @@ export default function ArticleDetailPage() {
                 <BookOpen size={18} className="text-violet-400" />
               </div>
               <div>
-                <p className="text-white font-semibold text-sm">{article.readTime} leestijd</p>
+                <p className="text-white font-semibold text-sm">{article.read_time} leestijd</p>
                 <p className="text-xs text-slate-500">{body.length} alinea's</p>
               </div>
             </div>
           </div>
 
           {/* More articles */}
-          {moreArticles.length > 0 && (
+          {related.length > 0 && (
             <div>
               <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">Meer artikelen</p>
               <div className="space-y-3">
-                {moreArticles.map(a => (
+                {related.map(a => (
                   <Link
                     key={a.id}
                     to={`/magazine/${a.id}`}
                     className="flex gap-3 group"
                   >
-                    <img src={a.cover} alt={a.title} className="w-16 h-16 rounded-xl object-cover shrink-0" />
+                    <img src={a.cover_url} alt={a.title} className="w-16 h-16 rounded-xl object-cover shrink-0" />
                     <div className="min-w-0">
                       <p className="text-xs text-violet-400 mb-0.5">{a.category}</p>
                       <p className="text-sm text-white font-medium leading-snug line-clamp-2 group-hover:text-violet-300 transition-colors">
                         {a.title}
                       </p>
                       <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                        <Clock size={10} /> {a.readTime}
+                        <Clock size={10} /> {a.read_time}
                       </p>
                     </div>
                   </Link>

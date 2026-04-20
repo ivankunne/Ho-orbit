@@ -5,7 +5,7 @@ import { useAppState } from '@context/AppStateContext';
 import { useAuth } from '@context/AuthContext';
 import { useToast } from '@components/Toast';
 import { usePlayer } from '@context/PlayerContext';
-import { tracks, artists, events } from '@data/mockData';
+import { supabase } from '@/lib/supabase';
 import {
   getPlaylists, createPlaylist, addTrackToPlaylist,
 } from '@services/playlistService';
@@ -31,7 +31,7 @@ function TrackRow({ track, index, toggleLike }) {
     <div className="flex items-center gap-4 p-3 hover:bg-white/4 rounded-xl group transition-colors relative">
       <span className="w-5 text-center text-sm text-slate-600 shrink-0">{index + 1}</span>
       <div className="relative shrink-0">
-        <img src={track.cover} alt={track.title} className="w-11 h-11 rounded-lg object-cover" />
+        <img src={track.cover_url} alt={track.title} className="w-11 h-11 rounded-lg object-cover" />
         {isCurrentTrack && isPlaying ? (
           <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg">
             <div className="flex items-end gap-[2px] h-4">
@@ -79,7 +79,7 @@ function TrackRow({ track, index, toggleLike }) {
 }
 
 function PlaylistCard({ playlist, tracks: allTracks }) {
-  const coverTracks = (playlist.trackIds || [])
+  const coverTracks = (playlist.track_ids || playlist.trackIds || [])
     .map(id => allTracks.find(t => t.id === id))
     .filter(Boolean)
     .slice(0, 4);
@@ -96,13 +96,13 @@ function PlaylistCard({ playlist, tracks: allTracks }) {
             <Music size={28} className="text-slate-700" />
           </div>
         ) : coverTracks.length === 1 ? (
-          <img src={coverTracks[0].cover} alt="" className="w-full h-full object-cover" />
+          <img src={coverTracks[0].cover_url} alt="" className="w-full h-full object-cover" />
         ) : (
           <div className="grid grid-cols-2 w-full h-full">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="overflow-hidden">
                 {coverTracks[i]
-                  ? <img src={coverTracks[i].cover} alt="" className="w-full h-full object-cover" />
+                  ? <img src={coverTracks[i].cover_url} alt="" className="w-full h-full object-cover" />
                   : <div className="w-full h-full bg-white/5" />
                 }
               </div>
@@ -121,13 +121,27 @@ export default function LibraryPage() {
   const [playlists, setPlaylists]   = useState([]);
   const [showNewPlaylist, setShowNewPlaylist] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
+  const [likedTrackList, setLikedTrackList] = useState([]);
+  const [followedArtistList, setFollowedArtistList] = useState([]);
+  const [rsvpEventList, setRsvpEventList] = useState([]);
   const { likedTracks, followedArtists, rsvpEvents, toggleLike, toggleFollow, toggleRsvp } = useAppState();
   const { user } = useAuth();
   const addToast = useToast();
 
-  const likedTrackList     = tracks.filter(t => likedTracks.includes(t.id));
-  const followedArtistList = artists.filter(a => followedArtists.includes(a.id));
-  const rsvpEventList      = events.filter(e => rsvpEvents.includes(e.id));
+  useEffect(() => {
+    if (likedTracks.length === 0) { setLikedTrackList([]); return; }
+    supabase.from('tracks').select('*').in('id', likedTracks).then(({ data }) => setLikedTrackList(data ?? []));
+  }, [likedTracks.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (followedArtists.length === 0) { setFollowedArtistList([]); return; }
+    supabase.from('artists').select('*').in('id', followedArtists).then(({ data }) => setFollowedArtistList(data ?? []));
+  }, [followedArtists.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (rsvpEvents.length === 0) { setRsvpEventList([]); return; }
+    supabase.from('events').select('*').in('id', rsvpEvents).then(({ data }) => setRsvpEventList(data ?? []));
+  }, [rsvpEvents.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!user) return;
@@ -209,7 +223,7 @@ export default function LibraryPage() {
                   to={`/artists/${artist.id}`}
                   className="flex items-center gap-4 p-4 bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl transition-all group"
                 >
-                  <img src={artist.image} alt={artist.name} className="w-14 h-14 rounded-full object-cover shrink-0 ring-2 ring-violet-500/20" />
+                  <img src={artist.image_url} alt={artist.name} className="w-14 h-14 rounded-full object-cover shrink-0 ring-2 ring-violet-500/20" />
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-white truncate">{artist.name}</p>
                     <p className="text-xs text-violet-400 truncate">{artist.genre}</p>
@@ -242,9 +256,9 @@ export default function LibraryPage() {
                   to={`/events/${event.id}`}
                   className="flex items-center gap-4 p-4 bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl transition-all group"
                 >
-                  <img src={event.poster} alt={event.title} className="w-14 h-20 object-cover rounded-lg shrink-0" />
+                  <img src={event.poster_url} alt={event.name} className="w-14 h-20 object-cover rounded-lg shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-white mb-1 truncate">{event.title}</p>
+                    <p className="font-semibold text-white mb-1 truncate">{event.name}</p>
                     <p className="text-xs text-violet-400">{event.date} · {event.time}</p>
                     <p className="text-xs text-slate-400 mt-0.5">{event.venue}, {event.city}</p>
                     <div className="flex items-center gap-2 mt-2">
@@ -299,7 +313,7 @@ export default function LibraryPage() {
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {playlists.map(pl => (
-                <PlaylistCard key={pl.id} playlist={pl} tracks={tracks} />
+                <PlaylistCard key={pl.id} playlist={pl} tracks={likedTrackList} />
               ))}
             </div>
           )}

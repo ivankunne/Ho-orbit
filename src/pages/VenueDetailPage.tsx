@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@components/Toast';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, MapPin, Star, Users, Calendar, Music,
   Building2, ChevronRight, Quote, Award, Globe, Clock
 } from 'lucide-react';
-import { venues } from '@data/mockData';
+import { supabase } from '@/lib/supabase';
 
 function StarRating({ rating, size = 16 }) {
   return (
@@ -36,8 +36,15 @@ export default function VenueDetailPage() {
   const [userRating, setUserRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const [venue, setVenue] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const venue = venues.find(v => v.id === id);
+  useEffect(() => {
+    supabase.from('venues').select('*').eq('id', id).single()
+      .then(({ data }) => { setVenue(data); setLoading(false); });
+  }, [id]);
+
+  if (loading) return null;
 
   if (!venue) {
     return (
@@ -89,7 +96,7 @@ export default function VenueDetailPage() {
               <div className="flex items-center gap-2">
                 <StarRating rating={venue.rating} size={18} />
                 <span className="text-white font-semibold text-lg">{venue.rating}</span>
-                <span className="text-slate-400 text-sm">({venue.ratingCount.toLocaleString('nl-NL')} beoordelingen)</span>
+                <span className="text-slate-400 text-sm">({venue.rating_count?.toLocaleString('nl-NL')} beoordelingen)</span>
               </div>
               <div className="flex items-center gap-1 text-slate-300 text-sm">
                 <Users size={14} className="text-violet-400" />
@@ -112,14 +119,14 @@ export default function VenueDetailPage() {
             {/* About */}
             <section>
               <h2 className="text-xl font-bold text-white mb-4">Over {venue.name}</h2>
-              <p className="text-slate-300 leading-relaxed">{venue.longDescription}</p>
+              <p className="text-slate-300 leading-relaxed">{venue.long_description}</p>
             </section>
 
             {/* Gallery */}
             <section>
               <h2 className="text-xl font-bold text-white mb-5">Fotogalerij</h2>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {venue.gallery.map((src, i) => (
+                {(venue.gallery_urls ?? []).map((src, i) => (
                   <button
                     key={i}
                     onClick={() => setActiveGalleryIdx(i)}
@@ -139,29 +146,6 @@ export default function VenueDetailPage() {
             {/* Upcoming events */}
             <section>
               <h2 className="text-xl font-bold text-white mb-5">Aankomende evenementen</h2>
-              <div className="space-y-3">
-                {venue.upcomingEvents.map((ev, i) => (
-                  <div key={i} className="flex items-center gap-4 p-4 bg-white/3 border border-white/8 rounded-xl hover:bg-white/5 transition-colors">
-                    <div className="w-12 h-12 rounded-xl flex flex-col items-center justify-center shrink-0 text-center"
-                      style={{ background: venue.color + '20', border: `1px solid ${venue.color}40` }}>
-                      <span className="text-xs font-bold" style={{ color: venue.color }}>
-                        {new Date(ev.date).toLocaleDateString('nl-NL', { day: '2-digit' })}
-                      </span>
-                      <span className="text-[10px] text-slate-400 uppercase">
-                        {new Date(ev.date).toLocaleDateString('nl-NL', { month: 'short' })}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-white text-sm truncate">{ev.artist}</p>
-                      <p className="text-xs text-slate-400 truncate">{ev.title}</p>
-                    </div>
-                    <div className="flex items-center gap-1 text-slate-500 text-xs shrink-0">
-                      <Clock size={11} />
-                      {ev.time}
-                    </div>
-                  </div>
-                ))}
-              </div>
               <Link
                 to="/events"
                 className="mt-4 inline-flex items-center gap-1.5 text-sm text-violet-400 hover:text-violet-300 transition-colors"
@@ -174,7 +158,7 @@ export default function VenueDetailPage() {
             <section>
               <h2 className="text-xl font-bold text-white mb-5">Ervaringen</h2>
               <div className="space-y-4">
-                {venue.testimonials.map(t => (
+                {(venue.testimonials ?? []).map(t => (
                   <div key={t.id} className="relative p-6 bg-white/3 border border-white/8 rounded-2xl">
                     <Quote size={28} className="absolute top-5 right-5 text-white/5" />
                     <div className="flex items-start gap-4">
@@ -286,7 +270,7 @@ export default function VenueDetailPage() {
                 <span className="text-5xl font-bold text-white">{venue.rating}</span>
                 <div>
                   <StarRating rating={venue.rating} size={20} />
-                  <p className="text-slate-400 text-xs mt-1">{venue.ratingCount.toLocaleString('nl-NL')} beoordelingen</p>
+                  <p className="text-slate-400 text-xs mt-1">{venue.rating_count?.toLocaleString('nl-NL')} beoordelingen</p>
                 </div>
               </div>
               <div className="space-y-2">
@@ -362,13 +346,13 @@ export default function VenueDetailPage() {
             ✕
           </button>
           <img
-            src={venue.gallery[activeGalleryIdx]}
+            src={(venue.gallery_urls ?? [])[activeGalleryIdx]}
             alt=""
             className="max-w-4xl max-h-[85vh] w-full object-contain rounded-xl"
             onClick={e => e.stopPropagation()}
           />
           <div className="absolute bottom-6 flex items-center gap-3">
-            {venue.gallery.map((_, i) => (
+            {(venue.gallery_urls ?? []).map((_, i) => (
               <button
                 key={i}
                 onClick={e => { e.stopPropagation(); setActiveGalleryIdx(i); }}

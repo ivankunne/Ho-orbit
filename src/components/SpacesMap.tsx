@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
-import { rehearsalSpaceCities, rehearsalSpaceMarkers } from '@data/mockData';
+const rehearsalSpaceCities = [];
+const rehearsalSpaceMarkers = [];
 
 // Fix Leaflet default icon broken paths in Vite
 delete L.Icon.Default.prototype._getIconUrl;

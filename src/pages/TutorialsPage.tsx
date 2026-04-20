@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Play, Clock, Eye, CheckCircle, RotateCcw } from 'lucide-react';
-import { tutorials } from '@data/mockData';
+import { supabase } from '@/lib/supabase';
 import { useAppState } from '@context/AppStateContext';
 import EmptyState from '@components/EmptyState';
 
@@ -37,7 +37,12 @@ function ProgressRing({ pct, size = 20 }) {
 export default function TutorialsPage() {
   const [activeTag, setActiveTag] = useState('Alles');
   const [activeDifficulty, setActiveDifficulty] = useState('Alles');
+  const [tutorials, setTutorials] = useState([]);
   const { tutorialProgress, setTutorialWatched, clearTutorialProgress } = useAppState();
+
+  useEffect(() => {
+    supabase.from('tutorials').select('*').then(({ data }) => setTutorials(data ?? []));
+  }, []);
 
   const filtered = useMemo(() =>
     tutorials.filter(t => {
@@ -45,7 +50,7 @@ export default function TutorialsPage() {
       const diffMatch = activeDifficulty === 'Alles' || t.difficulty === activeDifficulty;
       return tagMatch && diffMatch;
     }),
-    [activeTag, activeDifficulty]
+    [activeTag, activeDifficulty, tutorials]
   );
 
   const featured = tutorials[0];
@@ -64,7 +69,7 @@ export default function TutorialsPage() {
 
       {/* Uitgelichte tutorial */}
       <Link to={`/tutorials/${featured.id}`} className="mb-10 group relative rounded-2xl overflow-hidden cursor-pointer block">
-        <img src={featured.thumbnail} alt={featured.title} className="w-full h-64 lg:h-80 object-cover group-hover:scale-105 transition-transform duration-500" />
+        <img src={featured.thumbnail_url} alt={featured.title} className="w-full h-64 lg:h-80 object-cover group-hover:scale-105 transition-transform duration-500" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#1a1528] via-[#1a1528]/50 to-transparent" />
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
           <div className="w-16 h-16 bg-violet-600 rounded-full flex items-center justify-center">
@@ -80,7 +85,7 @@ export default function TutorialsPage() {
           <div className="flex items-center gap-4 text-sm text-slate-400">
             <span>door {featured.instructor}</span>
             <span className="flex items-center gap-1"><Clock size={13} /> {featured.duration}</span>
-            <span className="flex items-center gap-1"><Eye size={13} /> {formatViews(featured.views)} weergaven</span>
+            <span className="flex items-center gap-1"><Eye size={13} /> {formatViews(featured.views_count)} weergaven</span>
           </div>
         </div>
         <div className="absolute top-4 right-4 bg-black/60 text-white text-sm font-medium px-2 py-1 rounded-lg">
@@ -99,7 +104,7 @@ export default function TutorialsPage() {
                 <div key={tutorial.id} className="group bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl overflow-hidden transition-all">
                   <Link to={`/tutorials/${tutorial.id}`} className="block">
                     <div className="relative aspect-video overflow-hidden">
-                      <img src={tutorial.thumbnail} alt={tutorial.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      <img src={tutorial.thumbnail_url} alt={tutorial.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                         <div className="w-10 h-10 bg-violet-600 rounded-full flex items-center justify-center">
                           <Play size={16} className="text-white ml-0.5" fill="white" />
@@ -196,7 +201,7 @@ export default function TutorialsPage() {
             >
               <div className="relative aspect-video overflow-hidden">
                 <img
-                  src={tutorial.thumbnail}
+                  src={tutorial.thumbnail_url}
                   alt={tutorial.title}
                   className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${watched ? 'brightness-50' : ''}`}
                 />
@@ -232,7 +237,7 @@ export default function TutorialsPage() {
                 <p className="text-xs text-slate-400 mb-3">door {tutorial.instructor}</p>
                 <p className="text-xs text-slate-500 line-clamp-2 mb-3">{tutorial.description}</p>
                 <div className="flex items-center gap-3 text-xs text-slate-500">
-                  <span className="flex items-center gap-1"><Eye size={11} /> {formatViews(tutorial.views)}</span>
+                  <span className="flex items-center gap-1"><Eye size={11} /> {formatViews(tutorial.views_count)}</span>
                   <span className="flex items-center gap-1"><Clock size={11} /> {tutorial.duration}</span>
                 </div>
                 <div className="flex flex-wrap gap-1 mt-3">

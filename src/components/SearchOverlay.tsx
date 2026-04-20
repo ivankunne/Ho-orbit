@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, X, Music, Calendar, BookOpen, FileText, ArrowRight, TrendingUp, Loader } from 'lucide-react';
-import { artists } from '@data/mockData';
+import { supabase } from '@/lib/supabase';
 import { search } from '@services/searchService';
 
 const QUICK_LINKS = [
@@ -29,6 +29,7 @@ export default function SearchOverlay({ onClose }) {
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [focusIndex, setFocusIndex] = useState(-1);
+  const [trendingArtists, setTrendingArtists] = useState([]);
 
   const inputRef  = useRef(null);
   const debounce  = useRef(null);
@@ -38,6 +39,8 @@ export default function SearchOverlay({ onClose }) {
     inputRef.current?.focus();
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
+    supabase.from('artists').select('id, name, genre, image_url').order('followers_count', { ascending: false }).limit(3)
+      .then(({ data }) => setTrendingArtists(data ?? []));
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
@@ -62,8 +65,8 @@ export default function SearchOverlay({ onClose }) {
   const flatResults = results
     ? [
         ...results.artists.map(a => ({ path: `/artists/${a.id}`, label: a.name })),
-        ...results.tracks.map(t  => ({ path: `/artists/${t.artistId}`, label: t.title })),
-        ...results.events.map(e  => ({ path: `/events/${e.id}`, label: e.title })),
+        ...results.tracks.map(t  => ({ path: `/artists/${t.artist_id}`, label: t.title })),
+        ...results.events.map(e  => ({ path: `/events/${e.id}`, label: e.name })),
         ...results.tutorials.map(t => ({ path: `/tutorials/${t.id}`, label: t.title })),
         ...results.articles.map(a => ({ path: `/magazine/${a.id}`, label: a.title })),
       ]
@@ -149,10 +152,10 @@ export default function SearchOverlay({ onClose }) {
               </div>
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-2 mb-2">Trending</p>
               <div className="space-y-1">
-                {artists.slice(0, 3).map(a => (
+                {trendingArtists.map(a => (
                   <button key={a.id} onClick={() => go(`/artists/${a.id}`)} className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/5 w-full text-left transition-colors">
                     <TrendingUp size={14} className="text-slate-600 shrink-0" />
-                    <img src={a.image} alt={a.name} className="w-7 h-7 rounded-full object-cover shrink-0" />
+                    <img src={a.image_url} alt={a.name} className="w-7 h-7 rounded-full object-cover shrink-0" />
                     <span className="text-sm text-slate-300">{a.name}</span>
                     <span className="text-xs text-slate-600 ml-auto">{a.genre}</span>
                   </button>
@@ -179,7 +182,7 @@ export default function SearchOverlay({ onClose }) {
                     const fi = nextIdx();
                     return (
                       <button key={a.id} onClick={() => go(`/artists/${a.id}`)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 w-full text-left transition-colors group ${fi === focusIndex ? 'bg-white/8' : ''}`}>
-                        <img src={a.image} alt={a.name} className="w-9 h-9 rounded-full object-cover shrink-0" />
+                        <img src={a.image_url} alt={a.name} className="w-9 h-9 rounded-full object-cover shrink-0" />
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-white truncate">{highlight(a.name, query)}</p>
                           <p className="text-xs text-slate-500 truncate">{a.genre} · {a.location}</p>
@@ -197,8 +200,8 @@ export default function SearchOverlay({ onClose }) {
                   {results.tracks.map(t => {
                     const fi = nextIdx();
                     return (
-                      <button key={t.id} onClick={() => go(`/artists/${t.artistId}`)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 w-full text-left transition-colors group ${fi === focusIndex ? 'bg-white/8' : ''}`}>
-                        <img src={t.cover} alt={t.title} className="w-9 h-9 rounded-lg object-cover shrink-0" />
+                      <button key={t.id} onClick={() => go(`/artists/${t.artist_id}`)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 w-full text-left transition-colors group ${fi === focusIndex ? 'bg-white/8' : ''}`}>
+                        <img src={t.cover_url} alt={t.title} className="w-9 h-9 rounded-lg object-cover shrink-0" />
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-white truncate">{highlight(t.title, query)}</p>
                           <p className="text-xs text-slate-500 truncate">{t.artist} · {t.genre}</p>
@@ -221,7 +224,7 @@ export default function SearchOverlay({ onClose }) {
                           <Calendar size={16} className="text-violet-400" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-white truncate">{highlight(e.title, query)}</p>
+                          <p className="text-sm font-medium text-white truncate">{highlight(e.name, query)}</p>
                           <p className="text-xs text-slate-500 truncate">{e.date} · {e.venue}, {e.city}</p>
                         </div>
                         <ArrowRight size={14} className="text-slate-600 ml-auto opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />

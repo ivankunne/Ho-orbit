@@ -1,10 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   Play, Heart, Share2, MapPin, Users, Music, BadgeCheck,
   Globe, Calendar, ChevronLeft
 } from 'lucide-react';
-import { artists, events } from '@data/mockData';
 import { getGenreColor } from '@data/genreColors';
 import { useAppState } from '@context/AppStateContext';
 import { usePlayer } from '@context/PlayerContext';
@@ -13,14 +12,33 @@ import { shareContent, buildShareUrl } from '@utils/share';
 import { getWaveform } from '@components/Waveform';
 import { formatPlays } from '@utils/format';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@components/ui/tabs';
+import { supabase } from '@/lib/supabase';
 
 export default function ArtistDetailPage() {
   const { id } = useParams();
   const [activeTab, setActiveTab] = useState('nummers');
-  const { followedArtists, toggleFollow, likedTracks, toggleLike } = useAppState();
+  const [activeTrack, setActiveTrack] = useState(0);
+  const [artist, setArtist] = useState<any>(null);
+  const [artistEvents, setArtistEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // TODO: Vervang met API-aanroep naar /api/artiesten/:id
-  const artist = artists.find(a => a.id === Number(id));
+  const { followedArtists, toggleFollow, likedTracks, toggleLike } = useAppState();
+  const addToast = useToast();
+  const { playTrack, track: currentTrack } = usePlayer();
+
+  useEffect(() => {
+    supabase.from('artists').select('*').eq('id', Number(id)).single()
+      .then(({ data }) => {
+        setArtist(data);
+        setLoading(false);
+        if (data) {
+          supabase.from('events').select('*').eq('artist_id', data.id)
+            .then(({ data: evts }) => setArtistEvents(evts ?? []));
+        }
+      });
+  }, [id]);
+
+  if (loading) return null;
 
   if (!artist) {
     return (
@@ -31,20 +49,18 @@ export default function ArtistDetailPage() {
     );
   }
 
-  const addToast = useToast();
-  const { playTrack, track: currentTrack, isPlaying } = usePlayer();
-  const [activeTrack, setActiveTrack] = useState(0);
   const following = followedArtists.includes(artist.id);
 
-  // Build full track objects for the player from artist.tracks
-  const artistPlayerTracks = artist.tracks.map(t => ({
+  // Build full track objects for the player from artist.tracks (JSONB array)
+  const artistTracks: any[] = Array.isArray(artist.tracks) ? artist.tracks : [];
+  const artistPlayerTracks = artistTracks.map(t => ({
     ...t,
     artist: artist.name,
     artistId: artist.id,
-    cover: artist.cover || artist.image,
+    cover_url: artist.cover_url || artist.image_url,
     genre: artist.genre,
   }));
-  const artistEvents = events.filter(e => artist.events.includes(e.id));
+
   const genreColor = getGenreColor(artist.genre);
   const tabs = [
     { key: 'nummers', label: 'Nummers' },
@@ -53,11 +69,15 @@ export default function ArtistDetailPage() {
     { key: 'over', label: 'Over' },
   ];
 
+  const social = artist.social ?? {};
+  const tags: string[] = Array.isArray(artist.tags) ? artist.tags : [];
+  const albums: any[] = Array.isArray(artist.albums) ? artist.albums : [];
+
   return (
     <div>
       {/* Header */}
       <div className="relative h-64 lg:h-80 overflow-hidden">
-        <img src={artist.cover} alt={artist.name} fetchPriority="high" className="w-full h-full object-cover" />
+        <img src={artist.cover_url} alt={artist.name} fetchPriority="high" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#1a1528] via-[#1a1528]/40 to-transparent" />
         <Link
           to="/artists"
@@ -71,7 +91,7 @@ export default function ArtistDetailPage() {
         {/* Artiest info */}
         <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-12 mb-6 relative z-10">
           <img
-            src={artist.image}
+            src={artist.image_url}
             alt={artist.name}
             className="w-24 h-24 lg:w-32 lg:h-32 rounded-full object-cover ring-4 ring-[#1a1528] shrink-0"
           />
@@ -83,13 +103,13 @@ export default function ArtistDetailPage() {
             <div className="flex items-center gap-3 text-sm text-slate-400 flex-wrap">
               <span className={`font-medium text-sm px-2.5 py-0.5 rounded-full ${genreColor.bg} ${genreColor.text}`}>{artist.genre}</span>
               <span className="flex items-center gap-1"><MapPin size={12} />{artist.location}</span>
-              <span className="flex items-center gap-1"><Users size={12} />{formatPlays(artist.followers)} volgers</span>
-              <span className="flex items-center gap-1"><Music size={12} />{formatPlays(artist.monthlyListeners)} maandelijkse luisteraars</span>
+              <span className="flex items-center gap-1"><Users size={12} />{formatPlays(artist.followers_count)} volgers</span>
+              <span className="flex items-center gap-1"><Music size={12} />{formatPlays(artist.monthly_listeners)} maandelijkse luisteraars</span>
             </div>
           </div>
           <div className="flex items-center gap-2 sm:mb-1">
             <button
-              onClick={() => playTrack(artistPlayerTracks[0], artistPlayerTracks)}
+              onClick={() => artistPlayerTracks[0] && playTrack(artistPlayerTracks[0], artistPlayerTracks)}
               className="flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white font-semibold px-4 py-2 rounded-xl transition-colors"
             >
               <Play size={16} fill="white" /> Afspelen
@@ -126,29 +146,29 @@ export default function ArtistDetailPage() {
 
         {/* Sociale links */}
         <div className="flex gap-3 mb-6 flex-wrap">
-          {artist.social.instagram && (
+          {social.instagram && (
             <a
-              href={`https://instagram.com/${artist.social.instagram.replace('@', '')}`}
+              href={`https://instagram.com/${social.instagram.replace('@', '')}`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors"
             >
-              <span className="text-pink-400 font-bold text-[10px]">IG</span> {artist.social.instagram}
+              <span className="text-pink-400 font-bold text-[10px]">IG</span> {social.instagram}
             </a>
           )}
-          {artist.social.twitter && (
+          {social.twitter && (
             <a
-              href={`https://x.com/${artist.social.twitter.replace('@', '')}`}
+              href={`https://x.com/${social.twitter.replace('@', '')}`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors"
             >
-              <span className="font-bold text-[10px]">𝕏</span> {artist.social.twitter}
+              <span className="font-bold text-[10px]">𝕏</span> {social.twitter}
             </a>
           )}
-          {artist.social.spotify && (
+          {social.spotify && (
             <a
-              href={`https://open.spotify.com/artist/${artist.social.spotify}`}
+              href={`https://open.spotify.com/artist/${social.spotify}`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors"
@@ -159,13 +179,15 @@ export default function ArtistDetailPage() {
         </div>
 
         {/* Tags */}
-        <div className="flex gap-2 mb-8 flex-wrap">
-          {artist.tags.map(tag => (
-            <span key={tag} className="text-xs bg-white/8 text-slate-300 px-3 py-1 rounded-full border border-white/10">
-              {tag}
-            </span>
-          ))}
-        </div>
+        {tags.length > 0 && (
+          <div className="flex gap-2 mb-8 flex-wrap">
+            {tags.map(tag => (
+              <span key={tag} className="text-xs bg-white/8 text-slate-300 px-3 py-1 rounded-full border border-white/10">
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
@@ -183,7 +205,6 @@ export default function ArtistDetailPage() {
 
           {/* Tab: Nummers */}
           <TabsContent value="nummers">
-            {/* TODO: Vervang met API-aanroep naar /api/artiesten/:id/nummers */}
             <div className="space-y-1 mb-6">
               {artistPlayerTracks.map((track, i) => {
                 const isActive = currentTrack?.id === track.id;
@@ -218,46 +239,47 @@ export default function ArtistDetailPage() {
             </div>
 
             {/* Waveform visualizer */}
-            <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="text-sm font-semibold text-white">{artist.tracks[activeTrack]?.title}</p>
-                  <p className="text-xs text-slate-500">{artist.tracks[activeTrack]?.album} · {artist.tracks[activeTrack]?.duration}</p>
+            {artistTracks.length > 0 && (
+              <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-sm font-semibold text-white">{artistTracks[activeTrack]?.title}</p>
+                    <p className="text-xs text-slate-500">{artistTracks[activeTrack]?.album} · {artistTracks[activeTrack]?.duration}</p>
+                  </div>
+                  <button
+                    onClick={() => artistPlayerTracks[activeTrack] && playTrack(artistPlayerTracks[activeTrack], artistPlayerTracks)}
+                    className="w-9 h-9 bg-violet-600 rounded-full flex items-center justify-center hover:bg-violet-500 transition-colors"
+                  >
+                    <Play size={14} className="text-white ml-0.5" fill="white" />
+                  </button>
                 </div>
-                <button
-                  onClick={() => playTrack(artistPlayerTracks[activeTrack], artistPlayerTracks)}
-                  className="w-9 h-9 bg-violet-600 rounded-full flex items-center justify-center hover:bg-violet-500 transition-colors"
-                >
-                  <Play size={14} className="text-white ml-0.5" fill="white" />
-                </button>
-              </div>
 
-              {/* Waveform bars */}
-              <div className="flex items-end gap-[2px] h-16 cursor-pointer">
-                {getWaveform(activeTrack + 1).map((h, i) => {
-                  const played = i < 30;
-                  return (
-                    <div
-                      key={i}
-                      className={`flex-1 rounded-sm transition-all hover:opacity-80 ${
-                        played ? 'bg-violet-500' : 'bg-white/15'
-                      }`}
-                      style={{ height: `${h}%` }}
-                    />
-                  );
-                })}
+                {/* Waveform bars */}
+                <div className="flex items-end gap-[2px] h-16 cursor-pointer">
+                  {getWaveform(activeTrack + 1).map((h, i) => {
+                    const played = i < 30;
+                    return (
+                      <div
+                        key={i}
+                        className={`flex-1 rounded-sm transition-all hover:opacity-80 ${
+                          played ? 'bg-violet-500' : 'bg-white/15'
+                        }`}
+                        style={{ height: `${h}%` }}
+                      />
+                    );
+                  })}
+                </div>
+                <div className="flex justify-between text-[10px] text-slate-600 mt-1.5">
+                  <span>1:45</span>
+                  <span>{artistTracks[activeTrack]?.duration}</span>
+                </div>
               </div>
-              <div className="flex justify-between text-[10px] text-slate-600 mt-1.5">
-                <span>1:45</span>
-                <span>{artist.tracks[activeTrack]?.duration}</span>
-              </div>
-            </div>
+            )}
           </TabsContent>
 
           {/* Tab: Albums */}
           <TabsContent value="albums" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {/* TODO: Vervang met API-aanroep naar /api/artiesten/:id/albums */}
-            {artist.albums.map(album => (
+            {albums.map(album => (
               <div
                 key={album.id}
                 className="group bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl overflow-hidden cursor-pointer transition-all"
@@ -280,7 +302,6 @@ export default function ArtistDetailPage() {
 
           {/* Tab: Evenementen */}
           <TabsContent value="evenementen" className="space-y-4">
-            {/* TODO: Vervang met API-aanroep naar /api/artiesten/:id/evenementen */}
             {artistEvents.length === 0 ? (
               <p className="text-slate-400 text-center py-8">Geen aankomende evenementen</p>
             ) : (
@@ -290,13 +311,13 @@ export default function ArtistDetailPage() {
                   to={`/events/${event.id}`}
                   className="flex flex-col sm:flex-row gap-4 p-4 bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl transition-colors"
                 >
-                  <img src={event.poster} alt={event.title} className="w-full sm:w-20 sm:h-28 object-cover rounded-lg" />
+                  <img src={event.poster_url} alt={event.name} className="w-full sm:w-20 sm:h-28 object-cover rounded-lg" />
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <Calendar size={14} className="text-violet-400" />
                       <span className="text-sm text-violet-400 font-medium">{event.date} · {event.time}</span>
                     </div>
-                    <h3 className="font-semibold text-white mb-1">{event.title}</h3>
+                    <h3 className="font-semibold text-white mb-1">{event.name}</h3>
                     <p className="text-sm text-slate-400">{event.venue}, {event.city}</p>
                     <p className="text-sm text-slate-500 mt-1">{event.price}</p>
                   </div>

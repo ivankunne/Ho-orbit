@@ -1,86 +1,43 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import {
-  Music, Users, Calendar, FileText, BookOpen,
-  Globe, MessageSquare, Upload, ChevronRight,
-} from 'lucide-react';
+import { Link, Navigate } from 'react-router-dom';
+import { Music, Play, Users, Calendar, Upload, ArrowRight, Star, BookOpen } from 'lucide-react';
+import { useAuth } from '@context/AuthContext';
 
-const tiles = [
+const features = [
   {
-    area: 'a',
-    label: 'Muziek',
-    sub: 'Ontdek · Luister · Beleef',
-    path: '/muziek',
-    Icon: Music,
+    icon: Play,
     color: '#7c3aed',
-    featured: true,
+    title: 'Luister gratis',
+    desc: 'Ontdek Nederlandse artiesten en hun muziek, zonder account.',
   },
   {
-    area: 'b',
-    label: 'Artiesten',
-    sub: 'Vind je nieuwe favorieten',
-    path: '/artists',
-    Icon: Users,
+    icon: Users,
     color: '#3b82f6',
-    featured: false,
+    title: 'Volg artiesten',
+    desc: 'Blijf op de hoogte van je favorieten en hun nieuwe releases.',
   },
   {
-    area: 'c',
-    label: 'Evenementen',
-    sub: 'Shows & festivals',
-    path: '/events',
-    Icon: Calendar,
+    icon: Calendar,
     color: '#f59e0b',
-    featured: false,
+    title: 'Evenementen',
+    desc: 'Vind shows en festivals bij jou in de buurt en meld je aan.',
   },
   {
-    area: 'd',
-    label: 'Magazine',
-    sub: 'Verhalen uit de scene',
-    path: '/magazine',
-    Icon: FileText,
-    color: '#ec4899',
-    featured: false,
-  },
-  {
-    area: 'e',
-    label: 'Tutorials',
-    sub: 'Groei als muzikant',
-    path: '/tutorials',
-    Icon: BookOpen,
+    icon: Upload,
     color: '#10b981',
-    featured: false,
+    title: 'Upload je muziek',
+    desc: 'Deel je tracks met de community en groei als artiest.',
   },
   {
-    area: 'f',
-    label: 'Nederlandse Scene',
-    sub: 'Verken steden, venues & bewegingen',
-    path: '/dutch-scene',
-    Icon: Globe,
-    color: '#06b6d4',
-    featured: false,
+    icon: BookOpen,
+    color: '#ec4899',
+    title: 'Leer & groei',
+    desc: 'Tutorials van ervaren muzikanten over productie en meer.',
   },
-  {
-    area: 'g',
-    label: 'Forums',
-    sub: 'Praat mee met de community',
-    path: '/forums',
-    Icon: MessageSquare,
-    color: '#a855f7',
-    featured: false,
-  },
-  {
-    area: 'h',
-    label: 'Uploaden',
-    sub: 'Deel je muziek',
-    path: '/upload',
-    Icon: Upload,
-    color: '#f97316',
-    featured: false,
-  },
-] as const;
+];
 
 export default function LandingPage() {
+  const { user } = useAuth();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -88,164 +45,147 @@ export default function LandingPage() {
     return () => cancelAnimationFrame(id);
   }, []);
 
-  return (
-    <div className="min-h-screen md:h-screen md:overflow-hidden flex flex-col relative bg-[#0c0916]">
-      {/* Animated gradient blobs */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div
-          className="absolute -top-40 -left-40 w-[500px] h-[500px] rounded-full bg-violet-700/12 blur-[100px] animate-pulse"
-          style={{ animationDuration: '6s' }}
-        />
-        <div
-          className="absolute bottom-0 left-1/3 w-[400px] h-[400px] rounded-full bg-violet-900/15 blur-[90px] animate-pulse"
-          style={{ animationDuration: '8s', animationDelay: '2s' }}
-        />
-        <div
-          className="absolute top-1/3 -right-20 w-[300px] h-[300px] rounded-full bg-amber-600/8 blur-[80px] animate-pulse"
-          style={{ animationDuration: '10s', animationDelay: '4s' }}
-        />
-      </div>
+  if (user && !user.needsOnboarding) return <Navigate to="/muziek" replace />;
 
-      {/* Dot grid pattern */}
+  return (
+    <div className="min-h-screen bg-[#0c0916] text-white overflow-x-hidden">
+      {/* Background blobs */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-violet-700/10 blur-[130px] animate-pulse" style={{ animationDuration: '6s' }} />
+        <div className="absolute bottom-0 left-1/3 w-[500px] h-[500px] rounded-full bg-violet-900/12 blur-[110px] animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }} />
+        <div className="absolute top-1/3 -right-20 w-[400px] h-[400px] rounded-full bg-amber-600/6 blur-[90px] animate-pulse" style={{ animationDuration: '10s', animationDelay: '4s' }} />
+      </div>
       <div
-        className="absolute inset-0 pointer-events-none opacity-[0.035]"
-        style={{
-          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.9) 1px, transparent 1px)',
-          backgroundSize: '32px 32px',
-        }}
+        className="fixed inset-0 pointer-events-none opacity-[0.03]"
+        style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.9) 1px, transparent 1px)', backgroundSize: '32px 32px' }}
       />
 
-      {/* Logo */}
-      <div
-        className={`relative z-10 shrink-0 flex items-center gap-2 px-5 py-4 transition-all duration-700 ${
-          mounted ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3'
-        }`}
-      >
-        <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center shadow-lg shadow-violet-600/40">
-          <Music size={16} className="text-white" />
+      {/* Header */}
+      <header className="relative z-10 flex items-center justify-between px-5 lg:px-10 py-5 max-w-7xl mx-auto">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center shadow-lg shadow-violet-600/40">
+            <Music size={16} className="text-white" />
+          </div>
+          <span className="font-bold text-lg text-white tracking-tight">h-orbit</span>
         </div>
-        <span className="font-bold text-white tracking-tight">h-orbit</span>
-      </div>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/login"
+            className="text-sm font-medium text-slate-400 hover:text-white transition-colors px-4 py-2 rounded-xl hover:bg-white/5"
+          >
+            Inloggen
+          </Link>
+          <Link
+            to="/signup"
+            className="text-sm font-semibold bg-violet-600 hover:bg-violet-500 text-white px-4 py-2 rounded-xl transition-all hover:scale-105"
+          >
+            Aanmelden
+          </Link>
+        </div>
+      </header>
 
-      {/* Bento grid */}
-      <div className="relative z-10 flex-1 min-h-0 grid gap-2 px-3 pb-3 grid-cols-2 md:px-5 md:pb-5 md:gap-3 landing-grid">
-        {tiles.map((tile, i) => {
-          const Icon = tile.Icon;
-          return (
+      {/* Hero */}
+      <section className="relative z-10 max-w-4xl mx-auto px-5 lg:px-10 pt-20 pb-24 text-center">
+        <div
+          className="transition-all duration-700"
+          style={{ opacity: mounted ? 1 : 0, transform: mounted ? 'translateY(0)' : 'translateY(24px)' }}
+        >
+          <div className="inline-flex items-center gap-2 bg-violet-600/15 border border-violet-500/25 text-violet-300 text-xs font-semibold px-4 py-2 rounded-full mb-8 tracking-widest uppercase">
+            <Star size={10} />
+            Nederlands muziekplatform
+          </div>
+
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold leading-[1.06] tracking-tight mb-6">
+            Ontdek de<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-fuchsia-400 to-amber-400">
+              Nederlandse muziek
+            </span>
+            <br />scene
+          </h1>
+
+          <p className="text-lg lg:text-xl text-slate-400 max-w-xl mx-auto mb-10 leading-relaxed">
+            Luister naar opkomende artiesten, vind events in jouw stad en deel je eigen muziek met de community.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
-              key={tile.area}
-              to={tile.path}
-              className={`
-                landing-tile-${tile.area}
-                group relative flex flex-col justify-end
-                rounded-2xl overflow-hidden border
-                p-4 md:p-5 min-h-[140px] md:min-h-0
-                transition-all duration-700 ease-out
-                hover:scale-[1.012] hover:z-10
-                ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}
-              `}
-              style={{
-                background: `linear-gradient(145deg, ${tile.color}1e 0%, rgba(12, 9, 22, 0.88) 65%)`,
-                borderColor: `${tile.color}28`,
-                boxShadow: `inset 0 1px 0 rgba(255,255,255,0.04), 0 0 0 0 ${tile.color}00`,
-                transitionDelay: mounted ? `${i * 55}ms` : '0ms',
-              }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLElement).style.boxShadow =
-                  `inset 0 1px 0 rgba(255,255,255,0.06), 0 8px 40px -8px ${tile.color}40`;
-                (e.currentTarget as HTMLElement).style.borderColor = `${tile.color}50`;
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLElement).style.boxShadow =
-                  `inset 0 1px 0 rgba(255,255,255,0.04), 0 0 0 0 ${tile.color}00`;
-                (e.currentTarget as HTMLElement).style.borderColor = `${tile.color}28`;
-              }}
+              to="/signup"
+              className="flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white font-semibold px-8 py-3.5 rounded-xl transition-all hover:scale-[1.03] shadow-xl shadow-violet-600/25 w-full sm:w-auto justify-center"
             >
-              {/* Hover radial glow */}
-              <div
-                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none"
-                style={{
-                  background: `radial-gradient(ellipse at 25% 25%, ${tile.color}1a 0%, transparent 60%)`,
-                }}
-              />
+              Gratis beginnen <ArrowRight size={15} />
+            </Link>
+            <Link
+              to="/muziek"
+              className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-slate-300 font-semibold px-8 py-3.5 rounded-xl transition-colors w-full sm:w-auto justify-center"
+            >
+              <Play size={14} /> Muziek verkennen
+            </Link>
+          </div>
 
-              {/* Top-left corner accent lines */}
-              <div
-                className="absolute top-0 left-0 w-20 h-px opacity-50 group-hover:opacity-90 transition-opacity duration-300"
-                style={{ background: `linear-gradient(90deg, ${tile.color}, transparent)` }}
-              />
-              <div
-                className="absolute top-0 left-0 h-20 w-px opacity-50 group-hover:opacity-90 transition-opacity duration-300"
-                style={{ background: `linear-gradient(180deg, ${tile.color}, transparent)` }}
-              />
+          <p className="text-xs text-slate-600 mt-5">Gratis · Geen creditcard nodig · Altijd te stoppen</p>
+        </div>
+      </section>
 
-              {/* Icon */}
+      {/* Features grid */}
+      <section
+        className="relative z-10 max-w-6xl mx-auto px-5 lg:px-10 pb-24 transition-all duration-700"
+        style={{ transitionDelay: '150ms', opacity: mounted ? 1 : 0, transform: mounted ? 'translateY(0)' : 'translateY(24px)' }}
+      >
+        <h2 className="text-center text-xl font-semibold text-white mb-8 opacity-70">Alles op één plek</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          {features.map((f, i) => {
+            const Icon = f.icon;
+            return (
               <div
-                className="absolute top-4 right-4 md:top-5 md:right-5 w-10 h-10 md:w-11 md:h-11 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:-rotate-6"
+                key={i}
+                className="relative p-6 rounded-2xl border overflow-hidden group cursor-default"
                 style={{
-                  background: `${tile.color}18`,
-                  border: `1px solid ${tile.color}35`,
+                  background: `${f.color}0d`,
+                  borderColor: `${f.color}22`,
+                  transitionDelay: `${i * 60}ms`,
                 }}
               >
-                <Icon size={18} style={{ color: tile.color }} />
-              </div>
-
-              {/* Featured tile: spinning vinyl decoration */}
-              {tile.featured && (
-                <div className="absolute inset-0 hidden md:flex items-center justify-center pointer-events-none">
-                  <div
-                    className="relative w-44 h-44 rounded-full opacity-[0.06] animate-spin group-hover:opacity-[0.12] transition-opacity duration-500"
-                    style={{ borderWidth: 2, borderStyle: 'solid', borderColor: tile.color, animationDuration: '28s' }}
-                  >
-                    <div
-                      className="absolute inset-8 rounded-full"
-                      style={{ borderWidth: 2, borderStyle: 'solid', borderColor: tile.color }}
-                    />
-                    <div
-                      className="absolute inset-[70px] rounded-full"
-                      style={{ background: tile.color, opacity: 0.5 }}
-                    />
-                    {[0, 90, 180, 270].map(deg => (
-                      <div
-                        key={deg}
-                        className="absolute w-1.5 h-1.5 rounded-full -translate-x-1/2 -translate-y-1/2"
-                        style={{
-                          background: tile.color,
-                          top: `${50 + 47 * Math.sin((deg * Math.PI) / 180)}%`,
-                          left: `${50 + 47 * Math.cos((deg * Math.PI) / 180)}%`,
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Text content */}
-              <div className="relative z-10">
-                <p
-                  className="text-xs font-medium mb-0.5 hidden sm:block opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                  style={{ color: `${tile.color}cc` }}
+                <div
+                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none"
+                  style={{ background: `radial-gradient(ellipse at 20% 20%, ${f.color}18 0%, transparent 65%)` }}
+                />
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center mb-4 relative"
+                  style={{ background: `${f.color}18`, border: `1px solid ${f.color}30` }}
                 >
-                  {tile.sub}
-                </p>
-                <div className="flex items-center justify-between gap-2">
-                  <h2
-                    className={`font-bold text-white leading-tight tracking-tight ${
-                      tile.featured ? 'text-xl md:text-3xl' : 'text-sm md:text-lg'
-                    }`}
-                  >
-                    {tile.label}
-                  </h2>
-                  <ChevronRight
-                    size={14}
-                    className="shrink-0 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 text-white"
-                  />
+                  <Icon size={18} style={{ color: f.color }} />
                 </div>
+                <h3 className="font-semibold text-white mb-1.5 text-sm">{f.title}</h3>
+                <p className="text-xs text-slate-500 leading-relaxed">{f.desc}</p>
               </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Bottom CTA strip */}
+      <section
+        className="relative z-10 max-w-7xl mx-auto px-5 lg:px-10 pb-16 transition-all duration-700"
+        style={{ transitionDelay: '250ms', opacity: mounted ? 1 : 0, transform: mounted ? 'translateY(0)' : 'translateY(24px)' }}
+      >
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/[0.03] border border-white/8 rounded-2xl px-6 py-5">
+          <div>
+            <p className="text-white font-semibold">Klaar om te beginnen?</p>
+            <p className="text-sm text-slate-500">Maak een gratis account aan en ontdek de scene.</p>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <Link to="/login" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">
+              Inloggen
             </Link>
-          );
-        })}
-      </div>
+            <Link
+              to="/signup"
+              className="flex items-center gap-1.5 text-sm font-semibold bg-violet-600 hover:bg-violet-500 text-white px-5 py-2.5 rounded-xl transition-all hover:scale-105"
+            >
+              Gratis aanmelden <ArrowRight size={13} />
+            </Link>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { Upload, Music, Image, X, CheckCircle, Loader } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { genres } from '@data/mockData';
+const genres = ['Nederpop','Nederlandstalige Hip-Hop','Elektronisch','Jazz','Folk','Bluesrock','R&B','Indie','Techno','Overig'];
 import { useAuth } from '@context/AuthContext';
 import { uploadTrack } from '@services/uploadService';
 import { addNotification } from '@services/notificationService';

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, MapPin, Users, Clock, Star, ChevronLeft, ChevronRight } from 'lucide-react';
-import { events } from '@data/mockData';
+import { supabase } from '@/lib/supabase';
 import { useAppState } from '@context/AppStateContext';
 import { useToast } from '@components/Toast';
 import BlurImage from '@components/BlurImage';
@@ -44,12 +44,12 @@ function groupByMonth(events) {
 }
 
 function EventCard({ event, featured = false, rsvpd, onToggleRsvp, now }) {
-  const attendance = Math.round((event.attendees / event.maxCapacity) * 100);
+  const attendance = Math.round((event.attendees_count / event.max_capacity) * 100);
 
   if (featured) {
     return (
       <div className="relative rounded-2xl overflow-hidden mb-10">
-        <img src={event.poster} alt={event.title} className="w-full h-64 lg:h-80 object-cover" />
+        <img src={event.poster_url} alt={event.name} className="w-full h-64 lg:h-80 object-cover" />
         <div className="absolute inset-0 bg-gradient-to-r from-[#1a1528] via-[#1a1528]/60 to-transparent" />
         <div className="absolute inset-0 flex items-center px-8 lg:px-12">
           <div className="max-w-lg">
@@ -57,7 +57,7 @@ function EventCard({ event, featured = false, rsvpd, onToggleRsvp, now }) {
               <Star size={12} className="text-violet-400" fill="currentColor" />
               <span className="text-violet-400 text-xs font-bold uppercase tracking-widest">Uitgelicht evenement</span>
             </div>
-            <h2 className="text-2xl lg:text-3xl font-bold text-white mb-2">{event.title}</h2>
+            <h2 className="text-2xl lg:text-3xl font-bold text-white mb-2">{event.name}</h2>
             <div className="flex flex-wrap items-center gap-4 text-sm text-slate-300 mb-4">
               <span className="flex items-center gap-1.5"><Calendar size={14} /> {event.date} · {event.time}</span>
               <span className="flex items-center gap-1.5"><MapPin size={14} /> {event.venue}, {event.city}</span>
@@ -91,20 +91,20 @@ function EventCard({ event, featured = false, rsvpd, onToggleRsvp, now }) {
       className="group flex gap-4 p-4 bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl transition-all cursor-pointer"
     >
       <BlurImage
-        src={event.poster}
-        alt={event.title}
+        src={event.poster_url}
+        alt={event.name}
         className="w-20 h-28 shrink-0 rounded-lg"
         imgClassName="object-cover group-hover:scale-105 transition-transform duration-300"
       />
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2 mb-1">
-          <h3 className="font-semibold text-white group-hover:text-violet-300 transition-colors line-clamp-2">{event.title}</h3>
+          <h3 className="font-semibold text-white group-hover:text-violet-300 transition-colors line-clamp-2">{event.name}</h3>
           <CountdownBadge date={event.date} now={now} />
         </div>
         <div className="space-y-1 text-xs text-slate-400">
           <div className="flex items-center gap-1.5"><Clock size={11} /> {event.time}</div>
           <div className="flex items-center gap-1.5"><MapPin size={11} /> {event.venue}, {event.city}</div>
-          <div className="flex items-center gap-1.5"><Users size={11} /> {event.attendees.toLocaleString('nl-NL')} aanwezigen</div>
+          <div className="flex items-center gap-1.5"><Users size={11} /> {event.attendees_count?.toLocaleString('nl-NL')} aanwezigen</div>
         </div>
         <div className="mt-3">
           <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
@@ -132,21 +132,28 @@ function EventCard({ event, featured = false, rsvpd, onToggleRsvp, now }) {
 export default function EventsPage() {
   const [view, setView] = useState('list');
   const [now, setNow] = useState(() => Date.now());
+  const [events, setEvents] = useState([]);
   const { rsvpEvents, toggleRsvp } = useAppState();
   const addToast = useToast();
-  const featured = events.find(e => e.featured) || events[0];
+
+  useEffect(() => {
+    supabase.from('events').select('*').then(({ data }) => {
+      if (data) setEvents(data);
+    });
+  }, []);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
 
-  const grouped = useMemo(() => groupByMonth(events), []);
+  const featured = events.find(e => e.featured) || events[0];
+  const grouped = useMemo(() => groupByMonth(events), [events]);
 
   function handleRsvp(event) {
     const wasRsvpd = rsvpEvents.includes(event.id);
     toggleRsvp(event.id);
-    addToast(wasRsvpd ? 'Afmelding verwerkt' : `Aangemeld voor ${event.title}!`, wasRsvpd ? 'info' : 'success');
+    addToast(wasRsvpd ? 'Afmelding verwerkt' : `Aangemeld voor ${event.name}!`, wasRsvpd ? 'info' : 'success');
   }
 
   return (
@@ -186,7 +193,7 @@ export default function EventsPage() {
 
       {view === 'list' && (
         <>
-          <EventCard event={featured} featured rsvpd={rsvpEvents.includes(featured.id)} onToggleRsvp={() => handleRsvp(featured)} now={now} />
+          {featured && <EventCard event={featured} featured rsvpd={rsvpEvents.includes(featured.id)} onToggleRsvp={() => handleRsvp(featured)} now={now} />}
 
           {/* TODO: Vervang met API-aanroep naar /api/evenementen */}
           {Object.entries(grouped).map(([month, monthEvents]) => (
@@ -206,7 +213,7 @@ export default function EventsPage() {
         </>
       )}
 
-      {view === 'calendar' && <CalendarView rsvpEvents={rsvpEvents} onRsvp={handleRsvp} />}
+      {view === 'calendar' && <CalendarView events={events} rsvpEvents={rsvpEvents} onRsvp={handleRsvp} />}
       {view === 'create' && <CreateEventForm />}
     </div>
   );
@@ -214,7 +221,7 @@ export default function EventsPage() {
 
 const DAY_LABELS = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
 
-function CalendarView({ rsvpEvents, onRsvp }) {
+function CalendarView({ events, rsvpEvents, onRsvp }) {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
@@ -288,14 +295,14 @@ function CalendarView({ rsvpEvents, onRsvp }) {
                   <div
                     key={ev.id}
                     onClick={() => onRsvp(ev)}
-                    title={ev.title}
+                    title={ev.name}
                     className={`text-[9px] font-medium px-1 py-0.5 rounded truncate leading-tight ${
                       rsvpEvents.includes(ev.id)
                         ? 'bg-green-500/20 text-green-300'
                         : 'bg-violet-600/20 text-violet-300 hover:bg-violet-600/30'
                     }`}
                   >
-                    {ev.title}
+                    {ev.name}
                   </div>
                 ))}
                 {dayEvents.length > 2 && (

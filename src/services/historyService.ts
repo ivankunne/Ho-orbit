@@ -1,35 +1,29 @@
+import { supabase } from '@/lib/supabase';
 import { tracks as allTracks } from '@data/mockData.js';
 
-const MAX_HISTORY = 50;
-
-// TODO: replace with → api.get('/listening-history?userId=X')
-export async function getHistory(userId) {
-  try {
-    const entries = JSON.parse(localStorage.getItem(`ho_history_${userId}`) || '[]');
-    // Resolve track objects
-    return entries
-      .map(e => ({ ...e, track: allTracks.find(t => t.id === e.trackId) }))
-      .filter(e => e.track);
-  } catch {
-    return [];
-  }
+export async function getHistory(userId: string) {
+  const { data } = await supabase
+    .from('play_history')
+    .select('track_id, played_at')
+    .eq('user_id', userId)
+    .order('played_at', { ascending: false })
+    .limit(50);
+  if (!data) return [];
+  return data
+    .map((e) => ({ trackId: e.track_id, playedAt: e.played_at, track: allTracks.find((t) => t.id === e.track_id) }))
+    .filter((e) => e.track);
 }
 
-// TODO: replace with → api.post('/listening-history', { trackId, userId, playedAt })
-export async function addToHistory(userId, trackId) {
+export async function addToHistory(userId: string, trackId: number) {
   if (!userId || !trackId) return;
-  try {
-    const stored = JSON.parse(localStorage.getItem(`ho_history_${userId}`) || '[]');
-    // Deduplicate — remove existing entry for this track
-    const deduped = stored.filter(e => e.trackId !== trackId);
-    const next = [{ trackId, playedAt: new Date().toISOString() }, ...deduped].slice(0, MAX_HISTORY);
-    localStorage.setItem(`ho_history_${userId}`, JSON.stringify(next));
-  } catch {
-    // Silent fail — history is non-critical
-  }
+  await supabase
+    .from('play_history')
+    .delete()
+    .eq('user_id', userId)
+    .eq('track_id', trackId);
+  await supabase.from('play_history').insert({ user_id: userId, track_id: trackId });
 }
 
-// TODO: replace with → api.delete('/listening-history?userId=X')
-export async function clearHistory(userId) {
-  localStorage.removeItem(`ho_history_${userId}`);
+export async function clearHistory(userId: string) {
+  await supabase.from('play_history').delete().eq('user_id', userId);
 }

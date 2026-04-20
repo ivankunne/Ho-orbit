@@ -1,16 +1,25 @@
+import { useState, useEffect } from 'react';
 import { MapPin, Users, Newspaper, Music } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { dutchCities, dutchNews, artists } from '@data/mockData';
+import { supabase } from '@/lib/supabase';
 import SceneMap from '@components/SceneMap';
-
-function formatListeners(n) {
-  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
-  if (n >= 1000) return (n / 1000).toFixed(0) + 'K';
-  return n.toString();
-}
 
 export default function DutchScenePage() {
   const navigate = useNavigate();
+  const [cities, setCities] = useState([]);
+  const [artists, setArtists] = useState([]);
+  const [newsArticles, setNewsArticles] = useState([]);
+
+  useEffect(() => {
+    supabase
+      .from('dutch_cities')
+      .select('*, dutch_city_artists(artists(id, name, image_url, genre, location))')
+      .then(({ data }) => setCities(data ?? []));
+    supabase.from('artists').select('*').then(({ data }) => setArtists(data ?? []));
+    supabase.from('articles').select('*').order('published_at', { ascending: false }).limit(3)
+      .then(({ data }) => setNewsArticles(data ?? []));
+  }, []);
+
   return (
     <div className="max-w-7xl mx-auto px-4 lg:px-6 py-10">
       {/* Header */}
@@ -49,76 +58,82 @@ export default function DutchScenePage() {
         <p className="text-slate-400 text-sm mb-6 max-w-2xl">
           Every Dutch city has its own musical identity. Here's what's happening where.
         </p>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {dutchCities.map(city => {
-            const cityArtists = artists.filter(a => city.artists.includes(a.id));
-            return (
-              <Link
-                key={city.id}
-                to={`/dutch-scene/${city.slug}`}
-                className="group bg-white/3 hover:bg-white/6 border border-white/5 rounded-2xl overflow-hidden cursor-pointer transition-all hover:-translate-y-0.5"
-              >
-                <div className="relative h-40 overflow-hidden">
-                  <img
-                    src={city.image}
-                    alt={city.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#231d3a]/90 via-[#231d3a]/30 to-transparent" />
-                  <div className="absolute bottom-3 left-4">
-                    <div className="flex items-center gap-1.5">
-                      <MapPin size={12} className="text-violet-400" />
-                      <h3 className="font-bold text-white text-lg">{city.name}</h3>
+        {cities.length === 0 ? (
+          <p className="text-slate-500 text-sm">Nog geen steden beschikbaar.</p>
+        ) : (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {cities.map(city => {
+              const cityArtists = (city.dutch_city_artists ?? []).map(ca => ca.artists).filter(Boolean);
+              return (
+                <Link
+                  key={city.id}
+                  to={`/dutch-scene/${city.slug}`}
+                  className="group bg-white/3 hover:bg-white/6 border border-white/5 rounded-2xl overflow-hidden cursor-pointer transition-all hover:-translate-y-0.5"
+                >
+                  <div className="relative h-40 overflow-hidden">
+                    <img
+                      src={city.image_url}
+                      alt={city.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#231d3a]/90 via-[#231d3a]/30 to-transparent" />
+                    <div className="absolute bottom-3 left-4">
+                      <div className="flex items-center gap-1.5">
+                        <MapPin size={12} className="text-violet-400" />
+                        <h3 className="font-bold text-white text-lg">{city.name}</h3>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="p-4">
-                  <p className="text-xs text-slate-400 leading-relaxed mb-3">{city.description}</p>
+                  <div className="p-4">
+                    <p className="text-xs text-slate-400 leading-relaxed mb-3">{city.description}</p>
 
-                  {/* Genres */}
-                  <div className="flex flex-wrap gap-1.5 mb-3">
-                    {city.genres.map(g => (
-                      <span key={g} className="text-xs bg-violet-600/15 text-violet-400 px-2 py-0.5 rounded-full">
-                        {g}
-                      </span>
-                    ))}
-                  </div>
-
-                  {/* Venues */}
-                  <div className="mb-3">
-                    <p className="text-xs text-slate-500 mb-1.5 uppercase tracking-wider">Key Venues</p>
-                    <div className="flex flex-wrap gap-1">
-                      {city.highlights.map(v => (
-                        <span key={v} className="text-xs bg-white/6 text-slate-300 px-2 py-0.5 rounded">
-                          {v}
+                    {/* Genres */}
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                      {(city.genres ?? []).map(g => (
+                        <span key={g} className="text-xs bg-violet-600/15 text-violet-400 px-2 py-0.5 rounded-full">
+                          {g}
                         </span>
                       ))}
                     </div>
-                  </div>
 
-                  {/* Artists from this city */}
-                  {cityArtists.length > 0 && (
-                    <div>
-                      <p className="text-xs text-slate-500 mb-2 uppercase tracking-wider">Artists</p>
-                      <div className="flex gap-2">
-                        {cityArtists.map(a => (
-                          <button
-                            key={a.id}
-                            onClick={e => { e.preventDefault(); navigate(`/artists/${a.id}`); }}
-                            className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 rounded-full px-2 py-1 transition-colors"
-                          >
-                            <img src={a.image} alt={a.name} className="w-5 h-5 rounded-full object-cover" />
-                            <span className="text-xs text-slate-300">{a.name.split(' ')[0]}</span>
-                          </button>
-                        ))}
+                    {/* Venues */}
+                    {(city.highlights ?? []).length > 0 && (
+                      <div className="mb-3">
+                        <p className="text-xs text-slate-500 mb-1.5 uppercase tracking-wider">Key Venues</p>
+                        <div className="flex flex-wrap gap-1">
+                          {city.highlights.map(v => (
+                            <span key={v} className="text-xs bg-white/6 text-slate-300 px-2 py-0.5 rounded">
+                              {v}
+                            </span>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+                    )}
+
+                    {/* Artists from this city */}
+                    {cityArtists.length > 0 && (
+                      <div>
+                        <p className="text-xs text-slate-500 mb-2 uppercase tracking-wider">Artists</p>
+                        <div className="flex gap-2">
+                          {cityArtists.map(a => (
+                            <button
+                              key={a.id}
+                              onClick={e => { e.preventDefault(); navigate(`/artists/${a.id}`); }}
+                              className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 rounded-full px-2 py-1 transition-colors"
+                            >
+                              <img src={a.image_url} alt={a.name} className="w-5 h-5 rounded-full object-cover" />
+                              <span className="text-xs text-slate-300">{a.name.split(' ')[0]}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       {/* All Dutch Artists */}
@@ -132,26 +147,29 @@ export default function DutchScenePage() {
             View all →
           </Link>
         </div>
-        {/* TODO: Replace with API call to /api/artists?country=NL */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {artists.map(artist => (
-            <Link
-              key={artist.id}
-              to={`/artists/${artist.id}`}
-              className="group flex items-center gap-3 p-3 bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl transition-colors"
-            >
-              <img src={artist.image} alt={artist.name} className="w-12 h-12 rounded-full object-cover shrink-0" />
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-white truncate">{artist.name}</p>
-                <p className="text-xs text-violet-400 truncate">{artist.genre}</p>
-                <div className="flex items-center gap-1 text-xs text-slate-500 mt-0.5">
-                  <MapPin size={9} />
-                  <span className="truncate">{artist.location.split(',')[0]}</span>
+        {artists.length === 0 ? (
+          <p className="text-slate-500 text-sm">Nog geen artiesten beschikbaar.</p>
+        ) : (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {artists.map(artist => (
+              <Link
+                key={artist.id}
+                to={`/artists/${artist.id}`}
+                className="group flex items-center gap-3 p-3 bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl transition-colors"
+              >
+                <img src={artist.image_url} alt={artist.name} className="w-12 h-12 rounded-full object-cover shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-white truncate">{artist.name}</p>
+                  <p className="text-xs text-violet-400 truncate">{artist.genre}</p>
+                  <div className="flex items-center gap-1 text-xs text-slate-500 mt-0.5">
+                    <MapPin size={9} />
+                    <span className="truncate">{artist.location?.split(',')[0]}</span>
+                  </div>
                 </div>
-              </div>
-            </Link>
-          ))}
-        </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* News */}
@@ -160,37 +178,41 @@ export default function DutchScenePage() {
           <Newspaper size={18} className="text-violet-400" />
           <h2 className="text-xl font-bold text-white">Dutch Scene News</h2>
         </div>
-        {/* TODO: Replace with API call to /api/news?scene=dutch */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {dutchNews.map(item => (
-            <div
-              key={item.id}
-              className="group bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl overflow-hidden cursor-pointer transition-all"
-            >
-              <div className="relative aspect-video overflow-hidden">
-                <img
-                  src={item.cover}
-                  alt={item.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-                <div className="absolute top-2 left-2">
-                  <span className="flex items-center gap-1 bg-[#1a1528]/80 text-xs text-white font-medium px-2 py-0.5 rounded-full">
-                    🇳🇱 Dutch Scene
-                  </span>
+        {newsArticles.length === 0 ? (
+          <p className="text-slate-500 text-sm">Nog geen nieuws beschikbaar.</p>
+        ) : (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {newsArticles.map(item => (
+              <Link
+                key={item.id}
+                to={`/magazine/${item.id}`}
+                className="group bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl overflow-hidden cursor-pointer transition-all"
+              >
+                <div className="relative aspect-video overflow-hidden">
+                  <img
+                    src={item.cover_url}
+                    alt={item.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute top-2 left-2">
+                    <span className="flex items-center gap-1 bg-[#1a1528]/80 text-xs text-white font-medium px-2 py-0.5 rounded-full">
+                      🇳🇱 Dutch Scene
+                    </span>
+                  </div>
                 </div>
-              </div>
-              <div className="p-4">
-                <h3 className="font-semibold text-white text-sm leading-snug mb-2 group-hover:text-violet-300 transition-colors">
-                  {item.title}
-                </h3>
-                <p className="text-xs text-slate-400 line-clamp-2 mb-3">{item.excerpt}</p>
-                <p className="text-xs text-slate-500">
-                  {new Date(item.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
+                <div className="p-4">
+                  <h3 className="font-semibold text-white text-sm leading-snug mb-2 group-hover:text-violet-300 transition-colors">
+                    {item.title}
+                  </h3>
+                  <p className="text-xs text-slate-400 line-clamp-2 mb-3">{item.excerpt}</p>
+                  <p className="text-xs text-slate-500">
+                    {new Date(item.published_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
 
       <div className="pb-16" />

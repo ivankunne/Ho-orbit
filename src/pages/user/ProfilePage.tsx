@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { MapPin, Users, Music, Calendar, Heart, BadgeCheck, Settings, Share2, TrendingUp, Play, BarChart2 } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
 import { useAppState } from '@context/AppStateContext';
-import { tracks, events, artists } from '@data/mockData';
+import { supabase } from '@/lib/supabase';
 
 const FAKE_FOLLOWERS = [
   { id: 1, name: 'Sander V.', username: 'sanderv', avatar: 'https://picsum.photos/seed/fol1/40/40', role: 'Luisteraar' },
@@ -25,12 +25,13 @@ function formatNum(n) {
 export default function ProfilePage() {
   const { username } = useParams();
   const { user: currentUser } = useAuth();
-  const { followedArtists, toggleFollow } = useAppState();
+  const { likedTracks, followedArtists, rsvpEvents, toggleFollow } = useAppState();
   const [activeTab, setActiveTab] = useState('nummers');
   const [following, setFollowing] = useState(false);
+  const [likedTrackList, setLikedTrackList] = useState([]);
+  const [attendingEventList, setAttendingEventList] = useState([]);
+  const [followedArtistList, setFollowedArtistList] = useState([]);
 
-  // TODO: Vervang met API-aanroep naar /api/gebruikers/:username
-  // Voor nu: toon de ingelogde gebruiker als het profiel overeenkomt
   const isOwnProfile = !username || username === currentUser?.username;
   const profileUser = isOwnProfile ? currentUser : {
     id: 99,
@@ -45,20 +46,27 @@ export default function ProfilePage() {
     followers: 128,
     following: 64,
     joinedDate: 'Januari 2025',
-    likedTracks: [1, 2],
-    uploadedTracks: [],
-    attendingEvents: [4],
   };
+
+  useEffect(() => {
+    if (isOwnProfile) {
+      if (likedTracks.length > 0) {
+        supabase.from('tracks').select('*').in('id', likedTracks).then(({ data }) => setLikedTrackList(data ?? []));
+      }
+      if (rsvpEvents.length > 0) {
+        supabase.from('events').select('*').in('id', rsvpEvents).then(({ data }) => setAttendingEventList(data ?? []));
+      }
+      if (followedArtists.length > 0) {
+        supabase.from('artists').select('*').in('id', followedArtists).then(({ data }) => setFollowedArtistList(data ?? []));
+      }
+    }
+  }, [isOwnProfile, likedTracks.join(','), rsvpEvents.join(','), followedArtists.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!profileUser) return null;
 
-  const likedTrackList = tracks.filter(t => profileUser.likedTracks?.includes(t.id));
-  const attendingEventList = events.filter(e => profileUser.attendingEvents?.includes(e.id));
-  const followedArtistList = isOwnProfile ? artists.filter(a => followedArtists.includes(a.id)) : [];
-
   const tabs = [
-    { key: 'nummers', label: 'Nummers', count: profileUser.uploadedTracks?.length || 0 },
-    { key: 'geliked', label: 'Geliked', count: profileUser.likedTracks?.length || 0 },
+    { key: 'nummers', label: 'Nummers', count: 0 },
+    { key: 'geliked', label: 'Geliked', count: likedTrackList.length },
     { key: 'evenementen', label: 'Evenementen', count: attendingEventList.length },
     ...(isOwnProfile ? [{ key: 'volgend', label: 'Volgend', count: followedArtists.length }] : []),
     { key: 'volgers', label: 'Volgers', count: isOwnProfile ? FAKE_FOLLOWERS.length : profileUser.followers },
@@ -196,7 +204,7 @@ export default function ProfilePage() {
                 {likedTrackList.map((track, i) => (
                   <div key={track.id} className="flex items-center gap-4 p-3 hover:bg-white/4 rounded-xl group cursor-pointer transition-colors">
                     <span className="w-5 text-center text-sm text-slate-600">{i + 1}</span>
-                    <img src={track.cover} alt={track.title} className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                    <img src={track.cover_url} alt={track.title} className="w-10 h-10 rounded-lg object-cover shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-white truncate">{track.title}</p>
                       <p className="text-xs text-slate-400">{track.artist}</p>
@@ -227,9 +235,9 @@ export default function ProfilePage() {
                     to={`/events/${event.id}`}
                     className="flex items-center gap-4 p-4 bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl transition-colors"
                   >
-                    <img src={event.poster} alt={event.title} className="w-14 h-20 object-cover rounded-lg shrink-0" />
+                    <img src={event.poster_url} alt={event.name} className="w-14 h-20 object-cover rounded-lg shrink-0" />
                     <div>
-                      <p className="text-sm font-semibold text-white mb-1">{event.title}</p>
+                      <p className="text-sm font-semibold text-white mb-1">{event.name}</p>
                       <p className="text-xs text-violet-400">{event.date} · {event.time}</p>
                       <p className="text-xs text-slate-400 mt-0.5">{event.venue}, {event.city}</p>
                       <span className="inline-block mt-2 text-xs bg-green-500/15 text-green-400 px-2 py-0.5 rounded-full">✓ Aangemeld</span>
@@ -258,7 +266,7 @@ export default function ProfilePage() {
                     to={`/artists/${artist.id}`}
                     className="flex items-center gap-4 p-4 bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl transition-all group"
                   >
-                    <img src={artist.image} alt={artist.name} className="w-12 h-12 rounded-full object-cover shrink-0 ring-2 ring-violet-500/20" />
+                    <img src={artist.image_url} alt={artist.name} className="w-12 h-12 rounded-full object-cover shrink-0 ring-2 ring-violet-500/20" />
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-white truncate">{artist.name}</p>
                       <p className="text-xs text-violet-400 truncate">{artist.genre}</p>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Calendar, MapPin, Users, Clock, ChevronLeft, ExternalLink, Share2, Timer } from 'lucide-react';
-import { events, artists } from '@data/mockData';
+import { supabase } from '@/lib/supabase';
 import { useAppState } from '@context/AppStateContext';
 import { useToast } from '@components/Toast';
 import CommentSection from '@components/CommentSection';
@@ -44,9 +44,22 @@ export default function EventDetailPage() {
   const { rsvpEvents, toggleRsvp } = useAppState();
   const addToast = useToast();
 
-  // TODO: Vervang met API-aanroep naar /api/evenementen/:id
-  const event = events.find(e => e.id === Number(id));
+  const [event, setEvent] = useState(null);
+  const [artist, setArtist] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.from('events').select('*, artist:artists(*)').eq('id', Number(id)).single()
+      .then(({ data }) => {
+        setEvent(data);
+        setArtist(data?.artist ?? null);
+        setLoading(false);
+      });
+  }, [id]);
+
   const countdown = useCountdown(event?.date || '');
+
+  if (loading) return null;
 
   if (!event) {
     return (
@@ -58,8 +71,7 @@ export default function EventDetailPage() {
   }
 
   const rsvpd = rsvpEvents.includes(event.id);
-  const artist = event.artistId ? artists.find(a => a.id === event.artistId) : null;
-  const attendance = Math.round((event.attendees / event.maxCapacity) * 100);
+  const attendance = Math.round((event.attendees_count / event.max_capacity) * 100);
 
   return (
     <div className="max-w-4xl mx-auto px-4 lg:px-6 py-10">
@@ -74,7 +86,7 @@ export default function EventDetailPage() {
         {/* Hoofdinhoud */}
         <div className="lg:col-span-2">
           <div className="relative rounded-2xl overflow-hidden mb-6">
-            <img src={event.poster} alt={event.title} className="w-full h-64 lg:h-80 object-cover" />
+            <img src={event.poster_url} alt={event.name} className="w-full h-64 lg:h-80 object-cover" />
             {event.featured && (
               <div className="absolute top-4 left-4 bg-violet-600 text-white text-xs font-bold px-3 py-1 rounded-full">
                 Uitgelicht evenement
@@ -82,14 +94,14 @@ export default function EventDetailPage() {
             )}
           </div>
 
-          <h1 className="text-2xl lg:text-3xl font-bold text-white mb-4">{event.title}</h1>
+          <h1 className="text-2xl lg:text-3xl font-bold text-white mb-4">{event.name}</h1>
 
           <div className="grid sm:grid-cols-2 gap-4 mb-6">
             {[
               { icon: Calendar, label: 'Datum', value: new Date(event.date).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) },
               { icon: Clock, label: 'Aanvang', value: event.time },
               { icon: MapPin, label: 'Locatie', value: `${event.venue}, ${event.city}` },
-              { icon: Users, label: 'Aanwezig', value: `${event.attendees.toLocaleString('nl-NL')} / ${event.maxCapacity.toLocaleString('nl-NL')}` },
+              { icon: Users, label: 'Aanwezig', value: `${event.attendees_count?.toLocaleString('nl-NL')} / ${event.max_capacity?.toLocaleString('nl-NL')}` },
             ].map(({ icon: Icon, label, value }) => (
               <div key={label} className="flex items-start gap-3 p-3 bg-white/3 rounded-xl">
                 <div className="w-8 h-8 bg-violet-600/20 rounded-lg flex items-center justify-center shrink-0">
@@ -108,7 +120,7 @@ export default function EventDetailPage() {
             <div className="flex justify-between text-xs text-slate-400 mb-2">
               <span>Bezetting: {attendance}%</span>
               <span className={attendance > 80 ? 'text-red-400' : 'text-green-400'}>
-                {event.maxCapacity - event.attendees} plaatsen vrij
+                {event.max_capacity - event.attendees_count} plaatsen vrij
               </span>
             </div>
             <div className="w-full bg-white/10 rounded-full h-2">
@@ -133,7 +145,7 @@ export default function EventDetailPage() {
                 to={`/artists/${artist.id}`}
                 className="flex items-center gap-4 p-4 bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl transition-colors"
               >
-                <img src={artist.image} alt={artist.name} className="w-14 h-14 rounded-full object-cover" />
+                <img src={artist.image_url} alt={artist.name} className="w-14 h-14 rounded-full object-cover" />
                 <div>
                   <p className="font-semibold text-white">{artist.name}</p>
                   <p className="text-sm text-violet-400">{artist.genre}</p>
@@ -154,7 +166,7 @@ export default function EventDetailPage() {
                 </div>
               ))}
               <div className="flex items-center gap-2 bg-white/4 rounded-full px-3 py-1.5">
-                <span className="text-xs text-slate-400">+{event.attendees - 12} meer</span>
+                <span className="text-xs text-slate-400">+{event.attendees_count - 12} meer</span>
               </div>
             </div>
           </div>
@@ -184,7 +196,7 @@ export default function EventDetailPage() {
             <button
               onClick={() => {
                 toggleRsvp(event.id);
-                addToast(!rsvpd ? `Aangemeld voor ${event.title}!` : 'Afmelding verwerkt', !rsvpd ? 'success' : 'info');
+                addToast(!rsvpd ? `Aangemeld voor ${event.name}!` : 'Afmelding verwerkt', !rsvpd ? 'success' : 'info');
               }}
               className={`w-full py-3 rounded-xl font-semibold transition-colors mb-3 ${
                 rsvpd
@@ -195,7 +207,7 @@ export default function EventDetailPage() {
               {rsvpd ? '✓ Aangemeld!' : 'Gratis aanmelden'}
             </button>
             <a
-              href={safeExternalUrl(event.ticketLink) ?? '#'}
+              href={safeExternalUrl(event.ticket_link) ?? '#'}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold bg-white/8 hover:bg-white/12 text-white transition-colors text-sm"
@@ -205,8 +217,8 @@ export default function EventDetailPage() {
             <button
               onClick={async () => {
                 const result = await shareContent({
-                  title: event.title,
-                  text: `Kom ook naar ${event.title}`,
+                  title: event.name,
+                  text: `Kom ook naar ${event.name}`,
                   url: buildShareUrl(`/events/${event.id}`),
                 });
                 if (result === 'copied') addToast('Link gekopieerd naar klembord!', 'success');
@@ -226,7 +238,7 @@ export default function EventDetailPage() {
       </div>
 
       <div className="mt-8">
-        <CommentSection resourceType="event" resourceId={event.id} resourceTitle={event.title} />
+        <CommentSection resourceType="event" resourceId={event.id} resourceTitle={event.name} />
       </div>
 
       <div className="pb-16" />

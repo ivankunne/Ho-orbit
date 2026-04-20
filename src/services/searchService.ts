@@ -1,43 +1,49 @@
-import { artists, tracks, events, tutorials, articles } from '@data/mockData.js';
+import { supabase } from '@/lib/supabase';
 
-// TODO: replace with → api.get('/search?q=query')
-export async function search(query) {
+export async function search(query: string) {
   if (!query || query.trim().length < 2) {
     return { artists: [], tracks: [], events: [], tutorials: [], articles: [] };
   }
 
-  const q = query.toLowerCase();
+  const q = query.trim();
+
+  const [artistRes, trackRes, eventRes, tutorialRes, articleRes] = await Promise.all([
+    supabase
+      .from('artists')
+      .select('id, name, genre, location, image_url')
+      .or(`name.ilike.%${q}%,genre.ilike.%${q}%,location.ilike.%${q}%`)
+      .limit(5),
+
+    supabase
+      .from('tracks')
+      .select('id, title, artist, genre, cover_url, artist_id')
+      .or(`title.ilike.%${q}%,artist.ilike.%${q}%,genre.ilike.%${q}%`)
+      .limit(5),
+
+    supabase
+      .from('events')
+      .select('id, name, date, venue, city, genre')
+      .or(`name.ilike.%${q}%,city.ilike.%${q}%,genre.ilike.%${q}%`)
+      .limit(4),
+
+    supabase
+      .from('tutorials')
+      .select('id, title, difficulty, instructor')
+      .or(`title.ilike.%${q}%,instructor.ilike.%${q}%`)
+      .limit(4),
+
+    supabase
+      .from('articles')
+      .select('id, title, category, author')
+      .or(`title.ilike.%${q}%,category.ilike.%${q}%,author.ilike.%${q}%`)
+      .limit(3),
+  ]);
 
   return {
-    artists: artists.filter(a =>
-      a.name.toLowerCase().includes(q) ||
-      a.genre.toLowerCase().includes(q) ||
-      a.location?.toLowerCase().includes(q)
-    ).slice(0, 5),
-
-    tracks: tracks.filter(t =>
-      t.title.toLowerCase().includes(q) ||
-      t.artist.toLowerCase().includes(q) ||
-      t.genre?.toLowerCase().includes(q)
-    ).slice(0, 5),
-
-    events: events.filter(e =>
-      e.name?.toLowerCase().includes(q) ||
-      e.title?.toLowerCase().includes(q) ||
-      e.city?.toLowerCase().includes(q) ||
-      e.genre?.toLowerCase().includes(q)
-    ).slice(0, 4),
-
-    tutorials: tutorials.filter(t =>
-      t.title.toLowerCase().includes(q) ||
-      t.instructor?.toLowerCase().includes(q) ||
-      t.tags?.some(tag => tag.toLowerCase().includes(q))
-    ).slice(0, 4),
-
-    articles: articles.filter(a =>
-      a.title?.toLowerCase().includes(q) ||
-      a.category?.toLowerCase().includes(q) ||
-      a.author?.toLowerCase().includes(q)
-    ).slice(0, 3),
+    artists: artistRes.data ?? [],
+    tracks: trackRes.data ?? [],
+    events: eventRes.data ?? [],
+    tutorials: tutorialRes.data ?? [],
+    articles: articleRes.data ?? [],
   };
 }

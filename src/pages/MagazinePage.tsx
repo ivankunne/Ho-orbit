@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Clock, User, ChevronRight } from 'lucide-react';
-import { articles } from '@data/mockData';
+import { supabase } from '@/lib/supabase';
 import BlurImage from '@components/BlurImage';
 
 const categories = ['Alles', 'Recensies', 'Interviews', 'Scènerapporten', 'Genre Spotlights'];
@@ -11,7 +11,7 @@ function ArticleCard({ article, featured = false }) {
     return (
       <Link to={`/magazine/${article.id}`} className="group relative rounded-2xl overflow-hidden cursor-pointer block">
         <BlurImage
-          src={article.cover}
+          src={article.cover_url}
           alt={article.title}
           className="w-full h-72 lg:h-96"
           imgClassName="object-cover group-hover:scale-105 transition-transform duration-500"
@@ -27,8 +27,8 @@ function ArticleCard({ article, featured = false }) {
           <p className="text-slate-300 text-sm line-clamp-2 mb-4 max-w-2xl">{article.excerpt}</p>
           <div className="flex items-center gap-4 text-sm text-slate-400">
             <span className="flex items-center gap-1.5"><User size={13} /> {article.author}</span>
-            <span>{new Date(article.date).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
-            <span className="flex items-center gap-1"><Clock size={13} /> {article.readTime} leestijd</span>
+            <span>{new Date(article.published_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+            <span className="flex items-center gap-1"><Clock size={13} /> {article.read_time} leestijd</span>
           </div>
         </div>
       </Link>
@@ -39,7 +39,7 @@ function ArticleCard({ article, featured = false }) {
     <Link to={`/magazine/${article.id}`} className="group bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl overflow-hidden cursor-pointer transition-all hover:-translate-y-0.5 block">
       <div className="relative aspect-video overflow-hidden">
         <BlurImage
-          src={article.cover}
+          src={article.cover_url}
           alt={article.title}
           className="w-full h-full"
           imgClassName="object-cover group-hover:scale-105 transition-transform duration-300"
@@ -58,9 +58,9 @@ function ArticleCard({ article, featured = false }) {
         <div className="flex items-center justify-between text-xs text-slate-500">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1"><User size={10} /> {article.author}</span>
-            <span className="flex items-center gap-1"><Clock size={10} /> {article.readTime}</span>
+            <span className="flex items-center gap-1"><Clock size={10} /> {article.read_time}</span>
           </div>
-          <span>{new Date(article.date).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}</span>
+          <span>{new Date(article.published_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}</span>
         </div>
       </div>
     </Link>
@@ -74,15 +74,19 @@ export default function MagazinePage() {
   const catParam = searchParams.get('cat');
   const [activeCategory, setActiveCategory] = useState(catParam || 'Alles');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [articles, setArticles] = useState([]);
   useEffect(() => setVisibleCount(PAGE_SIZE), [activeCategory]);
   useEffect(() => { if (catParam) setActiveCategory(catParam); }, [catParam]);
+  useEffect(() => {
+    supabase.from('articles').select('*').order('published_at', { ascending: false }).then(({ data }) => setArticles(data ?? []));
+  }, []);
 
   const filtered = activeCategory === 'Alles'
     ? articles
     : articles.filter(a => a.category === activeCategory);
 
-  const featuredArticle = articles.find(a => a.featured) || articles[0];
-  const allRegular = filtered.filter(a => a.id !== featuredArticle.id);
+  const featuredArticle = articles.find(a => a.featured) ?? articles[0];
+  const allRegular = featuredArticle ? filtered.filter(a => a.id !== featuredArticle.id) : filtered;
   const regularArticles = allRegular.slice(0, visibleCount);
   const hasMore = visibleCount < allRegular.length;
 
@@ -94,7 +98,7 @@ export default function MagazinePage() {
       </div>
 
       {/* Uitgelicht artikel */}
-      {activeCategory === 'Alles' && (
+      {activeCategory === 'Alles' && featuredArticle && (
         <div className="mb-8">
           <ArticleCard article={featuredArticle} featured />
         </div>
