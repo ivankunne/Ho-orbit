@@ -1,5 +1,8 @@
 import { supabase } from '@/lib/supabase';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUUID = (id: string) => UUID_RE.test(id);
+
 export type UploadStatus = 'pending' | 'approved' | 'rejected';
 
 export interface UploadedTrack {
@@ -53,7 +56,7 @@ export async function uploadTrack({
       plays: 0,
       duration: '3:00',
       is_user_upload: true,
-      uploaded_by: userId,
+      ...(userId && isUUID(userId) ? { uploaded_by: userId } : {}),
       upload_status: 'pending',
     })
     .select()

@@ -2,6 +2,9 @@ import { createContext, useContext, useState, useCallback, useEffect } from 'rea
 import { supabase } from '@/lib/supabase';
 import { addNotification } from '@services/notificationService';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUUID = (id: string | null) => !!id && UUID_RE.test(id);
+
 const AppStateContext = createContext(null);
 
 export function AppStateProvider({ children }) {
@@ -13,7 +16,7 @@ export function AppStateProvider({ children }) {
 
   // Load user-specific state from Supabase when user logs in
   useEffect(() => {
-    if (!currentUserId) {
+    if (!currentUserId || !isUUID(currentUserId)) {
       setLikedTracks([]);
       setFollowedArtists([]);
       setRsvpEvents([]);
