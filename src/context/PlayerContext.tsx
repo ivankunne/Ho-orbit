@@ -38,7 +38,9 @@ export function PlayerProvider({ children }) {
 
     getStreamUrl(track.id, track.stream_url).then(url => {
       audioRef.current.src = url;
-      audioRef.current.load();
+      isNewTrack.current = false;
+      // play() handles loading by itself — never call load() first,
+      // it causes an AbortError that silently kills the play request
       if (isPlaying) {
         audioRef.current.play().catch(() => {});
       }
@@ -53,7 +55,8 @@ export function PlayerProvider({ children }) {
 
   // --- Sync play/pause state ---
   useEffect(() => {
-    if (!track) return;
+    // Skip while a track switch is in progress — the load effect handles it
+    if (!track || isNewTrack.current) return;
     if (isPlaying) {
       audioRef.current.play().catch(() => setIsPlaying(false));
     } else {
