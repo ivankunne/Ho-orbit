@@ -110,9 +110,12 @@ function RejectInput({ onConfirm, onCancel, label = 'Reden (optioneel)' }: { onC
 
 // ─── Mini audio player ────────────────────────────────────────────────────────
 
-function TrackPlayer({ src }: { src: string }) {
+const DEMO_FALLBACK = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+
+function TrackPlayer({ src, hasRealAudio }: { src: string; hasRealAudio: boolean }) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useLocalState(false);
+  const resolvedSrc = src || DEMO_FALLBACK;
 
   const toggle = () => {
     if (!audioRef.current) return;
@@ -122,7 +125,7 @@ function TrackPlayer({ src }: { src: string }) {
 
   return (
     <div className="flex items-center gap-2 mt-2">
-      <audio ref={audioRef} src={src} onEnded={() => setPlaying(false)} />
+      <audio ref={audioRef} src={resolvedSrc} onEnded={() => setPlaying(false)} />
       <button
         onClick={toggle}
         className="flex items-center gap-1.5 bg-violet-600/20 hover:bg-violet-600/35 text-violet-400 border border-violet-500/30 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
@@ -130,7 +133,7 @@ function TrackPlayer({ src }: { src: string }) {
         {playing ? <Pause size={12} /> : <Play size={12} />}
         {playing ? 'Pauzeren' : 'Beluisteren'}
       </button>
-      <Volume2 size={12} className="text-slate-600" />
+      {!hasRealAudio && <span className="text-[10px] text-slate-600 italic">demo audio</span>}
     </div>
   );
 }
@@ -181,7 +184,8 @@ function UploadsSection({ adminId }: { adminId: string }) {
             <div key={track.id} className="bg-white/[0.03] border border-white/8 rounded-2xl overflow-hidden hover:border-white/15 transition-all">
               <div className="flex gap-4 p-4 sm:p-5">
                 <img
-                  src={track.cover || `https://picsum.photos/seed/${track.id}/80/80`}
+                  src={track.cover || `https://picsum.photos/seed/${encodeURIComponent(track.title)}/300/300`}
+                  onError={e => { (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${encodeURIComponent(track.title)}/300/300`; }}
                   alt={track.title}
                   className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover shrink-0 bg-white/5"
                 />
@@ -202,7 +206,7 @@ function UploadsSection({ adminId }: { adminId: string }) {
                     {track.tags.map(tag => <span key={tag} className="text-[10px] text-slate-500 bg-white/5 border border-white/8 px-1.5 py-0.5 rounded">{tag}</span>)}
                   </div>
                   <p className="text-xs text-slate-600">Ingediend {fmt(track.uploadedAt)}</p>
-                  {track.streamUrl && <TrackPlayer src={track.streamUrl} />}
+                  <TrackPlayer src={track.streamUrl} hasRealAudio={!!track.streamUrl} />
                 </div>
                 <div className="flex flex-col gap-2 shrink-0 self-start">
                   {track.status !== 'approved' && (

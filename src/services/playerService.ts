@@ -9,8 +9,11 @@ const DEMO_URLS = [
 
 export async function getStreamUrl(trackId, streamUrl?: string) {
   if (streamUrl) return streamUrl;
-  const index = (trackId - 1) % DEMO_URLS.length;
-  return DEMO_URLS[index];
+  // Hash the id so both integer and UUID ids map to a valid demo index
+  const str = String(trackId);
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) hash = (Math.imul(31, hash) + str.charCodeAt(i)) | 0;
+  return DEMO_URLS[Math.abs(hash) % DEMO_URLS.length];
 }
 
 export async function getQueue(trackIds) {
