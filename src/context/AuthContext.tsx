@@ -1,157 +1,142 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { createContext, useContext, useState } from 'react';
+
+// Mock users database
+// TODO: Replace with API call to POST /api/auth/login
+const MOCK_USERS = [
+  {
+    id: 1,
+    username: 'Test123',
+    password: 'Test123',
+    displayName: 'Test Gebruiker',
+    email: 'test@ho-orbit.nl',
+    avatar: 'https://picsum.photos/seed/test123/200/200',
+    banner: 'https://picsum.photos/seed/test123-banner/1200/400',
+    bio: 'Muziekliefhebber en amateur producer uit Amsterdam. Altijd op zoek naar nieuwe Nederlandse muziek.',
+    location: 'Amsterdam, Nederland',
+    role: 'Luisteraar',
+    verified: false,
+    isAdmin: false,
+    followers: 42,
+    following: 118,
+    joinedDate: 'Maart 2025',
+    likedTracks: [1, 3, 5],
+    uploadedTracks: [],
+    attendingEvents: [4, 5],
+  },
+  {
+    id: 99,
+    username: 'admin',
+    password: 'admin',
+    displayName: 'h-orbit Admin',
+    email: 'admin@ho-orbit.nl',
+    avatar: 'https://picsum.photos/seed/horbiteadmin/200/200',
+    banner: 'https://picsum.photos/seed/admin-banner/1200/400',
+    bio: 'Platform beheerder.',
+    location: 'Nederland',
+    role: 'Beheerder',
+    verified: true,
+    isAdmin: true,
+    followers: 0,
+    following: 0,
+    joinedDate: 'Januari 2024',
+    likedTracks: [],
+    uploadedTracks: [],
+    attendingEvents: [],
+  },
+  {
+    id: 2,
+    username: 'sander_h',
+    password: 'wachtwoord',
+    displayName: 'Sander Hoekstra',
+    email: 'sander@ho-orbit.nl',
+    avatar: 'https://picsum.photos/seed/currentuser/200/200',
+    banner: 'https://picsum.photos/seed/sander-banner/1200/400',
+    bio: 'Producer & blogger gebaseerd in Rotterdam. Ik schrijf over de Nederlandse muziekscene en maak beats in mijn thuisstudio.',
+    location: 'Rotterdam, Nederland',
+    role: 'Producer & Blogger',
+    verified: true,
+    followers: 1840,
+    following: 420,
+    joinedDate: 'Januari 2024',
+    likedTracks: [2, 4, 6],
+    uploadedTracks: [],
+    attendingEvents: [1, 3],
+  },
+];
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('ho_orbit_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      sessionStorage.removeItem('ho_orbit_user');
+      return null;
+    }
+  });
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
-        setLoading(false);
-      }
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
-        setUser(null);
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  async function fetchProfile(userId: string) {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    if (data) {
-      setUser({
-        id: userId,
-        username: data.username,
-        displayName: data.display_name,
-        email: data.email,
-        avatar: data.avatar_url,
-        banner: data.banner_url,
-        bio: data.bio,
-        location: data.location,
-        role: data.role,
-        verified: data.verified,
-        isAdmin: data.is_admin,
-        followers: data.followers_count,
-        following: data.following_count,
-        joinedDate: data.joined_date,
-        likedTracks: [],
-        uploadedTracks: [],
-        attendingEvents: [],
-        preferredGenres: data.preferred_genres ?? [],
-        notifications: data.notification_prefs,
-        needsOnboarding: data.needs_onboarding,
-      });
+  const login = (username, password) => {
+    // TODO: Replace with API call to POST /api/auth/login
+    const found = MOCK_USERS.find(
+      u => u.username === username && u.password === password
+    );
+    if (found) {
+      const { password: _pw, ...safeUser } = found;
+      setUser(safeUser);
+      sessionStorage.setItem('ho_orbit_user', JSON.stringify(safeUser));
+      setError('');
+      return true;
     }
-    setLoading(false);
-  }
-
-  const login = async (username: string, password: string) => {
-    setError('');
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('email')
-      .eq('username', username)
-      .single();
-
-    if (profileError || !profile) {
-      setError('Onjuiste gebruikersnaam of wachtwoord.');
-      return false;
-    }
-
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email: profile.email,
-      password,
-    });
-
-    if (authError) {
-      setError('Onjuiste gebruikersnaam of wachtwoord.');
-      return false;
-    }
-    return true;
+    setError('Onjuiste gebruikersnaam of wachtwoord.');
+    return false;
   };
 
-  const signup = async (data: {
-    username: string;
-    displayName?: string;
-    email: string;
-    password: string;
-    location?: string;
-    isArtist?: boolean;
-  }) => {
-    setError('');
-    const { error: authError } = await supabase.auth.signUp({
+  const signup = (data) => {
+    // TODO: Replace with API call to POST /api/auth/registreren
+    const newUser = {
+      id: Date.now(),
+      username: data.username,
+      displayName: data.displayName || data.username,
       email: data.email,
-      password: data.password,
-      options: {
-        data: {
-          username: data.username,
-          display_name: data.displayName || data.username,
-        },
-      },
-    });
-
-    if (authError) {
-      setError(authError.message);
-      return false;
-    }
-
-    if (data.location || data.isArtist) {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (authUser) {
-        await supabase.from('profiles').update({
-          location: data.location ?? '',
-          role: data.isArtist ? 'Artiest' : 'Luisteraar',
-        }).eq('id', authUser.id);
-      }
-    }
-
+      avatar: `https://picsum.photos/seed/${data.username}/200/200`,
+      banner: `https://picsum.photos/seed/${data.username}-banner/1200/400`,
+      bio: '',
+      location: data.location || '',
+      role: data.isArtist ? 'Artiest' : 'Luisteraar',
+      verified: false,
+      followers: 0,
+      following: 0,
+      joinedDate: 'Maart 2026',
+      likedTracks: [],
+      uploadedTracks: [],
+      attendingEvents: [],
+      needsOnboarding: true,
+    };
+    setUser(newUser);
+    sessionStorage.setItem('ho_orbit_user', JSON.stringify(newUser));
+    setError('');
     return true;
   };
 
-  const logout = async () => {
-    await supabase.auth.signOut();
+  const logout = () => {
     setUser(null);
+    sessionStorage.removeItem('ho_orbit_user');
   };
 
-  const updateProfile = async (updates: Record<string, unknown>) => {
-    if (!user) return;
-    const fieldMap: Record<string, string> = {
-      displayName: 'display_name',
-      bio: 'bio',
-      location: 'location',
-      email: 'email',
-      avatar: 'avatar_url',
-      banner: 'banner_url',
-      preferredGenres: 'preferred_genres',
-      notifications: 'notification_prefs',
-    };
-    const dbUpdates: Record<string, unknown> = {};
-    for (const [key, val] of Object.entries(updates)) {
-      if (fieldMap[key]) dbUpdates[fieldMap[key]] = val;
-    }
-    await supabase.from('profiles').update(dbUpdates).eq('id', user.id);
-    setUser((prev) => ({ ...prev, ...updates }));
+  const updateProfile = (updates) => {
+    // Whitelist editable fields — never allow overwriting id, role, verified, etc.
+    const EDITABLE = ['displayName', 'bio', 'location', 'email', 'avatar', 'banner', 'preferredGenres', 'notifications'];
+    const safe = Object.fromEntries(Object.entries(updates).filter(([k]) => EDITABLE.includes(k)));
+    const updated = { ...user, ...safe };
+    setUser(updated);
+    sessionStorage.setItem('ho_orbit_user', JSON.stringify(updated));
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, signup, error, setError, updateProfile, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, signup, error, setError, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );
