@@ -144,7 +144,7 @@ export default function PlaylistDetailPage() {
       <div className="flex items-start gap-4 mb-8">
         <div className="w-20 h-20 sm:w-24 sm:h-24 bg-violet-600/20 rounded-2xl flex items-center justify-center shrink-0">
           {tracks.length > 0
-            ? <img src={tracks[0].cover} alt="" className="w-full h-full object-cover rounded-2xl" />
+            ? <img src={tracks[0].cover_url || tracks[0].cover} alt="" className="w-full h-full object-cover rounded-2xl" />
             : <Music size={32} className="text-violet-400" />
           }
         </div>
@@ -216,7 +216,7 @@ export default function PlaylistDetailPage() {
               <GripVertical size={16} className="text-slate-700 group-hover:text-slate-500 transition-colors shrink-0" />
               <span className="w-5 text-center text-xs text-slate-600 shrink-0">{i + 1}</span>
               <div className="relative shrink-0">
-                <img src={track.cover} alt={track.title} className="w-10 h-10 rounded-lg object-cover" />
+                <img src={track.cover_url || track.cover} alt={track.title} className="w-10 h-10 rounded-lg object-cover" />
                 <button
                   onClick={() => playTrack(track, tracks)}
                   className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"

@@ -27,8 +27,8 @@ export async function getAllTracks() {
     .from('tracks')
     .select('*')
     .or('is_user_upload.is.null,is_user_upload.eq.false,upload_status.eq.approved');
-  return (data ?? []).map(t => ({
-    ...t,
-    cover_url: t.cover_url || `https://picsum.photos/seed/${encodeURIComponent(String(t.title || t.id))}/300/300`,
-  }));
+  return (data ?? []).map(t => {
+    const cover = t.cover_url || `https://picsum.photos/seed/${encodeURIComponent(String(t.title || t.id))}/300/300`;
+    return { ...t, cover_url: cover, cover };
+  });
 }

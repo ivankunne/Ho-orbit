@@ -16,7 +16,7 @@ function MusicCardInner({ track, queue }) {
     <div className="group relative bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl overflow-hidden transition-all cursor-pointer p-3">
       <div className="relative overflow-hidden rounded-lg aspect-square mb-3">
         <img
-          src={track.cover}
+          src={track.cover_url || track.cover}
           alt={track.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
