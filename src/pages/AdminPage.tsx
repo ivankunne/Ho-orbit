@@ -2,9 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   ShieldCheck, Music, Users, Calendar, Flag, MessageSquare,
   CheckCircle, XCircle, Clock, Search, RefreshCw,
-  Ban, UserCheck, Eye, EyeOff, ChevronRight, AlertTriangle,
-  Trash2, MoreHorizontal,
+  Ban, UserCheck, Eye, EyeOff, AlertTriangle,
+  Play, Pause, Volume2,
 } from 'lucide-react';
+import { useRef, useState as useLocalState } from 'react';
 import { useAuth } from '@context/AuthContext';
 import {
   getAllUploads, approveUpload, rejectUpload,
@@ -107,9 +108,36 @@ function RejectInput({ onConfirm, onCancel, label = 'Reden (optioneel)' }: { onC
   );
 }
 
+// ─── Mini audio player ────────────────────────────────────────────────────────
+
+function TrackPlayer({ src }: { src: string }) {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [playing, setPlaying] = useLocalState(false);
+
+  const toggle = () => {
+    if (!audioRef.current) return;
+    if (playing) { audioRef.current.pause(); setPlaying(false); }
+    else { audioRef.current.play(); setPlaying(true); }
+  };
+
+  return (
+    <div className="flex items-center gap-2 mt-2">
+      <audio ref={audioRef} src={src} onEnded={() => setPlaying(false)} />
+      <button
+        onClick={toggle}
+        className="flex items-center gap-1.5 bg-violet-600/20 hover:bg-violet-600/35 text-violet-400 border border-violet-500/30 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+      >
+        {playing ? <Pause size={12} /> : <Play size={12} />}
+        {playing ? 'Pauzeren' : 'Beluisteren'}
+      </button>
+      <Volume2 size={12} className="text-slate-600" />
+    </div>
+  );
+}
+
 // ─── Uploads section ──────────────────────────────────────────────────────────
 
-function UploadsSection({ adminId }: { adminId: number }) {
+function UploadsSection({ adminId }: { adminId: string }) {
   const [tab, setTab] = useState<ReviewTab>('pending');
   const [tracks, setTracks] = useState<UploadedTrack[]>([]);
   const [search, setSearch] = useState('');
@@ -119,13 +147,31 @@ function UploadsSection({ adminId }: { adminId: number }) {
   const load = useCallback(async () => { setLoading(true); setTracks(await getAllUploads()); setLoading(false); }, []);
   useEffect(() => { load(); }, [load]);
 
-  const counts = { pending: tracks.filter(t => t.status === 'pending').length, approved: tracks.filter(t => t.status === 'approved').length, rejected: tracks.filter(t => t.status === 'rejected').length, all: tracks.length };
-  const visible = tracks.filter(t => tab === 'all' || t.status === tab).filter(t => !search || t.title.toLowerCase().includes(search.toLowerCase()) || t.artist.toLowerCase().includes(search.toLowerCase()));
+  const counts = {
+    pending: tracks.filter(t => t.status === 'pending').length,
+    approved: tracks.filter(t => t.status === 'approved').length,
+    rejected: 0,
+    all: tracks.length,
+  };
+  const visible = tracks
+    .filter(t => tab === 'all' || t.status === tab)
+    .filter(t => !search || t.title.toLowerCase().includes(search.toLowerCase()) || t.artist.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row gap-3">
-        <ReviewTabs tab={tab} setTab={setTab} counts={counts} />
+        <div className="flex bg-white/[0.04] border border-white/8 rounded-xl p-1 gap-0.5 overflow-x-auto">
+          {([['pending', 'In behandeling', 'text-amber-400'], ['approved', 'Goedgekeurd', 'text-emerald-400'], ['all', 'Alles', 'text-slate-300']] as const).map(([id, label, color]) => (
+            <button key={id} onClick={() => setTab(id as ReviewTab)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${tab === id ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              {label}
+              {counts[id as ReviewTab] > 0 && (
+                <span className={`text-xs px-1.5 py-0.5 rounded-full bg-white/8 ${tab === id ? color : 'text-slate-600'}`}>{counts[id as ReviewTab]}</span>
+              )}
+            </button>
+          ))}
+        </div>
         <SectionSearch value={search} onChange={setSearch} placeholder="Zoek op titel of artiest…" />
       </div>
 
@@ -134,37 +180,51 @@ function UploadsSection({ adminId }: { adminId: number }) {
           {visible.map(track => (
             <div key={track.id} className="bg-white/[0.03] border border-white/8 rounded-2xl overflow-hidden hover:border-white/15 transition-all">
               <div className="flex gap-4 p-4 sm:p-5">
-                <img src={track.cover} alt={track.title} className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover shrink-0 bg-white/5" />
+                <img
+                  src={track.cover || `https://picsum.photos/seed/${track.id}/80/80`}
+                  alt={track.title}
+                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover shrink-0 bg-white/5"
+                />
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-start gap-2 mb-1">
                     <h3 className="font-semibold text-white">{track.title}</h3>
                     <StatusBadge status={track.status} />
                   </div>
-                  <p className="text-sm text-slate-400 mb-2"><span className="text-slate-300">{track.artist}</span> · {track.genre}</p>
+                  <p className="text-sm text-slate-400 mb-2">
+                    <span className="text-slate-300">{track.artist}</span> · {track.genre}
+                  </p>
+                  {track.description && (
+                    <p className="text-xs text-slate-500 mb-2 line-clamp-2 italic">"{track.description}"</p>
+                  )}
                   <div className="flex flex-wrap gap-1.5 mb-2">
                     {track.explicit && <span className="text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/25 px-1.5 py-0.5 rounded">E</span>}
                     {track.isPrivate && <span className="text-[10px] bg-slate-500/15 text-slate-400 border border-slate-500/20 px-1.5 py-0.5 rounded">Privé</span>}
                     {track.tags.map(tag => <span key={tag} className="text-[10px] text-slate-500 bg-white/5 border border-white/8 px-1.5 py-0.5 rounded">{tag}</span>)}
                   </div>
                   <p className="text-xs text-slate-600">Ingediend {fmt(track.uploadedAt)}</p>
-                  {track.status === 'rejected' && track.rejectionReason && <p className="text-xs text-red-400/80 mt-1">Reden: {track.rejectionReason}</p>}
+                  {track.streamUrl && <TrackPlayer src={track.streamUrl} />}
                 </div>
                 <div className="flex flex-col gap-2 shrink-0 self-start">
                   {track.status !== 'approved' && (
-                    <button onClick={async () => { await approveUpload(track.id, adminId); load(); }} className="flex items-center gap-1.5 bg-emerald-600/20 hover:bg-emerald-600/35 text-emerald-400 border border-emerald-500/30 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors">
+                    <button
+                      onClick={async () => { await approveUpload(track.id, adminId); load(); }}
+                      className="flex items-center gap-1.5 bg-emerald-600/20 hover:bg-emerald-600/35 text-emerald-400 border border-emerald-500/30 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
+                    >
                       <CheckCircle size={13} /><span className="hidden sm:inline">Goedkeuren</span>
                     </button>
                   )}
-                  {track.status !== 'rejected' && (
-                    <button onClick={() => setRejectingId(track.id)} className="flex items-center gap-1.5 bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/25 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors">
-                      <XCircle size={13} /><span className="hidden sm:inline">Afwijzen</span>
-                    </button>
-                  )}
+                  <button
+                    onClick={() => setRejectingId(track.id)}
+                    className="flex items-center gap-1.5 bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/25 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
+                  >
+                    <XCircle size={13} /><span className="hidden sm:inline">Verwijderen</span>
+                  </button>
                 </div>
               </div>
               {rejectingId === track.id && (
                 <RejectInput
-                  onConfirm={async r => { await rejectUpload(track.id, adminId, r); setRejectingId(null); load(); }}
+                  label="Reden voor verwijdering (optioneel, wordt niet opgeslagen)"
+                  onConfirm={async () => { await rejectUpload(track.id); setRejectingId(null); load(); }}
                   onCancel={() => setRejectingId(null)}
                 />
               )}
@@ -648,7 +708,7 @@ export default function AdminPage() {
               <span className="text-violet-400">{SECTIONS.find(s => s.id === section)?.icon}</span>
               <h2 className="font-semibold text-white">{SECTIONS.find(s => s.id === section)?.label}</h2>
             </div>
-            {section === 'uploads' && <UploadsSection adminId={user?.id} />}
+            {section === 'uploads' && <UploadsSection adminId={String(user?.id ?? '')} />}
             {section === 'users'   && <UsersSection />}
             {section === 'forum'   && <ForumSection />}
             {section === 'events'  && <EventsSection />}

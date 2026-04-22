@@ -1,9 +1,9 @@
 import { supabase } from '@/lib/supabase';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const isUUID = (id: string) => UUID_RE.test(id);
+const isUUID = (id: string | null | undefined) => !!id && UUID_RE.test(id);
 
-export type UploadStatus = 'pending' | 'approved' | 'rejected';
+export type UploadStatus = 'pending' | 'approved';
 
 export interface UploadedTrack {
   id: string;
@@ -16,6 +16,7 @@ export interface UploadedTrack {
   explicit: boolean;
   isPrivate: boolean;
   cover: string;
+  streamUrl: string;
   plays: number;
   duration: string;
   trending: boolean;
@@ -35,13 +36,30 @@ function hashStr(str: string): number {
   return Math.abs(h);
 }
 
+async function uploadAudioFile(file: File, trackTitle: string): Promise<string> {
+  const ext = file.name.split('.').pop() ?? 'mp3';
+  const safeName = trackTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+  const path = `${Date.now()}_${safeName}.${ext}`;
+  const { error } = await supabase.storage.from('audio').upload(path, file, { contentType: file.type });
+  if (error) throw error;
+  const { data } = supabase.storage.from('audio').getPublicUrl(path);
+  return data.publicUrl;
+}
+
 export async function uploadTrack({
-  title, genre, description, tags, explicit, isPrivate, userId, artistName,
+  title, genre, description, tags, explicit, isPrivate, userId, artistName, audioFile,
 }: {
   title: string; genre: string; description: string; tags: string[];
   explicit: boolean; isPrivate: boolean; userId: string; artistName: string;
+  audioFile?: File;
 }): Promise<UploadedTrack> {
   const seed = hashStr(title + userId);
+
+  let streamUrl = '';
+  if (audioFile) {
+    streamUrl = await uploadAudioFile(audioFile, title);
+  }
+
   const { data, error } = await supabase
     .from('tracks')
     .insert({
@@ -53,10 +71,11 @@ export async function uploadTrack({
       explicit,
       is_private: isPrivate,
       cover_url: `https://picsum.photos/seed/${seed}/300/300`,
+      stream_url: streamUrl,
       plays: 0,
       duration: '3:00',
       is_user_upload: true,
-      ...(userId && isUUID(userId) ? { uploaded_by: userId } : {}),
+      ...(isUUID(userId) ? { uploaded_by: userId } : {}),
       upload_status: 'pending',
     })
     .select()
@@ -67,7 +86,7 @@ export async function uploadTrack({
 
 export async function getUploadedTracks(userId?: string): Promise<UploadedTrack[]> {
   let query = supabase.from('tracks').select('*').eq('is_user_upload', true);
-  if (userId) query = query.eq('uploaded_by', userId);
+  if (userId && isUUID(userId)) query = query.eq('uploaded_by', userId);
   const { data } = await query.order('created_at', { ascending: false });
   return (data ?? []).map(mapTrack);
 }
@@ -82,41 +101,46 @@ export async function getAllUploads(): Promise<UploadedTrack[]> {
 }
 
 export async function approveUpload(trackId: string, adminId: string): Promise<void> {
-  await supabase
+  const { error } = await supabase
     .from('tracks')
-    .update({ upload_status: 'approved', reviewed_at: new Date().toISOString(), reviewed_by: adminId, rejection_reason: null })
+    .update({
+      upload_status: 'approved',
+      reviewed_at: new Date().toISOString(),
+      ...(isUUID(adminId) ? { reviewed_by: adminId } : {}),
+      rejection_reason: null,
+    })
     .eq('id', trackId);
+  if (error) throw error;
 }
 
-export async function rejectUpload(trackId: string, adminId: string, reason: string): Promise<void> {
-  await supabase
-    .from('tracks')
-    .update({ upload_status: 'rejected', reviewed_at: new Date().toISOString(), reviewed_by: adminId, rejection_reason: reason || null })
-    .eq('id', trackId);
+export async function rejectUpload(trackId: string): Promise<void> {
+  const { error } = await supabase.from('tracks').delete().eq('id', trackId);
+  if (error) throw error;
 }
 
 function mapTrack(d: Record<string, unknown>): UploadedTrack {
   return {
     id: String(d.id),
     title: d.title as string,
-    artist: d.artist_name as string,
-    artistId: d.uploaded_by as string,
-    genre: d.genre as string,
-    description: d.description as string ?? '',
+    artist: (d.artist_name as string) ?? '',
+    artistId: (d.uploaded_by as string) ?? '',
+    genre: (d.genre as string) ?? '',
+    description: (d.description as string) ?? '',
     tags: (d.tags as string[]) ?? [],
-    explicit: d.explicit as boolean,
-    isPrivate: d.is_private as boolean,
-    cover: d.cover_url as string ?? '',
-    plays: d.plays as number,
-    duration: d.duration as string ?? '',
-    trending: d.trending as boolean,
+    explicit: (d.explicit as boolean) ?? false,
+    isPrivate: (d.is_private as boolean) ?? false,
+    cover: (d.cover_url as string) ?? '',
+    streamUrl: (d.stream_url as string) ?? '',
+    plays: (d.plays as number) ?? 0,
+    duration: (d.duration as string) ?? '',
+    trending: (d.trending as boolean) ?? false,
     weeklyRank: null,
     uploadedAt: d.created_at as string,
-    uploadedBy: d.uploaded_by as string,
+    uploadedBy: (d.uploaded_by as string) ?? '',
     isUserUpload: true,
-    status: d.upload_status as UploadStatus,
-    rejectionReason: d.rejection_reason as string | null,
-    reviewedAt: d.reviewed_at as string | null,
-    reviewedBy: d.reviewed_by as string | null,
+    status: (d.upload_status as UploadStatus) ?? 'pending',
+    rejectionReason: (d.rejection_reason as string) ?? null,
+    reviewedAt: (d.reviewed_at as string) ?? null,
+    reviewedBy: (d.reviewed_by as string) ?? null,
   };
 }

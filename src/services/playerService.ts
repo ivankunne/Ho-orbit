@@ -19,6 +19,9 @@ export async function getQueue(trackIds) {
 }
 
 export async function getAllTracks() {
-  const { data } = await supabase.from('tracks').select('*');
+  const { data } = await supabase
+    .from('tracks')
+    .select('*')
+    .or('is_user_upload.is.null,is_user_upload.eq.false,upload_status.eq.approved');
   return data ?? [];
 }

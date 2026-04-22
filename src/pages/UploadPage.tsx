@@ -72,6 +72,7 @@ export default function UploadPage() {
             isPrivate: form.privateTrack,
             userId: user?.id,
             artistName: user?.displayName || user?.username,
+            audioFile: trackFile ?? undefined,
           }).then(track => {
             if (user?.id) {
               addNotification(user.id, {
