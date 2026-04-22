@@ -1,6 +1,10 @@
 import { supabase } from '@/lib/supabase';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUUID = (id: unknown) => typeof id === 'string' && UUID_RE.test(id);
+
 export async function getHistory(userId: string) {
+  if (!isUUID(userId)) return [];
   const { data } = await supabase
     .from('play_history')
     .select('track_id, played_at, tracks(*)')
@@ -13,8 +17,8 @@ export async function getHistory(userId: string) {
     .map((e) => ({ trackId: e.track_id, playedAt: e.played_at, track: e.tracks }));
 }
 
-export async function addToHistory(userId: string, trackId: number) {
-  if (!userId || !trackId) return;
+export async function addToHistory(userId: string, trackId: number | string) {
+  if (!isUUID(userId) || !trackId) return;
   await supabase
     .from('play_history')
     .delete()
@@ -24,5 +28,6 @@ export async function addToHistory(userId: string, trackId: number) {
 }
 
 export async function clearHistory(userId: string) {
+  if (!isUUID(userId)) return;
   await supabase.from('play_history').delete().eq('user_id', userId);
 }

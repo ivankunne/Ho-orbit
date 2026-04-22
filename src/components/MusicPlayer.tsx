@@ -87,7 +87,7 @@ export default function MusicPlayer() {
                       onClick={() => playTrack(t)}
                       className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 cursor-pointer transition-colors group"
                     >
-                      <img src={t.cover_url} alt={t.title} className="w-9 h-9 rounded-lg object-cover" />
+                      <img src={t.cover_url || `https://picsum.photos/seed/${encodeURIComponent(String(t.title || t.id))}/80/80`} onError={e => { (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${encodeURIComponent(String(t.id))}/80/80`; }} alt={t.title} className="w-9 h-9 rounded-lg object-cover" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-white font-medium truncate group-hover:text-violet-300 transition-colors">{t.title}</p>
                         <p className="text-xs text-slate-500 truncate">{t.artist}</p>
@@ -103,7 +103,8 @@ export default function MusicPlayer() {
             ) : (
               <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
                 <img
-                  src={track.cover_url}
+                  src={track.cover_url || `https://picsum.photos/seed/${encodeURIComponent(String(track.title || track.id))}/300/300`}
+                  onError={e => { (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${encodeURIComponent(String(track.id))}/300/300`; }}
                   alt={track.title}
                   className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl object-cover shadow-2xl shadow-black/60 shrink-0 mx-auto sm:mx-0"
                 />
@@ -180,7 +181,7 @@ export default function MusicPlayer() {
             onClick={() => setExpanded(e => !e)}
           >
             <div className="relative shrink-0">
-              <img src={track.cover_url} alt={track.title} className="w-10 h-10 rounded-lg object-cover" />
+              <img src={track.cover_url || `https://picsum.photos/seed/${encodeURIComponent(String(track.title || track.id))}/80/80`} onError={e => { (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${encodeURIComponent(String(track.id))}/80/80`; }} alt={track.title} className="w-10 h-10 rounded-lg object-cover" />
               {isPlaying && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg">
                   <EqBars playing={isPlaying} />
