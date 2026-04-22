@@ -6,16 +6,6 @@ import { useAppState } from '@context/AppStateContext';
 import { supabase } from '@/lib/supabase';
 import { getUploadedTracks, type UploadedTrack } from '@services/uploadService';
 
-const FAKE_FOLLOWERS = [
-  { id: 1, name: 'Sander V.', username: 'sanderv', avatar: 'https://picsum.photos/seed/fol1/40/40', role: 'Luisteraar' },
-  { id: 2, name: 'Anouk de Wit', username: 'anoukdw', avatar: 'https://picsum.photos/seed/fol2/40/40', role: 'Artiest' },
-  { id: 3, name: 'Joost B.', username: 'joostb', avatar: 'https://picsum.photos/seed/fol3/40/40', role: 'Luisteraar' },
-  { id: 4, name: 'Emma Jansen', username: 'emmaj', avatar: 'https://picsum.photos/seed/fol4/40/40', role: 'Producent' },
-  { id: 5, name: 'Lars K.', username: 'larsk', avatar: 'https://picsum.photos/seed/fol5/40/40', role: 'Luisteraar' },
-  { id: 6, name: 'Lisa M.', username: 'lisam', avatar: 'https://picsum.photos/seed/fol6/40/40', role: 'Artiest' },
-  { id: 7, name: 'Robin T.', username: 'robint', avatar: 'https://picsum.photos/seed/fol7/40/40', role: 'Luisteraar' },
-  { id: 8, name: 'Anna S.', username: 'annas', avatar: 'https://picsum.photos/seed/fol8/40/40', role: 'Luisteraar' },
-];
 
 function formatNum(n) {
   if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
@@ -75,7 +65,7 @@ export default function ProfilePage() {
     { key: 'geliked', label: 'Geliked', count: likedTrackList.length },
     { key: 'evenementen', label: 'Evenementen', count: attendingEventList.length },
     ...(isOwnProfile ? [{ key: 'volgend', label: 'Volgend', count: followedArtists.length }] : []),
-    { key: 'volgers', label: 'Volgers', count: isOwnProfile ? FAKE_FOLLOWERS.length : profileUser.followers },
+    { key: 'volgers', label: 'Volgers', count: profileUser.followers ?? 0 },
     ...(isOwnProfile && profileUser.role === 'Artiest' ? [{ key: 'dashboard', label: 'Dashboard' }] : []),
     { key: 'over', label: 'Over' },
   ];
@@ -333,24 +323,9 @@ export default function ProfilePage() {
 
         {/* Volgers tab */}
         {activeTab === 'volgers' && (
-          <div className="space-y-3">
-            {FAKE_FOLLOWERS.map(follower => (
-              <div key={follower.id} className="flex items-center gap-4 p-4 bg-white/3 border border-white/5 rounded-xl">
-                <img src={follower.avatar} alt={follower.name} className="w-11 h-11 rounded-full object-cover shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <Link to={`/profiel/${follower.username}`} className="text-sm font-semibold text-white hover:text-violet-300 transition-colors">
-                    {follower.name}
-                  </Link>
-                  <p className="text-xs text-slate-400">@{follower.username} · {follower.role}</p>
-                </div>
-                <Link
-                  to={`/profiel/${follower.username}`}
-                  className="text-xs font-medium px-3 py-1.5 rounded-full bg-white/6 hover:bg-white/10 text-slate-300 transition-colors shrink-0"
-                >
-                  Bekijken
-                </Link>
-              </div>
-            ))}
+          <div className="text-center py-16 text-slate-400">
+            <Users size={32} className="mx-auto mb-3 opacity-30" />
+            <p>Nog geen volgers</p>
           </div>
         )}
 

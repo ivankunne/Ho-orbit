@@ -242,9 +242,10 @@ function UsersSection() {
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'active' | 'suspended'>('all');
-  const [suspendingId, setSuspendingId] = useState<number | null>(null);
+  const [suspendingId, setSuspendingId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const load = () => setUsers(getUsers());
+  const load = async () => { setLoading(true); setUsers(await getUsers()); setLoading(false); };
   useEffect(() => { load(); }, []);
 
   const visible = users
@@ -269,7 +270,7 @@ function UsersSection() {
         <SectionSearch value={search} onChange={setSearch} placeholder="Zoek op naam, gebruikersnaam of rol…" />
       </div>
 
-      {visible.length === 0 ? <EmptyState icon={<Users size={32} />} label="Geen gebruikers gevonden." /> : (
+      {loading ? <LoadingState /> : visible.length === 0 ? <EmptyState icon={<Users size={32} />} label="Geen gebruikers gevonden." /> : (
         <div className="space-y-2">
           {visible.map(u => (
             <div key={u.id} className={`bg-white/[0.03] border rounded-xl overflow-hidden transition-all ${u.suspended ? 'border-red-500/20' : 'border-white/8 hover:border-white/15'}`}>
@@ -287,7 +288,7 @@ function UsersSection() {
                 </div>
                 <div className="shrink-0">
                   {u.suspended ? (
-                    <button onClick={() => { unsuspendUser(u.id); load(); }}
+                    <button onClick={async () => { await unsuspendUser(u.id); load(); }}
                       className="flex items-center gap-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors">
                       <UserCheck size={12} /><span className="hidden sm:inline">Opheffen</span>
                     </button>
@@ -302,7 +303,7 @@ function UsersSection() {
               {suspendingId === u.id && (
                 <RejectInput
                   label="Reden voor schorsing (optioneel)"
-                  onConfirm={r => { suspendUser(u.id, r); setSuspendingId(null); load(); }}
+                  onConfirm={async r => { await suspendUser(u.id, r); setSuspendingId(null); load(); }}
                   onCancel={() => setSuspendingId(null)}
                 />
               )}
@@ -466,7 +467,7 @@ function EventsSection() {
   const [search, setSearch] = useState('');
   const [rejectingId, setRejectingId] = useState<string | null>(null);
 
-  const load = () => setEvents(getPendingEvents());
+  const load = async () => { setEvents(await getPendingEvents()); };
   useEffect(() => { load(); }, []);
 
   const counts = { pending: events.filter(e => e.status === 'pending').length, approved: events.filter(e => e.status === 'approved').length, rejected: events.filter(e => e.status === 'rejected').length, all: events.length };
@@ -503,7 +504,7 @@ function EventsSection() {
                 </div>
                 <div className="flex flex-col gap-2 shrink-0 self-start">
                   {evt.status !== 'approved' && (
-                    <button onClick={() => { approveEvent(evt.id); load(); }} className="flex items-center gap-1.5 bg-emerald-600/20 hover:bg-emerald-600/35 text-emerald-400 border border-emerald-500/30 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors">
+                    <button onClick={async () => { await approveEvent(evt.id); load(); }} className="flex items-center gap-1.5 bg-emerald-600/20 hover:bg-emerald-600/35 text-emerald-400 border border-emerald-500/30 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors">
                       <CheckCircle size={13} /><span className="hidden sm:inline">Goedkeuren</span>
                     </button>
                   )}
@@ -515,7 +516,7 @@ function EventsSection() {
                 </div>
               </div>
               {rejectingId === evt.id && (
-                <RejectInput onConfirm={r => { rejectEvent(evt.id, r); setRejectingId(null); load(); }} onCancel={() => setRejectingId(null)} />
+                <RejectInput onConfirm={async r => { await rejectEvent(evt.id, r); setRejectingId(null); load(); }} onCancel={() => setRejectingId(null)} />
               )}
             </div>
           ))}
@@ -533,7 +534,7 @@ function ReportsSection() {
   const [search, setSearch] = useState('');
   const [resolvingId, setResolvingId] = useState<string | null>(null);
 
-  const load = () => setReports(getReports());
+  const load = async () => { setReports(await getReports()); };
   useEffect(() => { load(); }, []);
 
   const counts = { open: reports.filter(r => r.status === 'open').length, resolved: reports.filter(r => r.status === 'resolved').length, dismissed: reports.filter(r => r.status === 'dismissed').length, all: reports.length };
@@ -584,7 +585,7 @@ function ReportsSection() {
                       <button onClick={() => setResolvingId(report.id)} className="flex items-center gap-1.5 bg-emerald-600/20 hover:bg-emerald-600/35 text-emerald-400 border border-emerald-500/30 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors">
                         <CheckCircle size={11} /><span className="hidden sm:inline">Oplossen</span>
                       </button>
-                      <button onClick={() => { dismissReport(report.id); load(); }} className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 text-slate-400 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs transition-colors">
+                      <button onClick={async () => { await dismissReport(report.id); load(); }} className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 text-slate-400 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs transition-colors">
                         <XCircle size={11} /><span className="hidden sm:inline">Sluiten</span>
                       </button>
                     </div>
@@ -594,7 +595,7 @@ function ReportsSection() {
               {resolvingId === report.id && (
                 <RejectInput
                   label="Admin notitie (optioneel)"
-                  onConfirm={notes => { resolveReport(report.id, notes); setResolvingId(null); load(); }}
+                  onConfirm={async notes => { await resolveReport(report.id, notes); setResolvingId(null); load(); }}
                   onCancel={() => setResolvingId(null)}
                 />
               )}
@@ -646,8 +647,8 @@ export default function AdminPage() {
 
   useEffect(() => {
     getAllUploads().then(t => setUploadPending(t.filter(x => x.status === 'pending').length));
-    setReportOpen(getReports().filter(r => r.status === 'open').length);
-    setEventPending(getPendingEvents().filter(e => e.status === 'pending').length);
+    getReports().then(r => setReportOpen(r.filter(x => x.status === 'open').length));
+    getPendingEvents().then(e => setEventPending(e.filter(x => x.status === 'pending').length));
   }, [section]);
 
   const badges: Partial<Record<Section, number>> = {

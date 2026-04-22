@@ -6,33 +6,12 @@ import CommentSection from '@components/CommentSection';
 import { useToast } from '@components/Toast';
 import { shareContent, buildShareUrl } from '@utils/share';
 
-// Hardcoded article body paragraphs keyed by article id
-const BODY = {
-  1: [
-    "Typhoon staat in de coulissen van de uitverkochte Ziggo Dome en kijkt naar de zee van gezichten. Het is de derde avond van zijn landelijke tour en het is elke keer opnieuw een overweldiging, zegt hij.",
-    "\"Nederlandse muziek draait altijd om eerlijkheid,\" begint hij als we hem een uur voor het concert spreken in zijn kleedkamer. \"Als je in het Nederlands schrijft, kun je nergens achter verstopt blijven. Elke zin raak je direct, of niet.\"",
-    "Het is iets wat hij al vroeg doorhad. Opgegroeid in Zeist, de zoon van een Marokkaanse vader en Nederlandse moeder, was taal altijd een instrument van identiteit. \"Ik voelde me soms geen volwaardig Nederlander, maar ook geen volwaardige Marokkaan. Muziek was de plek waar ik beide mocht zijn.\"",
-    "Zijn album Alle Mensen uit 2022 brak alle records voor Nederlandstalige hiphop. Maar succes verandert niets aan het schrijfproces, zegt hij. \"Ik zit nog steeds met een notitieblok op de keukentafel. De omgeving is misschien groter geworden, maar de eerlijkheid moet hetzelfde blijven.\"",
-    "Als we vragen naar de toekomst van Nederlandse hiphop, wordt hij even stil. \"De nieuwe generatie is moediger. Ze mixen Arabisch, Berbers, Surinaams door het Nederlands. Dat is de volgende stap — een taal die echt van iedereen is.\"",
-  ],
-  2: [
-    "Rotterdam heeft altijd iets gehad wat Amsterdam mist: de bereidheid om lelijk te zijn. De stad werd na de oorlog heropgebouwd als een experiment, en die geest van nuchter pragmatisme sijpelt door in de muziekscene.",
-    "We beginnen onze tour op vrijdagavond in Boomtown, een voormalig pakhuis aan de Maas. Het is pas tien uur, maar de zaal is al half gevuld. Op het podium staat een dj-trio dat gabber mengt met Arabische synthesizers.",
-    "\"Rotterdam heeft nooit geprobeerd cool te zijn,\" zegt promotor Karim el Fassi na de set. \"En daardoor is het cool geworden. Als je hier iets nieuw doet, ben je niet bang voor oordelen — iedereen is hier een outsider.\"",
-    "Zaterdagnacht brengen we door in Baroeg, legendaire metaltempel. Maar zaterdag staat er een elektronisch programma — een teken van de tijd. De grenzen tussen genres vervagen op een manier die nergens zo ver gaat als hier.",
-    "Vijf locaties, één weekend, één conclusie: Rotterdam is het echte laboratorium van de Nederlandse muziek. Niet luidruchtig, maar onontkoombaar.",
-  ],
-  default: [
-    "Dit is een uitgebreid artikel over een onderwerp dat diep verbonden is met de Nederlandse muziekscene. De auteur neemt je mee op een reis langs de mensen, plekken en klanken die ons muzikale landschap vormgeven.",
-    "Van de clubcircuits in Amsterdam tot de underground scenes in Tilburg en Groningen — overal bruist het van creativiteit. Artiesten vinden elkaar buiten de traditionele kanalen, dankzij platforms als h-orbit.",
-    "\"Het is een bijzonder moment voor Nederlandse muziek,\" zegt één van onze gesprekspartners. \"We exporteren niet alleen klanken, we exporteren een houding — eigenzinnig, direct, zonder toeters en bellen.\"",
-    "De cijfers bevestigen het gevoel. Streamingdata laat zien dat Nederlandstalige muziek de afgelopen drie jaar met meer dan 40 procent is gegroeid buiten Nederland. Belgen en Zuid-Afrikanen zijn de grootste nieuwe afnemers.",
-    "Het verhaal van de Nederlandse muziek is verre van af. Dit artikel is één hoofdstuk — en de volgende wordt al geschreven in de repetitieruimtes, thuisstudio's en podia van het land.",
-  ],
-};
-
-function getBody(id) {
-  return BODY[id] || BODY.default;
+function getBody(article: { body?: string; excerpt?: string }): string[] {
+  if (article.body && article.body.trim()) {
+    return article.body.split('\n\n').map(p => p.trim()).filter(Boolean);
+  }
+  if (article.excerpt) return [article.excerpt];
+  return ['De volledige tekst van dit artikel is nog niet beschikbaar.'];
 }
 
 export default function ArticleDetailPage() {
@@ -56,7 +35,7 @@ export default function ArticleDetailPage() {
     return null;
   }
 
-  const body = getBody(article.id);
+  const body = getBody(article);
 
   return (
     <div className="max-w-7xl mx-auto px-4 lg:px-6 py-8">

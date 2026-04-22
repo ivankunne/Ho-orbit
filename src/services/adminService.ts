@@ -1,7 +1,9 @@
+import { supabase } from '@/lib/supabase';
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface ManagedUser {
-  id: number;
+  id: string;
   username: string;
   displayName: string;
   email: string;
@@ -61,245 +63,166 @@ export interface HiddenItem {
   reason: string | null;
 }
 
-// ─── Seed data ────────────────────────────────────────────────────────────────
-
-const SEED_USERS: ManagedUser[] = [
-  { id: 1,  username: 'Test123',     displayName: 'Test Gebruiker',   email: 'test@ho-orbit.nl',    avatar: 'https://picsum.photos/seed/test123/80/80',     role: 'Luisteraar',       verified: false, joinedDate: 'Maart 2025',     suspended: false, suspendedAt: null, suspendedReason: null },
-  { id: 2,  username: 'sander_h',    displayName: 'Sander Hoekstra',  email: 'sander@ho-orbit.nl',  avatar: 'https://picsum.photos/seed/currentuser/80/80', role: 'Producer & Blogger', verified: true,  joinedDate: 'Januari 2024',  suspended: false, suspendedAt: null, suspendedReason: null },
-  { id: 3,  username: 'emma_beats',  displayName: 'Emma de Vries',    email: 'emma@ho-orbit.nl',    avatar: 'https://picsum.photos/seed/emma/80/80',        role: 'Artiest',          verified: true,  joinedDate: 'Juni 2024',      suspended: false, suspendedAt: null, suspendedReason: null },
-  { id: 4,  username: 'dj_frank',    displayName: 'Frank Mulder',     email: 'frank@ho-orbit.nl',   avatar: 'https://picsum.photos/seed/frank/80/80',       role: 'DJ',               verified: false, joinedDate: 'September 2024', suspended: false, suspendedAt: null, suspendedReason: null },
-  { id: 5,  username: 'lotte_m',     displayName: 'Lotte Smit',       email: 'lotte@ho-orbit.nl',   avatar: 'https://picsum.photos/seed/lotte/80/80',       role: 'Artiest',          verified: false, joinedDate: 'Oktober 2024',   suspended: false, suspendedAt: null, suspendedReason: null },
-  { id: 6,  username: 'bas_prod',    displayName: 'Bas van der Berg', email: 'bas@ho-orbit.nl',     avatar: 'https://picsum.photos/seed/bas/80/80',         role: 'Producer',         verified: true,  joinedDate: 'Februari 2024',  suspended: false, suspendedAt: null, suspendedReason: null },
-  { id: 7,  username: 'julia_rap',   displayName: 'Julia Okonkwo',    email: 'julia@ho-orbit.nl',   avatar: 'https://picsum.photos/seed/julia/80/80',       role: 'Rapper',           verified: false, joinedDate: 'November 2024',  suspended: false, suspendedAt: null, suspendedReason: null },
-  { id: 8,  username: 'tim_singer',  displayName: 'Tim Bakker',       email: 'tim@ho-orbit.nl',     avatar: 'https://picsum.photos/seed/tim/80/80',         role: 'Singer-Songwriter', verified: false, joinedDate: 'December 2024',  suspended: false, suspendedAt: null, suspendedReason: null },
-];
-
-const SEED_EVENTS: PendingEvent[] = [
-  {
-    id: 'evt-seed-1',
-    title: 'Amsterdam Electronic Night Vol. 4',
-    date: '2026-06-14',
-    time: '22:00',
-    venue: 'Shelter Amsterdam',
-    city: 'Amsterdam',
-    genre: 'Electronic',
-    description: 'Een nacht vol techno, house en ambient met lokale producers en internationale gasten.',
-    ticketLink: 'https://tickets.example.nl/aen4',
-    poster: 'https://picsum.photos/seed/evt1/400/300',
-    submittedBy: 'dj_frank',
-    submittedByAvatar: 'https://picsum.photos/seed/frank/80/80',
-    submittedAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
-    status: 'pending',
-    rejectionReason: null,
-    reviewedAt: null,
-  },
-  {
-    id: 'evt-seed-2',
-    title: 'Rotterdam Hip-Hop Showcase',
-    date: '2026-07-03',
-    time: '20:00',
-    venue: 'BIRD Rotterdam',
-    city: 'Rotterdam',
-    genre: 'Hip-hop',
-    description: 'De beste opkomende rappers en producers uit Rotterdam op één podium.',
-    ticketLink: 'https://tickets.example.nl/rhhS',
-    poster: 'https://picsum.photos/seed/evt2/400/300',
-    submittedBy: 'julia_rap',
-    submittedByAvatar: 'https://picsum.photos/seed/julia/80/80',
-    submittedAt: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
-    status: 'pending',
-    rejectionReason: null,
-    reviewedAt: null,
-  },
-  {
-    id: 'evt-seed-3',
-    title: 'Singer-Songwriter Avond — Utrecht',
-    date: '2026-05-28',
-    time: '19:30',
-    venue: 'TivoliVredenburg',
-    city: 'Utrecht',
-    genre: 'Singer-Songwriter',
-    description: 'Intieme avond met drie singer-songwriters die hun nieuwe materiaal presenteren.',
-    ticketLink: '',
-    poster: 'https://picsum.photos/seed/evt3/400/300',
-    submittedBy: 'tim_singer',
-    submittedByAvatar: 'https://picsum.photos/seed/tim/80/80',
-    submittedAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-    status: 'pending',
-    rejectionReason: null,
-    reviewedAt: null,
-  },
-];
-
-const SEED_REPORTS: ContentReport[] = [
-  {
-    id: 'rep-seed-1',
-    type: 'thread',
-    targetId: 1,
-    targetTitle: 'GRATIS BEATS DOWNLOAD - KLIK HIER!!!',
-    reportedBy: 'emma_beats',
-    reportedByAvatar: 'https://picsum.photos/seed/emma/80/80',
-    reason: 'Spam',
-    details: 'Deze gebruiker plaatst steeds dezelfde reclame voor externe sites.',
-    createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-    status: 'open',
-    resolvedAt: null,
-    adminNotes: null,
-  },
-  {
-    id: 'rep-seed-2',
-    type: 'user',
-    targetId: 4,
-    targetTitle: 'dj_frank',
-    reportedBy: 'lotte_m',
-    reportedByAvatar: 'https://picsum.photos/seed/lotte/80/80',
-    reason: 'Ongepast gedrag',
-    details: 'Stuurde meerdere ongewenste berichten via het forum.',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
-    status: 'open',
-    resolvedAt: null,
-    adminNotes: null,
-  },
-  {
-    id: 'rep-seed-3',
-    type: 'track',
-    targetId: 'upload-example',
-    targetTitle: 'Naamloos nummer #88',
-    reportedBy: 'sander_h',
-    reportedByAvatar: 'https://picsum.photos/seed/currentuser/80/80',
-    reason: 'Auteursrechtschending',
-    details: 'Dit nummer gebruikt samples zonder toestemming van de originele artiest.',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(),
-    status: 'open',
-    resolvedAt: null,
-    adminNotes: null,
-  },
-  {
-    id: 'rep-seed-4',
-    type: 'reply',
-    targetId: 14,
-    targetTitle: 'Reactie op "Beste oefenruimtes in Amsterdam?"',
-    reportedBy: 'bas_prod',
-    reportedByAvatar: 'https://picsum.photos/seed/bas/80/80',
-    reason: 'Beledigend taalgebruik',
-    details: 'Bevat persoonlijke aanvallen op andere gebruikers.',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-    status: 'open',
-    resolvedAt: null,
-    adminNotes: null,
-  },
-];
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function load<T>(key: string, seed: T[]): T[] {
-  try {
-    const raw = localStorage.getItem(key);
-    if (raw) return JSON.parse(raw);
-    localStorage.setItem(key, JSON.stringify(seed));
-    return seed;
-  } catch { return seed; }
-}
-
-function save<T>(key: string, data: T[]): void {
-  localStorage.setItem(key, JSON.stringify(data));
-}
-
-const KEYS = {
-  users:   'ho_admin_users',
-  events:  'ho_admin_events',
-  reports: 'ho_admin_reports',
-  hidden:  'ho_admin_hidden',
-};
-
 // ─── Users ────────────────────────────────────────────────────────────────────
 
-export function getUsers(): ManagedUser[] {
-  return load(KEYS.users, SEED_USERS);
+export async function getUsers(): Promise<ManagedUser[]> {
+  const { data } = await supabase
+    .from('profiles')
+    .select('*')
+    .order('joined_date', { ascending: false });
+  return (data ?? []).map(mapProfile);
 }
 
-export function suspendUser(userId: number, reason: string): void {
-  const users = getUsers();
-  save(KEYS.users, users.map(u =>
-    u.id === userId
-      ? { ...u, suspended: true, suspendedAt: new Date().toISOString(), suspendedReason: reason || null }
-      : u
-  ));
+export async function suspendUser(userId: string, reason: string): Promise<void> {
+  await supabase.from('profiles').update({
+    suspended: true,
+    suspended_at: new Date().toISOString(),
+    suspended_reason: reason || null,
+  }).eq('id', userId);
 }
 
-export function unsuspendUser(userId: number): void {
-  const users = getUsers();
-  save(KEYS.users, users.map(u =>
-    u.id === userId
-      ? { ...u, suspended: false, suspendedAt: null, suspendedReason: null }
-      : u
-  ));
+export async function unsuspendUser(userId: string): Promise<void> {
+  await supabase.from('profiles').update({
+    suspended: false,
+    suspended_at: null,
+    suspended_reason: null,
+  }).eq('id', userId);
+}
+
+function mapProfile(d: Record<string, unknown>): ManagedUser {
+  const username = (d.username as string) ?? '';
+  return {
+    id: String(d.id),
+    username,
+    displayName: (d.display_name as string) ?? username,
+    email: '',
+    avatar: (d.avatar_url as string) || `https://picsum.photos/seed/${username}/80/80`,
+    role: (d.role as string) ?? 'Luisteraar',
+    verified: (d.verified as boolean) ?? false,
+    joinedDate: d.joined_date
+      ? new Date(d.joined_date as string).toLocaleDateString('nl-NL', { month: 'long', year: 'numeric' })
+      : 'Onbekend',
+    suspended: (d.suspended as boolean) ?? false,
+    suspendedAt: (d.suspended_at as string) ?? null,
+    suspendedReason: (d.suspended_reason as string) ?? null,
+  };
 }
 
 // ─── Events ───────────────────────────────────────────────────────────────────
 
-export function getPendingEvents(): PendingEvent[] {
-  return load(KEYS.events, SEED_EVENTS);
+export async function getPendingEvents(): Promise<PendingEvent[]> {
+  const { data } = await supabase
+    .from('events')
+    .select('*')
+    .order('created_at', { ascending: false });
+  return (data ?? []).map(mapEvent);
 }
 
-export function approveEvent(eventId: string): void {
-  const events = getPendingEvents();
-  save(KEYS.events, events.map(e =>
-    e.id === eventId
-      ? { ...e, status: 'approved' as EventStatus, reviewedAt: new Date().toISOString(), rejectionReason: null }
-      : e
-  ));
+export async function approveEvent(eventId: string): Promise<void> {
+  await supabase.from('events').update({
+    status: 'approved',
+    reviewed_at: new Date().toISOString(),
+    rejection_reason: null,
+  }).eq('id', eventId);
 }
 
-export function rejectEvent(eventId: string, reason: string): void {
-  const events = getPendingEvents();
-  save(KEYS.events, events.map(e =>
-    e.id === eventId
-      ? { ...e, status: 'rejected' as EventStatus, reviewedAt: new Date().toISOString(), rejectionReason: reason || null }
-      : e
-  ));
+export async function rejectEvent(eventId: string, reason: string): Promise<void> {
+  await supabase.from('events').update({
+    status: 'rejected',
+    reviewed_at: new Date().toISOString(),
+    rejection_reason: reason || null,
+  }).eq('id', eventId);
+}
+
+function mapEvent(d: Record<string, unknown>): PendingEvent {
+  return {
+    id: String(d.id),
+    title: (d.name as string) ?? '',
+    date: (d.date as string) ?? '',
+    time: (d.time as string) ?? '',
+    venue: (d.venue as string) ?? '',
+    city: (d.city as string) ?? '',
+    genre: (d.genre as string) ?? '',
+    description: (d.description as string) ?? '',
+    ticketLink: '',
+    poster: (d.poster_url as string) || `https://picsum.photos/seed/${d.id}/400/300`,
+    submittedBy: (d.submitted_by_username as string) ?? 'onbekend',
+    submittedByAvatar: `https://picsum.photos/seed/${d.submitted_by ?? d.id}/80/80`,
+    submittedAt: (d.submitted_at as string) ?? (d.created_at as string) ?? new Date().toISOString(),
+    status: ((d.status as string) ?? 'approved') as EventStatus,
+    rejectionReason: (d.rejection_reason as string) ?? null,
+    reviewedAt: (d.reviewed_at as string) ?? null,
+  };
 }
 
 // ─── Reports ──────────────────────────────────────────────────────────────────
 
-export function getReports(): ContentReport[] {
-  return load(KEYS.reports, SEED_REPORTS);
+export async function getReports(): Promise<ContentReport[]> {
+  const { data, error } = await supabase
+    .from('reports')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) return [];
+  return (data ?? []).map(mapReport);
 }
 
-export function resolveReport(reportId: string, notes: string): void {
-  const reports = getReports();
-  save(KEYS.reports, reports.map(r =>
-    r.id === reportId
-      ? { ...r, status: 'resolved' as ReportStatus, resolvedAt: new Date().toISOString(), adminNotes: notes || null }
-      : r
-  ));
+export async function resolveReport(reportId: string, notes: string): Promise<void> {
+  await supabase.from('reports').update({
+    status: 'resolved',
+    resolved_at: new Date().toISOString(),
+    admin_notes: notes || null,
+  }).eq('id', reportId);
 }
 
-export function dismissReport(reportId: string): void {
-  const reports = getReports();
-  save(KEYS.reports, reports.map(r =>
-    r.id === reportId
-      ? { ...r, status: 'dismissed' as ReportStatus, resolvedAt: new Date().toISOString() }
-      : r
-  ));
+export async function dismissReport(reportId: string): Promise<void> {
+  await supabase.from('reports').update({
+    status: 'dismissed',
+    resolved_at: new Date().toISOString(),
+  }).eq('id', reportId);
 }
 
-// ─── Forum hidden content ─────────────────────────────────────────────────────
+function mapReport(d: Record<string, unknown>): ContentReport {
+  return {
+    id: String(d.id),
+    type: (d.type as ReportType) ?? 'track',
+    targetId: (d.target_id as string) ?? '',
+    targetTitle: (d.target_title as string) ?? '',
+    reportedBy: (d.reported_by_username as string) ?? 'onbekend',
+    reportedByAvatar: `https://picsum.photos/seed/${d.reported_by_username ?? d.id}/80/80`,
+    reason: (d.reason as string) ?? '',
+    details: (d.details as string) ?? '',
+    createdAt: (d.created_at as string) ?? new Date().toISOString(),
+    status: (d.status as ReportStatus) ?? 'open',
+    resolvedAt: (d.resolved_at as string) ?? null,
+    adminNotes: (d.admin_notes as string) ?? null,
+  };
+}
+
+// ─── Forum hidden content (localStorage — no DB table needed) ─────────────────
+
+const HIDDEN_KEY = 'ho_admin_hidden';
+
+function loadHidden(): HiddenItem[] {
+  try { return JSON.parse(localStorage.getItem(HIDDEN_KEY) ?? '[]'); } catch { return []; }
+}
+function saveHidden(items: HiddenItem[]) {
+  localStorage.setItem(HIDDEN_KEY, JSON.stringify(items));
+}
 
 export function getHiddenItems(): HiddenItem[] {
-  return load<HiddenItem>(KEYS.hidden, []);
+  return loadHidden();
 }
 
 export function hideForumItem(type: 'thread' | 'reply', id: number, title: string, reason: string): void {
-  const hidden = getHiddenItems();
+  const hidden = loadHidden();
   if (hidden.some(h => h.type === type && h.id === id)) return;
-  save(KEYS.hidden, [...hidden, { type, id, title, hiddenAt: new Date().toISOString(), reason: reason || null }]);
+  saveHidden([...hidden, { type, id, title, hiddenAt: new Date().toISOString(), reason: reason || null }]);
 }
 
 export function unhideForumItem(type: 'thread' | 'reply', id: number): void {
-  save(KEYS.hidden, getHiddenItems().filter(h => !(h.type === type && h.id === id)));
+  saveHidden(loadHidden().filter(h => !(h.type === type && h.id === id)));
 }
 
 export function isHidden(type: 'thread' | 'reply', id: number): boolean {
-  return getHiddenItems().some(h => h.type === type && h.id === id);
+  return loadHidden().some(h => h.type === type && h.id === id);
 }
