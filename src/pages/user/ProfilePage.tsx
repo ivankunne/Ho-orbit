@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { MapPin, Users, Music, Calendar, Heart, BadgeCheck, Settings, Share2, TrendingUp, Play, BarChart2 } from 'lucide-react';
+import { MapPin, Users, Music, Calendar, Heart, BadgeCheck, Settings, Share2, TrendingUp, Play, BarChart2, Clock } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
 import { useAppState } from '@context/AppStateContext';
 import { supabase } from '@/lib/supabase';
+import { getUploadedTracks, type UploadedTrack } from '@services/uploadService';
 
 const FAKE_FOLLOWERS = [
   { id: 1, name: 'Sander V.', username: 'sanderv', avatar: 'https://picsum.photos/seed/fol1/40/40', role: 'Luisteraar' },
@@ -28,6 +29,7 @@ export default function ProfilePage() {
   const { likedTracks, followedArtists, rsvpEvents, toggleFollow } = useAppState();
   const [activeTab, setActiveTab] = useState('nummers');
   const [following, setFollowing] = useState(false);
+  const [uploadedTracks, setUploadedTracks] = useState<UploadedTrack[]>([]);
   const [likedTrackList, setLikedTrackList] = useState([]);
   const [attendingEventList, setAttendingEventList] = useState([]);
   const [followedArtistList, setFollowedArtistList] = useState([]);
@@ -49,6 +51,10 @@ export default function ProfilePage() {
   };
 
   useEffect(() => {
+    getUploadedTracks().then(setUploadedTracks);
+  }, []);
+
+  useEffect(() => {
     if (isOwnProfile) {
       if (likedTracks.length > 0) {
         supabase.from('tracks').select('*').in('id', likedTracks).then(({ data }) => setLikedTrackList(data ?? []));
@@ -65,7 +71,7 @@ export default function ProfilePage() {
   if (!profileUser) return null;
 
   const tabs = [
-    { key: 'nummers', label: 'Nummers', count: 0 },
+    { key: 'nummers', label: 'Nummers', count: uploadedTracks.length },
     { key: 'geliked', label: 'Geliked', count: likedTrackList.length },
     { key: 'evenementen', label: 'Evenementen', count: attendingEventList.length },
     ...(isOwnProfile ? [{ key: 'volgend', label: 'Volgend', count: followedArtists.length }] : []),
@@ -178,15 +184,55 @@ export default function ProfilePage() {
 
         {/* Nummers tab */}
         {activeTab === 'nummers' && (
-          <div className="text-center py-16">
-            <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Music size={28} className="text-slate-500" />
-            </div>
-            <p className="text-slate-400 font-medium">Nog geen uploads</p>
-            {isOwnProfile && (
-              <Link to="/upload" className="inline-block mt-4 bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors">
-                Eerste nummer uploaden
-              </Link>
+          <div>
+            {uploadedTracks.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Music size={28} className="text-slate-500" />
+                </div>
+                <p className="text-slate-400 font-medium">Nog geen uploads</p>
+                {isOwnProfile && (
+                  <Link to="/upload" className="inline-block mt-4 bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors">
+                    Eerste nummer uploaden
+                  </Link>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {uploadedTracks.map((track, i) => (
+                  <div key={track.id} className="flex items-center gap-4 p-3 hover:bg-white/4 rounded-xl group transition-colors">
+                    <span className="w-5 text-center text-sm text-slate-600 shrink-0">{i + 1}</span>
+                    <img
+                      src={track.cover || `https://picsum.photos/seed/${track.id}/40/40`}
+                      alt={track.title}
+                      className="w-10 h-10 rounded-lg object-cover shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-white truncate">{track.title}</p>
+                      <p className="text-xs text-slate-400">{track.artist || 'Onbekend'} · {track.genre}</p>
+                    </div>
+                    <span className="text-xs text-slate-500 shrink-0">{track.duration}</span>
+                    {track.status === 'pending' && (
+                      <span className="flex items-center gap-1 text-xs bg-yellow-500/15 text-yellow-400 px-2 py-0.5 rounded-full shrink-0">
+                        <Clock size={10} /> In behandeling
+                      </span>
+                    )}
+                    {track.status === 'approved' && (
+                      <span className="text-xs bg-green-500/15 text-green-400 px-2 py-0.5 rounded-full shrink-0">Goedgekeurd</span>
+                    )}
+                    {track.status === 'rejected' && (
+                      <span className="text-xs bg-red-500/15 text-red-400 px-2 py-0.5 rounded-full shrink-0">Afgewezen</span>
+                    )}
+                  </div>
+                ))}
+                {isOwnProfile && (
+                  <div className="pt-4 text-center">
+                    <Link to="/upload" className="text-sm text-violet-400 hover:text-violet-300 transition-colors">
+                      + Nog een nummer uploaden
+                    </Link>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}
