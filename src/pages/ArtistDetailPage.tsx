@@ -20,6 +20,7 @@ export default function ArtistDetailPage() {
   const [activeTrack, setActiveTrack] = useState(0);
   const [artist, setArtist] = useState<any>(null);
   const [artistEvents, setArtistEvents] = useState<any[]>([]);
+  const [uploadedTracks, setUploadedTracks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const { followedArtists, toggleFollow, likedTracks, toggleLike } = useAppState();
@@ -34,6 +35,11 @@ export default function ArtistDetailPage() {
         if (data) {
           supabase.from('events').select('*').eq('artist_id', data.id)
             .then(({ data: evts }) => setArtistEvents(evts ?? []));
+          supabase.from('tracks').select('*')
+            .eq('upload_status', 'approved')
+            .ilike('artist_name', data.name)
+            .order('created_at', { ascending: false })
+            .then(({ data: uTracks }) => setUploadedTracks(uTracks ?? []));
         }
       });
   }, [id]);
@@ -60,6 +66,16 @@ export default function ArtistDetailPage() {
     cover_url: artist.cover_url || artist.image_url,
     genre: artist.genre,
   }));
+
+  // Approved user-uploaded tracks for this artist
+  const uploadedPlayerTracks = uploadedTracks.map(t => ({
+    ...t,
+    artist: t.artist_name,
+    cover_url: t.cover_url || artist.image_url,
+    isUploaded: true,
+  }));
+
+  const allTracks = [...artistPlayerTracks, ...uploadedPlayerTracks];
 
   const genreColor = getGenreColor(artist.genre);
   const tabs = [
@@ -109,7 +125,7 @@ export default function ArtistDetailPage() {
           </div>
           <div className="flex items-center gap-2 sm:mb-1">
             <button
-              onClick={() => artistPlayerTracks[0] && playTrack(artistPlayerTracks[0], artistPlayerTracks)}
+              onClick={() => allTracks[0] && playTrack(allTracks[0], allTracks)}
               className="flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white font-semibold px-4 py-2 rounded-xl transition-colors"
             >
               <Play size={16} fill="white" /> Afspelen
@@ -206,13 +222,16 @@ export default function ArtistDetailPage() {
           {/* Tab: Nummers */}
           <TabsContent value="nummers">
             <div className="space-y-1 mb-6">
-              {artistPlayerTracks.map((track, i) => {
+              {allTracks.length === 0 && (
+                <p className="text-slate-500 text-sm py-8 text-center">Geen nummers gevonden.</p>
+              )}
+              {allTracks.map((track, i) => {
                 const isActive = currentTrack?.id === track.id;
                 const liked = likedTracks.includes(track.id);
                 return (
                   <div
                     key={track.id}
-                    onClick={() => { setActiveTrack(i); playTrack(track, artistPlayerTracks); }}
+                    onClick={() => { setActiveTrack(i); playTrack(track, allTracks); }}
                     className={`flex items-center gap-4 p-3 rounded-xl group cursor-pointer transition-colors ${
                       isActive ? 'bg-violet-600/10 border border-violet-500/20' : 'hover:bg-white/4'
                     }`}
@@ -222,10 +241,15 @@ export default function ArtistDetailPage() {
                       : <span className="w-5 text-center text-sm text-slate-500 group-hover:hidden">{i + 1}</span>
                     }
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-medium ${isActive ? 'text-violet-400' : 'text-white'}`}>{track.title}</p>
-                      <p className="text-xs text-slate-400">{track.album}</p>
+                      <div className="flex items-center gap-2">
+                        <p className={`text-sm font-medium ${isActive ? 'text-violet-400' : 'text-white'}`}>{track.title}</p>
+                        {track.isUploaded && (
+                          <span className="text-[10px] bg-violet-500/20 text-violet-400 border border-violet-500/25 px-1.5 py-0.5 rounded">Upload</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-400">{track.album ?? track.genre}</p>
                     </div>
-                    <span className="text-xs text-slate-500 hidden sm:block">{formatPlays(track.plays)} streams</span>
+                    <span className="text-xs text-slate-500 hidden sm:block">{formatPlays(track.plays ?? 0)} streams</span>
                     <span className="text-xs text-slate-500">{track.duration}</span>
                     <button
                       onClick={e => { e.stopPropagation(); toggleLike(track.id); }}
@@ -247,7 +271,7 @@ export default function ArtistDetailPage() {
                     <p className="text-xs text-slate-500">{artistTracks[activeTrack]?.album} · {artistTracks[activeTrack]?.duration}</p>
                   </div>
                   <button
-                    onClick={() => artistPlayerTracks[activeTrack] && playTrack(artistPlayerTracks[activeTrack], artistPlayerTracks)}
+                    onClick={() => allTracks[activeTrack] && playTrack(allTracks[activeTrack], allTracks)}
                     className="w-9 h-9 bg-violet-600 rounded-full flex items-center justify-center hover:bg-violet-500 transition-colors"
                   >
                     <Play size={14} className="text-white ml-0.5" fill="white" />
