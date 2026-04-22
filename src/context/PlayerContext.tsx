@@ -36,7 +36,7 @@ export function PlayerProvider({ children }) {
     if (!track) return;
     isNewTrack.current = true;
 
-    getStreamUrl(track.id).then(url => {
+    getStreamUrl(track.id, track.stream_url).then(url => {
       audioRef.current.src = url;
       audioRef.current.load();
       if (isPlaying) {

@@ -7,7 +7,8 @@ const DEMO_URLS = [
   'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3',
 ];
 
-export async function getStreamUrl(trackId) {
+export async function getStreamUrl(trackId, streamUrl?: string) {
+  if (streamUrl) return streamUrl;
   const index = (trackId - 1) % DEMO_URLS.length;
   return DEMO_URLS[index];
 }
