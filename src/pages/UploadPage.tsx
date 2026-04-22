@@ -82,6 +82,10 @@ export default function UploadPage() {
               });
             }
             setUploadState('success');
+          }).catch((err) => {
+            console.error('Upload mislukt:', err);
+            setUploadState('idle');
+            setUploadProgress(0);
           });
           return 100;
         }

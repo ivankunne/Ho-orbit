@@ -43,7 +43,7 @@ export default function HomePage() {
 
   useEffect(() => {
     supabase.from('artists').select('*').limit(12).then(({ data }) => setArtists(data ?? []));
-    supabase.from('tracks').select('*').order('plays_count', { ascending: false }).limit(10).then(({ data }) => setTracks(data ?? []));
+    supabase.from('tracks').select('*').order('plays', { ascending: false }).limit(10).then(({ data }) => setTracks(data ?? []));
     supabase.from('dutch_cities').select('*').limit(6).then(({ data }) => setCities(data ?? []));
     supabase.from('articles').select('*').order('published_at', { ascending: false }).limit(3).then(({ data }) => setNewsArticles(data ?? []));
   }, []);
