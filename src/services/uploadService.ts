@@ -57,7 +57,11 @@ export async function uploadTrack({
 
   let streamUrl = '';
   if (audioFile) {
-    streamUrl = await uploadAudioFile(audioFile, title);
+    try {
+      streamUrl = await uploadAudioFile(audioFile, title);
+    } catch (e) {
+      console.warn('Audio upload to storage failed, saving metadata only:', e);
+    }
   }
 
   const { data, error } = await supabase
