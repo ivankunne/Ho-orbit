@@ -46,12 +46,22 @@ async function uploadAudioFile(file: File, trackTitle: string): Promise<string> 
   return data.publicUrl;
 }
 
+async function uploadCoverFile(file: File, trackTitle: string): Promise<string> {
+  const ext = file.name.split('.').pop() ?? 'jpg';
+  const safeName = trackTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+  const path = `covers/${Date.now()}_${safeName}.${ext}`;
+  const { error } = await supabase.storage.from('audio').upload(path, file, { contentType: file.type });
+  if (error) throw error;
+  const { data } = supabase.storage.from('audio').getPublicUrl(path);
+  return data.publicUrl;
+}
+
 export async function uploadTrack({
-  title, genre, description, tags, explicit, isPrivate, userId, artistName, audioFile,
+  title, genre, description, tags, explicit, isPrivate, userId, artistName, audioFile, coverFile,
 }: {
   title: string; genre: string; description: string; tags: string[];
   explicit: boolean; isPrivate: boolean; userId: string; artistName: string;
-  audioFile?: File;
+  audioFile?: File; coverFile?: File;
 }): Promise<UploadedTrack> {
   const seed = hashStr(title + userId);
 
@@ -61,6 +71,15 @@ export async function uploadTrack({
       streamUrl = await uploadAudioFile(audioFile, title);
     } catch (e) {
       console.warn('Audio upload to storage failed, saving metadata only:', e);
+    }
+  }
+
+  let coverUrl = `https://picsum.photos/seed/${seed}/300/300`;
+  if (coverFile) {
+    try {
+      coverUrl = await uploadCoverFile(coverFile, title);
+    } catch (e) {
+      console.warn('Cover upload to storage failed, using placeholder:', e);
     }
   }
 
@@ -74,7 +93,7 @@ export async function uploadTrack({
       tags,
       explicit,
       is_private: isPrivate,
-      cover_url: `https://picsum.photos/seed/${seed}/300/300`,
+      cover_url: coverUrl,
       stream_url: streamUrl,
       plays: 0,
       duration: '3:00',

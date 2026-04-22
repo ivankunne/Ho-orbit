@@ -73,6 +73,7 @@ export default function UploadPage() {
             userId: user?.id,
             artistName: user?.displayName || user?.username,
             audioFile: trackFile ?? undefined,
+            coverFile: artworkFile ?? undefined,
           }).then(track => {
             if (user?.id) {
               addNotification(user.id, {
@@ -231,11 +232,11 @@ export default function UploadPage() {
               onDragLeave={() => setArtworkDragOver(false)}
               onDrop={handleArtworkDrop}
               onClick={() => artworkRef.current.click()}
-              className={`flex items-center gap-3 border border-dashed rounded-xl px-4 py-3 cursor-pointer transition-all ${
+              className={`relative border border-dashed rounded-xl cursor-pointer transition-all overflow-hidden ${
                 artworkDragOver
                   ? 'border-violet-500 bg-violet-600/10'
                   : artworkFile
-                  ? 'border-green-500/50 bg-green-500/5'
+                  ? 'border-green-500/50'
                   : 'border-white/15 bg-white/2 hover:border-white/30'
               }`}
             >
@@ -246,10 +247,30 @@ export default function UploadPage() {
                 className="hidden"
                 onChange={e => e.target.files[0] && setArtworkFile(e.target.files[0])}
               />
-              <Image size={18} className={artworkFile ? 'text-green-400' : 'text-slate-500'} />
-              <span className={`text-sm ${artworkFile ? 'text-green-400' : 'text-slate-400'}`}>
-                {artworkFile ? artworkFile.name : 'Sleep artwork of klik om te bladeren'}
-              </span>
+              {artworkFile ? (
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <img
+                    src={URL.createObjectURL(artworkFile)}
+                    alt="Cover preview"
+                    className="w-14 h-14 rounded-lg object-cover shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-green-400 font-medium truncate">{artworkFile.name}</p>
+                    <p className="text-xs text-slate-500">{(artworkFile.size / 1024).toFixed(0)} KB</p>
+                  </div>
+                  <button
+                    onClick={e => { e.stopPropagation(); setArtworkFile(null); }}
+                    className="text-slate-500 hover:text-red-400 transition-colors shrink-0"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <Image size={18} className="text-slate-500 shrink-0" />
+                  <span className="text-sm text-slate-400">Sleep artwork of klik om te bladeren</span>
+                </div>
+              )}
             </div>
           </div>
 
