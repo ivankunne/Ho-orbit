@@ -30,7 +30,11 @@ export default function UploadPage() {
     description: '',
     explicit: false,
     privateTrack: false,
+    isrc: '',
+    upc: '',
   });
+  const [isrcError, setIsrcError] = useState('');
+  const [upcError, setUpcError] = useState('');
 
   const fileRef = useRef();
   const artworkRef = useRef();
@@ -55,7 +59,28 @@ export default function UploadPage() {
     );
   };
 
+  const ISRC_RE = /^[A-Z]{2}-?[A-Z0-9]{3}-?\d{2}-?\d{5}$/i;
+  const UPC_RE = /^\d{12,13}$/;
+
+  const validateCodes = () => {
+    let valid = true;
+    if (form.isrc && !ISRC_RE.test(form.isrc.trim())) {
+      setIsrcError('Ongeldig formaat. Gebruik bijv. NL-A52-26-00001');
+      valid = false;
+    } else {
+      setIsrcError('');
+    }
+    if (form.upc && !UPC_RE.test(form.upc.trim())) {
+      setUpcError('UPC moet 12 of 13 cijfers bevatten');
+      valid = false;
+    } else {
+      setUpcError('');
+    }
+    return valid;
+  };
+
   const handleUpload = () => {
+    if (!validateCodes()) return;
     setUploadState('uploading');
     setUploadProgress(0);
     const interval = setInterval(() => {
@@ -74,6 +99,8 @@ export default function UploadPage() {
             artistName: user?.displayName || user?.username,
             audioFile: trackFile ?? undefined,
             coverFile: artworkFile ?? undefined,
+            isrc: form.isrc || undefined,
+            upc: form.upc || undefined,
           }).then(track => {
             if (user?.id) {
               addNotification(user.id, {
@@ -102,7 +129,9 @@ export default function UploadPage() {
     setTrackFile(null);
     setArtworkFile(null);
     setSelectedTags([]);
-    setForm({ title: '', genre: '', description: '', explicit: false, privateTrack: false });
+    setForm({ title: '', genre: '', description: '', explicit: false, privateTrack: false, isrc: '', upc: '' });
+    setIsrcError('');
+    setUpcError('');
   };
 
   if (uploadState === 'success') {
@@ -282,6 +311,40 @@ export default function UploadPage() {
               onChange={e => setForm({ ...form, description: e.target.value })}
               className="resize-none"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              ISRC <span className="text-slate-600 font-normal">(optioneel)</span>
+            </label>
+            <Input
+              type="text"
+              placeholder="bijv. NL-A52-26-00001"
+              value={form.isrc}
+              onChange={e => { setForm({ ...form, isrc: e.target.value }); setIsrcError(''); }}
+              className={isrcError ? 'border-red-500/50' : ''}
+            />
+            {isrcError
+              ? <p className="text-xs text-red-400 mt-1">{isrcError}</p>
+              : <p className="text-xs text-slate-600 mt-1">International Standard Recording Code — per opname</p>
+            }
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              UPC <span className="text-slate-600 font-normal">(optioneel)</span>
+            </label>
+            <Input
+              type="text"
+              placeholder="bijv. 012345678901"
+              value={form.upc}
+              onChange={e => { setForm({ ...form, upc: e.target.value }); setUpcError(''); }}
+              className={upcError ? 'border-red-500/50' : ''}
+            />
+            {upcError
+              ? <p className="text-xs text-red-400 mt-1">{upcError}</p>
+              : <p className="text-xs text-slate-600 mt-1">Universal Product Code — 12 of 13 cijfers (barcode)</p>
+            }
           </div>
 
           <div className="sm:col-span-2">

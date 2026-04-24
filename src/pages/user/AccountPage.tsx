@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { User, Bell, Lock, Palette, Check, LogOut, Camera, AlertTriangle, Eye, EyeOff, Sun, Moon } from 'lucide-react';
+import { User, Bell, Lock, Palette, Check, LogOut, Camera, AlertTriangle, Eye, EyeOff, Sun, Moon, Loader, Mail, Phone, Briefcase } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
-import { changePassword, deleteAccount } from '@services/userService';
+import { changePassword, deleteAccount, updateProfile as persistProfile, uploadAvatar, uploadBanner } from '@services/userService';
 import { getTheme, toggleTheme } from '@utils/theme';
 import { Input } from '@components/ui/input';
 import { Textarea } from '@components/ui/textarea';
@@ -15,6 +15,21 @@ const sidebarItems = [
   { key: 'meldingen', label: 'Meldingen', icon: Bell },
   { key: 'beveiliging', label: 'Beveiliging', icon: Lock },
   { key: 'weergave', label: 'Weergave', icon: Palette },
+];
+
+const SOCIAL_PLATFORMS = [
+  { key: 'spotify',    label: 'Spotify',      badge: 'SP', color: 'text-green-400',  placeholder: 'Artiest-ID',         hint: 'open.spotify.com/artist/…' },
+  { key: 'soundcloud', label: 'SoundCloud',   badge: 'SC', color: 'text-orange-400', placeholder: 'gebruikersnaam',     hint: 'soundcloud.com/{handle}' },
+  { key: 'appleMusic', label: 'Apple Music',  badge: 'AM', color: 'text-slate-300',  placeholder: 'Volledige URL',      hint: 'music.apple.com/…' },
+  { key: 'youtube',    label: 'YouTube',      badge: 'YT', color: 'text-red-400',    placeholder: '@kanaalhandle',      hint: 'youtube.com/@{handle}' },
+  { key: 'instagram',  label: 'Instagram',    badge: 'IG', color: 'text-pink-400',   placeholder: '@gebruikersnaam',    hint: 'instagram.com/{handle}' },
+  { key: 'twitter',    label: 'X / Twitter',  badge: '𝕏',  color: 'text-slate-200',  placeholder: '@gebruikersnaam',    hint: 'x.com/{handle}' },
+  { key: 'tiktok',     label: 'TikTok',       badge: 'TT', color: 'text-white',      placeholder: '@gebruikersnaam',    hint: 'tiktok.com/@{handle}' },
+  { key: 'facebook',   label: 'Facebook',     badge: 'fb', color: 'text-blue-400',   placeholder: 'paginanaam',         hint: 'facebook.com/{handle}' },
+  { key: 'bandcamp',   label: 'Bandcamp',     badge: 'BC', color: 'text-teal-400',   placeholder: 'artiesthandle',      hint: '{handle}.bandcamp.com' },
+  { key: 'beatport',   label: 'Beatport',     badge: 'BP', color: 'text-yellow-400', placeholder: 'artiestslug',        hint: 'beatport.com/artist/{slug}' },
+  { key: 'shopify',    label: 'Shop',         badge: 'SH', color: 'text-emerald-400',placeholder: 'Volledige winkel-URL', hint: 'jouwwinkel.myshopify.com' },
+  { key: 'website',    label: 'Website',      badge: '🌐', color: 'text-violet-400', placeholder: 'https://jouwsite.nl', hint: 'Eigen website' },
 ];
 
 const ALL_GENRES = [
@@ -33,6 +48,23 @@ const ALL_GENRES = [
 export default function AccountPage() {
   const { user, updateProfile, logout } = useAuth();
   const [activeSection, setActiveSection] = useState('profiel');
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user?.id || typeof user.id !== 'string') return;
+    setAvatarUploading(true);
+    try {
+      const url = await uploadAvatar(user.id, file);
+      updateProfile({ avatar: url });
+    } catch (err) {
+      console.error('Avatar upload mislukt:', err);
+    } finally {
+      setAvatarUploading(false);
+      e.target.value = '';
+    }
+  };
 
   if (!user) return null;
 
@@ -51,11 +83,16 @@ export default function AccountPage() {
               <img
                 src={user.avatar}
                 alt={user.displayName}
-                className="w-20 h-20 rounded-full object-cover mx-auto"
+                className={`w-20 h-20 rounded-full object-cover mx-auto transition-opacity ${avatarUploading ? 'opacity-50' : ''}`}
               />
-              <button className="absolute bottom-0 right-0 w-7 h-7 bg-violet-600 rounded-full flex items-center justify-center border-2 border-[#1a1528] hover:bg-violet-500 transition-colors">
-                <Camera size={13} className="text-white" />
+              <button
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={avatarUploading}
+                className="absolute bottom-0 right-0 w-7 h-7 bg-violet-600 rounded-full flex items-center justify-center border-2 border-[#1a1528] hover:bg-violet-500 transition-colors disabled:opacity-60"
+              >
+                {avatarUploading ? <Loader size={11} className="text-white animate-spin" /> : <Camera size={13} className="text-white" />}
               </button>
+              <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
             </div>
             <p className="text-white font-semibold text-sm">{user.displayName}</p>
             <p className="text-slate-500 text-xs">@{user.username}</p>
@@ -98,7 +135,11 @@ export default function AccountPage() {
         {/* Main content */}
         <div className="lg:col-span-3">
           {activeSection === 'profiel' && (
-            <ProfielSection user={user} updateProfile={updateProfile} />
+            <ProfielSection
+              user={user}
+              updateProfile={updateProfile}
+              userId={typeof user.id === 'string' ? user.id : null}
+            />
           )}
           {activeSection === 'meldingen' && (
             <MeldingenSection user={user} updateProfile={updateProfile} />
@@ -116,16 +157,39 @@ export default function AccountPage() {
 }
 
 /* ─── Profiel ─────────────────────────────────────────────── */
-function ProfielSection({ user, updateProfile }) {
+function ProfielSection({ user, updateProfile, userId }: { user: any; updateProfile: (u: any) => void; userId: string | null }) {
   const [form, setForm] = useState({
     displayName: user?.displayName || '',
     bio: user?.bio || '',
     location: user?.location || '',
     email: user?.email || '',
     preferredGenres: user?.preferredGenres || [],
+    social: user?.social ?? {},
+    bookingInfo: user?.bookingInfo ?? {},
   });
   const [saved, setSaved] = useState(false);
+  const [bannerUploading, setBannerUploading] = useState(false);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const setSocial = (key: string, val: string) =>
+    setForm(f => ({ ...f, social: { ...f.social, [key]: val || undefined } }));
+  const setBooking = (key: string, val: string) =>
+    setForm(f => ({ ...f, bookingInfo: { ...f.bookingInfo, [key]: val || undefined } }));
+
+  const handleBannerChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !userId) return;
+    setBannerUploading(true);
+    try {
+      const url = await uploadBanner(userId, file);
+      updateProfile({ banner: url });
+    } catch (err) {
+      console.error('Banner upload mislukt:', err);
+    } finally {
+      setBannerUploading(false);
+      e.target.value = '';
+    }
+  };
 
   function toggleGenre(id) {
     setForm(f => ({
@@ -136,9 +200,11 @@ function ProfielSection({ user, updateProfile }) {
     }));
   }
 
-  const handleSave = () => {
-    // TODO: replace with → userService.updateProfile(user.id, form)
+  const handleSave = async () => {
     updateProfile(form);
+    if (user?.id && typeof user.id === 'string') {
+      await persistProfile(user.id, form);
+    }
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
@@ -147,6 +213,22 @@ function ProfielSection({ user, updateProfile }) {
     <div className="bg-white/3 border border-white/5 rounded-2xl p-6">
       <h2 className="text-lg font-semibold text-white mb-6">Profielgegevens</h2>
       <div className="space-y-5">
+
+        {/* Banner upload */}
+        <div>
+          <label className="block text-sm font-medium text-slate-300 mb-2">Bannerfoto</label>
+          <div className="relative rounded-xl overflow-hidden h-28 bg-white/5 border border-white/8 group cursor-pointer" onClick={() => bannerInputRef.current?.click()}>
+            {user.banner && <img src={user.banner} alt="Banner" className="w-full h-full object-cover" />}
+            <div className={`absolute inset-0 flex items-center justify-center transition-colors ${bannerUploading ? 'bg-black/60' : 'bg-black/30 group-hover:bg-black/50'}`}>
+              <div className="flex items-center gap-2 text-white text-sm font-medium">
+                {bannerUploading ? <Loader size={14} className="animate-spin" /> : <Camera size={14} />}
+                {bannerUploading ? 'Uploaden...' : 'Bannerfoto wijzigen'}
+              </div>
+            </div>
+            <input ref={bannerInputRef} type="file" accept="image/*" className="hidden" onChange={handleBannerChange} />
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">Weergavenaam</label>
@@ -215,6 +297,60 @@ function ProfielSection({ user, updateProfile }) {
             ))}
           </div>
           <p className="text-xs text-slate-500 mt-2">Wordt gebruikt voor gepersonaliseerde aanbevelingen</p>
+        </div>
+
+        {/* Social links */}
+        <div>
+          <label className="block text-sm font-medium text-slate-300 mb-1">Sociale links & platforms</label>
+          <p className="text-xs text-slate-500 mb-3">Voer je handle of URL in — lege velden worden niet getoond</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {SOCIAL_PLATFORMS.map(p => (
+              <div key={p.key} className="flex items-center gap-2">
+                <span className={`w-8 text-center text-[11px] font-bold shrink-0 ${p.color}`}>{p.badge}</span>
+                <div className="flex-1">
+                  <Input
+                    placeholder={p.placeholder}
+                    value={form.social?.[p.key] || ''}
+                    onChange={e => setSocial(p.key, e.target.value)}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Booking & contact */}
+        <div>
+          <label className="block text-sm font-medium text-slate-300 mb-1">Boeking & contact</label>
+          <p className="text-xs text-slate-500 mb-3">Zichtbaar op je profiel voor promotors en boekingskantoren</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="flex items-center gap-1.5 text-xs text-slate-400 mb-1.5"><Mail size={12} /> Boekings-e-mail</label>
+              <Input
+                type="email"
+                placeholder="booking@jouwmail.nl"
+                value={form.bookingInfo?.email || ''}
+                onChange={e => setBooking('email', e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="flex items-center gap-1.5 text-xs text-slate-400 mb-1.5"><Briefcase size={12} /> Manager / agent</label>
+              <Input
+                placeholder="Naam manager of boekingskantoor"
+                value={form.bookingInfo?.manager || ''}
+                onChange={e => setBooking('manager', e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="flex items-center gap-1.5 text-xs text-slate-400 mb-1.5"><Phone size={12} /> Telefoon / WhatsApp</label>
+              <Input
+                type="tel"
+                placeholder="+31 6 12 34 56 78"
+                value={form.bookingInfo?.phone || ''}
+                onChange={e => setBooking('phone', e.target.value)}
+              />
+            </div>
+          </div>
         </div>
 
         <div className="flex items-center justify-between pt-2">

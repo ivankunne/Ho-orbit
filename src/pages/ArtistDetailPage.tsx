@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   Play, Heart, Share2, MapPin, Users, Music, BadgeCheck,
-  Globe, Calendar, ChevronLeft
+  Globe, Calendar, ChevronLeft, ExternalLink
 } from 'lucide-react';
 import { getGenreColor } from '@data/genreColors';
 import { useAppState } from '@context/AppStateContext';
@@ -85,6 +85,21 @@ export default function ArtistDetailPage() {
     { key: 'over', label: 'Over' },
   ];
 
+  const PLATFORM_CONFIG: Record<string, { label: string; badge: string; color: string; buildUrl: (v: string) => string }> = {
+    spotify:    { label: 'Spotify',      badge: 'SP', color: 'text-green-400',   buildUrl: v => `https://open.spotify.com/artist/${v}` },
+    soundcloud: { label: 'SoundCloud',   badge: 'SC', color: 'text-orange-400',  buildUrl: v => `https://soundcloud.com/${v}` },
+    appleMusic: { label: 'Apple Music',  badge: 'AM', color: 'text-slate-300',   buildUrl: v => v.startsWith('http') ? v : `https://music.apple.com/nl/artist/${v}` },
+    youtube:    { label: 'YouTube',      badge: 'YT', color: 'text-red-400',     buildUrl: v => `https://youtube.com/@${v.replace('@', '')}` },
+    instagram:  { label: 'Instagram',    badge: 'IG', color: 'text-pink-400',    buildUrl: v => `https://instagram.com/${v.replace('@', '')}` },
+    twitter:    { label: 'X',            badge: '𝕏',  color: 'text-slate-200',   buildUrl: v => `https://x.com/${v.replace('@', '')}` },
+    tiktok:     { label: 'TikTok',       badge: 'TT', color: 'text-white',       buildUrl: v => `https://tiktok.com/@${v.replace('@', '')}` },
+    facebook:   { label: 'Facebook',     badge: 'fb', color: 'text-blue-400',    buildUrl: v => `https://facebook.com/${v}` },
+    bandcamp:   { label: 'Bandcamp',     badge: 'BC', color: 'text-teal-400',    buildUrl: v => `https://${v}.bandcamp.com` },
+    beatport:   { label: 'Beatport',     badge: 'BP', color: 'text-yellow-400',  buildUrl: v => `https://www.beatport.com/artist/${v}` },
+    shopify:    { label: 'Shop',         badge: 'SH', color: 'text-emerald-400', buildUrl: v => v.startsWith('http') ? v : `https://${v}` },
+    website:    { label: 'Website',      badge: '🌐', color: 'text-violet-400',  buildUrl: v => v.startsWith('http') ? v : `https://${v}` },
+  };
+
   const social = artist.social ?? {};
   const tags: string[] = Array.isArray(artist.tags) ? artist.tags : [];
   const albums: any[] = Array.isArray(artist.albums) ? artist.albums : [];
@@ -161,38 +176,28 @@ export default function ArtistDetailPage() {
         </div>
 
         {/* Sociale links */}
-        <div className="flex gap-3 mb-6 flex-wrap">
-          {social.instagram && (
-            <a
-              href={`https://instagram.com/${social.instagram.replace('@', '')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors"
-            >
-              <span className="text-pink-400 font-bold text-[10px]">IG</span> {social.instagram}
-            </a>
-          )}
-          {social.twitter && (
-            <a
-              href={`https://x.com/${social.twitter.replace('@', '')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors"
-            >
-              <span className="font-bold text-[10px]">𝕏</span> {social.twitter}
-            </a>
-          )}
-          {social.spotify && (
-            <a
-              href={`https://open.spotify.com/artist/${social.spotify}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors"
-            >
-              <Globe size={13} /> Spotify
-            </a>
-          )}
-        </div>
+        {Object.values(social).some(Boolean) && (
+          <div className="flex gap-2 mb-6 flex-wrap">
+            {Object.entries(social).map(([key, value]) => {
+              if (!value) return null;
+              const cfg = PLATFORM_CONFIG[key];
+              if (!cfg) return null;
+              return (
+                <a
+                  key={key}
+                  href={cfg.buildUrl(value)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors"
+                >
+                  <span className={`font-bold text-[11px] ${cfg.color}`}>{cfg.badge}</span>
+                  {cfg.label}
+                  <ExternalLink size={10} className="text-slate-600" />
+                </a>
+              );
+            })}
+          </div>
+        )}
 
         {/* Tags */}
         {tags.length > 0 && (

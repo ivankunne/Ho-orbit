@@ -28,6 +28,8 @@ export interface UploadedTrack {
   rejectionReason: string | null;
   reviewedAt: string | null;
   reviewedBy: string | null;
+  isrc: string | null;
+  upc: string | null;
 }
 
 function hashStr(str: string): number {
@@ -57,11 +59,11 @@ async function uploadCoverFile(file: File, trackTitle: string): Promise<string> 
 }
 
 export async function uploadTrack({
-  title, genre, description, tags, explicit, isPrivate, userId, artistName, audioFile, coverFile,
+  title, genre, description, tags, explicit, isPrivate, userId, artistName, audioFile, coverFile, isrc, upc,
 }: {
   title: string; genre: string; description: string; tags: string[];
   explicit: boolean; isPrivate: boolean; userId: string; artistName: string;
-  audioFile?: File; coverFile?: File;
+  audioFile?: File; coverFile?: File; isrc?: string; upc?: string;
 }): Promise<UploadedTrack> {
   const seed = hashStr(title + userId);
 
@@ -100,6 +102,8 @@ export async function uploadTrack({
       is_user_upload: true,
       ...(isUUID(userId) ? { uploaded_by: userId } : {}),
       upload_status: 'pending',
+      isrc: isrc?.trim() || null,
+      upc: upc?.trim() || null,
     })
     .select()
     .single();
@@ -165,5 +169,7 @@ function mapTrack(d: Record<string, unknown>): UploadedTrack {
     rejectionReason: (d.rejection_reason as string) ?? null,
     reviewedAt: (d.reviewed_at as string) ?? null,
     reviewedBy: (d.reviewed_by as string) ?? null,
+    isrc: (d.isrc as string) ?? null,
+    upc: (d.upc as string) ?? null,
   };
 }

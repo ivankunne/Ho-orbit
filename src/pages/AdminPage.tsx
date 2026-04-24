@@ -205,6 +205,20 @@ function UploadsSection({ adminId }: { adminId: string }) {
                     {track.isPrivate && <span className="text-[10px] bg-slate-500/15 text-slate-400 border border-slate-500/20 px-1.5 py-0.5 rounded">Privé</span>}
                     {track.tags.map(tag => <span key={tag} className="text-[10px] text-slate-500 bg-white/5 border border-white/8 px-1.5 py-0.5 rounded">{tag}</span>)}
                   </div>
+                  {(track.isrc || track.upc) && (
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {track.isrc && (
+                        <span className="text-[10px] font-mono text-slate-400 bg-white/5 border border-white/8 px-1.5 py-0.5 rounded">
+                          ISRC: {track.isrc}
+                        </span>
+                      )}
+                      {track.upc && (
+                        <span className="text-[10px] font-mono text-slate-400 bg-white/5 border border-white/8 px-1.5 py-0.5 rounded">
+                          UPC: {track.upc}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   <p className="text-xs text-slate-600">Ingediend {fmt(track.uploadedAt)}</p>
                   <TrackPlayer src={track.streamUrl} hasRealAudio={!!track.streamUrl} />
                 </div>

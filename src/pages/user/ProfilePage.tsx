@@ -1,11 +1,26 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { MapPin, Users, Music, Calendar, Heart, BadgeCheck, Settings, Share2, TrendingUp, Play, BarChart2, Clock } from 'lucide-react';
+import { MapPin, Users, Music, Calendar, Heart, BadgeCheck, Settings, Share2, TrendingUp, Play, BarChart2, Clock, ExternalLink, Mail, Phone, Briefcase } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
 import { useAppState } from '@context/AppStateContext';
 import { supabase } from '@/lib/supabase';
 import { getUploadedTracks, type UploadedTrack } from '@services/uploadService';
 
+
+const PLATFORM_CONFIG: Record<string, { label: string; badge: string; color: string; buildUrl: (v: string) => string }> = {
+  spotify:    { label: 'Spotify',      badge: 'SP', color: 'text-green-400',   buildUrl: v => `https://open.spotify.com/artist/${v}` },
+  soundcloud: { label: 'SoundCloud',   badge: 'SC', color: 'text-orange-400',  buildUrl: v => `https://soundcloud.com/${v}` },
+  appleMusic: { label: 'Apple Music',  badge: 'AM', color: 'text-slate-300',   buildUrl: v => v.startsWith('http') ? v : `https://music.apple.com/nl/artist/${v}` },
+  youtube:    { label: 'YouTube',      badge: 'YT', color: 'text-red-400',     buildUrl: v => `https://youtube.com/@${v.replace('@', '')}` },
+  instagram:  { label: 'Instagram',    badge: 'IG', color: 'text-pink-400',    buildUrl: v => `https://instagram.com/${v.replace('@', '')}` },
+  twitter:    { label: 'X',            badge: '𝕏',  color: 'text-slate-200',   buildUrl: v => `https://x.com/${v.replace('@', '')}` },
+  tiktok:     { label: 'TikTok',       badge: 'TT', color: 'text-white',       buildUrl: v => `https://tiktok.com/@${v.replace('@', '')}` },
+  facebook:   { label: 'Facebook',     badge: 'fb', color: 'text-blue-400',    buildUrl: v => `https://facebook.com/${v}` },
+  bandcamp:   { label: 'Bandcamp',     badge: 'BC', color: 'text-teal-400',    buildUrl: v => `https://${v}.bandcamp.com` },
+  beatport:   { label: 'Beatport',     badge: 'BP', color: 'text-yellow-400',  buildUrl: v => `https://www.beatport.com/artist/${v}` },
+  shopify:    { label: 'Shop',         badge: 'SH', color: 'text-emerald-400', buildUrl: v => v.startsWith('http') ? v : `https://${v}` },
+  website:    { label: 'Website',      badge: '🌐', color: 'text-violet-400',  buildUrl: v => v.startsWith('http') ? v : `https://${v}` },
+};
 
 function formatNum(n) {
   if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
@@ -420,6 +435,66 @@ export default function ProfilePage() {
                 </div>
               </div>
             </div>
+
+            {/* Booking info */}
+            {profileUser.bookingInfo && Object.values(profileUser.bookingInfo).some(Boolean) && (
+              <div>
+                <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Boeking & contact</p>
+                <div className="space-y-2">
+                  {profileUser.bookingInfo.email && (
+                    <a
+                      href={`mailto:${profileUser.bookingInfo.email}`}
+                      className="flex items-center gap-2 text-sm text-slate-300 hover:text-violet-400 transition-colors"
+                    >
+                      <Mail size={14} className="text-slate-500 shrink-0" />
+                      {profileUser.bookingInfo.email}
+                    </a>
+                  )}
+                  {profileUser.bookingInfo.manager && (
+                    <div className="flex items-center gap-2 text-sm text-slate-300">
+                      <Briefcase size={14} className="text-slate-500 shrink-0" />
+                      {profileUser.bookingInfo.manager}
+                    </div>
+                  )}
+                  {profileUser.bookingInfo.phone && (
+                    <a
+                      href={`tel:${profileUser.bookingInfo.phone}`}
+                      className="flex items-center gap-2 text-sm text-slate-300 hover:text-violet-400 transition-colors"
+                    >
+                      <Phone size={14} className="text-slate-500 shrink-0" />
+                      {profileUser.bookingInfo.phone}
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Social links */}
+            {profileUser.social && Object.values(profileUser.social).some(Boolean) && (
+              <div>
+                <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Links & platforms</p>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(profileUser.social).map(([key, value]) => {
+                    if (!value) return null;
+                    const cfg = PLATFORM_CONFIG[key];
+                    if (!cfg) return null;
+                    return (
+                      <a
+                        key={key}
+                        href={cfg.buildUrl(value)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        <span className={`font-bold text-[11px] ${cfg.color}`}>{cfg.badge}</span>
+                        {cfg.label}
+                        <ExternalLink size={10} className="text-slate-600" />
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

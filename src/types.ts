@@ -49,6 +49,8 @@ export interface Track {
   isUserUpload?: boolean;
   uploadedAt?: string;
   uploadedBy?: string | number;
+  isrc?: string;
+  upc?: string;
 }
 
 export interface Artist {
@@ -66,7 +68,16 @@ export interface Artist {
   social?: {
     instagram?: string;
     twitter?: string;
+    tiktok?: string;
+    facebook?: string;
     spotify?: string;
+    soundcloud?: string;
+    youtube?: string;
+    bandcamp?: string;
+    beatport?: string;
+    appleMusic?: string;
+    shopify?: string;
+    website?: string;
   };
   events: number[];
   tracks: ArtistTrack[];
@@ -114,6 +125,25 @@ export interface User {
   preferredGenres?: string[];
   notifications?: NotificationPreferences;
   needsOnboarding?: boolean;
+  bookingInfo?: {
+    email?: string;
+    manager?: string;
+    phone?: string;
+  };
+  social?: {
+    instagram?: string;
+    twitter?: string;
+    tiktok?: string;
+    facebook?: string;
+    spotify?: string;
+    soundcloud?: string;
+    youtube?: string;
+    bandcamp?: string;
+    beatport?: string;
+    appleMusic?: string;
+    shopify?: string;
+    website?: string;
+  };
 }
 
 export interface NotificationPreferences {
