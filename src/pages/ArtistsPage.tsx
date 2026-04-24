@@ -12,9 +12,6 @@ function formatFollowers(n) {
   return n.toString();
 }
 
-const locations = ['Alle steden', 'Amsterdam', 'Rotterdam', 'Den Haag', 'Utrecht', 'Nijmegen'];
-const allGenres = ['Alle genres', 'Nederpop', 'Hip-Hop', 'Elektronisch', 'Bluesrock', 'R&B', 'Jazz', 'Psych-Pop', 'Indie'];
-
 const SORT_OPTIONS = [
   { value: 'trending',  label: 'Trending' },
   { value: 'followers', label: 'Meeste volgers' },
@@ -28,8 +25,20 @@ export default function ArtistsPage() {
   const [artists, setArtists] = useState([]);
 
   useEffect(() => {
-    supabase.from('artists').select('*').then(({ data }) => setArtists(data ?? []));
+    supabase.from('artists').select('*').order('monthly_listeners', { ascending: false }).then(({ data }) => setArtists(data ?? []));
   }, []);
+
+  const locations = useMemo(() => {
+    const cities = new Set(
+      artists.map(a => a.location?.split(',')[0]?.trim()).filter(Boolean)
+    );
+    return ['Alle steden', ...Array.from(cities).sort((a, b) => a.localeCompare(b, 'nl'))];
+  }, [artists]);
+
+  const allGenres = useMemo(() => {
+    const genres = new Set(artists.map(a => a.genre).filter(Boolean));
+    return ['Alle genres', ...Array.from(genres).sort((a, b) => a.localeCompare(b, 'nl'))];
+  }, [artists]);
 
   const filtered = useMemo(() =>
     artists.filter(a => {

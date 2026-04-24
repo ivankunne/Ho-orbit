@@ -28,7 +28,7 @@ export default function ArtistDetailPage() {
   const { playTrack, track: currentTrack } = usePlayer();
 
   useEffect(() => {
-    supabase.from('artists').select('*').eq('id', Number(id)).single()
+    supabase.from('artists').select('*').eq('id', id).single()
       .then(({ data }) => {
         setArtist(data);
         setLoading(false);

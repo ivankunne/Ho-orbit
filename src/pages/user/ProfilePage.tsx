@@ -38,26 +38,57 @@ export default function ProfilePage() {
   const [likedTrackList, setLikedTrackList] = useState([]);
   const [attendingEventList, setAttendingEventList] = useState([]);
   const [followedArtistList, setFollowedArtistList] = useState([]);
+  const [otherProfile, setOtherProfile] = useState<any>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
 
   const isOwnProfile = !username || username === currentUser?.username;
-  const profileUser = isOwnProfile ? currentUser : {
-    id: 99,
-    username: username || currentUser?.username,
-    displayName: username || currentUser?.displayName,
-    avatar: `https://picsum.photos/seed/${username}/200/200`,
-    banner: `https://picsum.photos/seed/${username}-banner/1200/400`,
-    bio: 'Muziekliefhebber en actief lid van de h-orbit gemeenschap.',
-    location: 'Nederland',
-    role: 'Luisteraar',
-    verified: false,
-    followers: 128,
-    following: 64,
-    joinedDate: 'Januari 2025',
-  };
 
+  // Load other user's profile from Supabase
   useEffect(() => {
-    getUploadedTracks().then(setUploadedTracks);
-  }, []);
+    if (isOwnProfile || !username) return;
+    setProfileLoading(true);
+    supabase
+      .from('profiles')
+      .select('*')
+      .eq('username', username)
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          setOtherProfile({
+            id: data.id,
+            username: data.username,
+            displayName: data.display_name || data.username,
+            avatar: data.avatar_url || `https://picsum.photos/seed/${data.username}/200/200`,
+            banner: data.banner_url || `https://picsum.photos/seed/${data.username}-banner/1200/400`,
+            bio: data.bio || '',
+            location: data.location || '',
+            role: data.role || 'Luisteraar',
+            verified: data.verified || false,
+            followers: data.followers_count || 0,
+            following: 0,
+            joinedDate: data.joined_date || '',
+            social: data.social || {},
+            bookingInfo: data.booking_info || {},
+          });
+          // Also load their approved uploaded tracks
+          supabase
+            .from('tracks')
+            .select('*')
+            .eq('uploaded_by', data.id)
+            .eq('upload_status', 'approved')
+            .order('created_at', { ascending: false })
+            .then(({ data: tracks }) => setUploadedTracks((tracks ?? []) as any));
+        }
+        setProfileLoading(false);
+      });
+  }, [isOwnProfile, username]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load own uploaded tracks
+  useEffect(() => {
+    if (!isOwnProfile) return;
+    getUploadedTracks(typeof currentUser?.id === 'string' ? currentUser.id : undefined)
+      .then(setUploadedTracks);
+  }, [isOwnProfile]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (isOwnProfile) {
@@ -72,6 +103,12 @@ export default function ProfilePage() {
       }
     }
   }, [isOwnProfile, likedTracks.join(','), rsvpEvents.join(','), followedArtists.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const profileUser = isOwnProfile ? currentUser : otherProfile;
+
+  if (profileLoading) return (
+    <div className="flex items-center justify-center min-h-64 text-slate-500">Laden…</div>
+  );
 
   if (!profileUser) return null;
 

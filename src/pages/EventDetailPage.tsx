@@ -49,7 +49,7 @@ export default function EventDetailPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.from('events').select('*, artist:artists(*)').eq('id', Number(id)).single()
+    supabase.from('events').select('*, artist:artists(*)').eq('id', id).single()
       .then(({ data }) => {
         setEvent(data);
         setArtist(data?.artist ?? null);
