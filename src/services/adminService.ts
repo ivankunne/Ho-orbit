@@ -90,7 +90,11 @@ export async function unsuspendUser(userId: string): Promise<void> {
 }
 
 export async function setUserRole(userId: string, role: string): Promise<void> {
-  await supabase.from('profiles').update({ role }).eq('id', userId);
+  const { error } = await supabase.rpc('admin_set_user_role', {
+    target_user_id: userId,
+    new_role: role,
+  });
+  if (error) throw new Error(error.message);
 }
 
 function mapProfile(d: Record<string, unknown>): ManagedUser {
