@@ -319,7 +319,7 @@ function UsersSection() {
                         : 'bg-white/5 hover:bg-white/10 text-slate-500 hover:text-slate-300 border-white/10'
                     }`}
                   >
-                    <Radio size={12} /><span className="hidden sm:inline">{u.role === 'Radio' ? 'Radio' : 'Radio'}</span>
+                    <Radio size={12} /><span className="hidden sm:inline">{u.role === 'Radio' ? 'Intrekken' : 'Radio'}</span>
                   </button>
                   {u.suspended ? (
                     <button onClick={async () => { await unsuspendUser(u.id); load(); }}
