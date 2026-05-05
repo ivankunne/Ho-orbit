@@ -4,11 +4,12 @@ import {
   Music, Search, Bell, ChevronDown, Menu, X,
   Upload, Home, Users, BookOpen, FileText, Globe, MessageSquare,
   Calendar, User, Settings, LogOut, Library, Sun, Moon, Zap,
-  Mic2, Star, MapPin, Disc3, ExternalLink, ShieldCheck,
+  Mic2, Star, MapPin, Disc3, ExternalLink, ShieldCheck, Radio,
 } from 'lucide-react';
 import { useState as useThemeState } from 'react';
 import { getTheme, toggleTheme } from '@utils/theme';
 import { useAuth } from '@context/AuthContext';
+import { useRadio } from '@context/RadioContext';
 import SearchOverlay from '../SearchOverlay';
 import NotificationsPanel, { useNotificationCount } from '../NotificationsPanel';
 
@@ -20,6 +21,7 @@ const navItems = [
   { label: 'Tutorials', path: '/tutorials', icon: BookOpen },
   { label: 'Hubspots', path: '/dutch-scene', icon: Globe },
   { label: 'Forums', path: '/forums', icon: MessageSquare },
+  { label: 'Radio', path: '/radio', icon: Radio },
 ];
 
 const magazineDropdown = [
@@ -76,6 +78,7 @@ const magazineDropdown = [
 export default function Navbar({ externalShowSearch = false, onExternalSearchClose }) {
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { isLive } = useRadio();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -207,6 +210,28 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
                       </div>
                     )}
                   </div>
+                );
+              }
+
+              if (item.label === 'Radio') {
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                      location.pathname === item.path
+                        ? 'bg-violet-600/15 text-violet-400'
+                        : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    {item.label}
+                    {isLive && (
+                      <span className="flex items-center gap-1 bg-red-500/15 border border-red-500/30 rounded-full px-1.5 py-0.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse inline-block" />
+                        <span className="text-[9px] font-bold text-red-400 uppercase">live</span>
+                      </span>
+                    )}
+                  </Link>
                 );
               }
 
@@ -479,7 +504,13 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
                   }`}
                 >
                   <Icon size={16} />
-                  {item.label}
+                  <span className="flex-1">{item.label}</span>
+                  {item.label === 'Radio' && isLive && (
+                    <span className="flex items-center gap-1 bg-red-500/15 border border-red-500/30 rounded-full px-1.5 py-0.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse inline-block" />
+                      <span className="text-[9px] font-bold text-red-400 uppercase">live</span>
+                    </span>
+                  )}
                 </Link>
               );
             })}

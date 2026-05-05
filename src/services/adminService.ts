@@ -89,6 +89,10 @@ export async function unsuspendUser(userId: string): Promise<void> {
   }).eq('id', userId);
 }
 
+export async function setUserRole(userId: string, role: string): Promise<void> {
+  await supabase.from('profiles').update({ role }).eq('id', userId);
+}
+
 function mapProfile(d: Record<string, unknown>): ManagedUser {
   const username = (d.username as string) ?? '';
   return {

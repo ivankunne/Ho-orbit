@@ -12,7 +12,7 @@ import {
   type UploadedTrack,
 } from '@services/uploadService';
 import {
-  getUsers, suspendUser, unsuspendUser,
+  getUsers, suspendUser, unsuspendUser, setUserRole,
   getPendingEvents, approveEvent, rejectEvent,
   getReports, resolveReport, dismissReport,
   getHiddenItems, hideForumItem, unhideForumItem,
@@ -304,7 +304,23 @@ function UsersSection() {
                   <p className="text-xs text-slate-500 mt-0.5">{u.role} · Lid sinds {u.joinedDate}</p>
                   {u.suspended && u.suspendedReason && <p className="text-xs text-red-400/70 mt-0.5">Reden: {u.suspendedReason}</p>}
                 </div>
-                <div className="shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* Radio role toggle */}
+                  <button
+                    onClick={async () => {
+                      const newRole = u.role === 'Radio' ? 'Luisteraar' : 'Radio';
+                      await setUserRole(u.id, newRole);
+                      load();
+                    }}
+                    title={u.role === 'Radio' ? 'Radio-rol intrekken' : 'Radio-rol toekennen'}
+                    className={`flex items-center gap-1.5 border rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                      u.role === 'Radio'
+                        ? 'bg-red-500/20 hover:bg-red-500/30 text-red-400 border-red-500/30'
+                        : 'bg-white/5 hover:bg-white/10 text-slate-500 hover:text-slate-300 border-white/10'
+                    }`}
+                  >
+                    <Radio size={12} /><span className="hidden sm:inline">{u.role === 'Radio' ? 'Radio' : 'Radio'}</span>
+                  </button>
                   {u.suspended ? (
                     <button onClick={async () => { await unsuspendUser(u.id); load(); }}
                       className="flex items-center gap-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors">

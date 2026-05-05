@@ -112,7 +112,7 @@ body::before {
     grid-template-areas:
       "a a b c"
       "a a d e"
-      "f f g h";
+      "f i g h";
     grid-template-columns: 1fr 1fr 1fr 1fr;
     grid-template-rows: 1fr 1fr 1fr;
   }
@@ -124,4 +124,5 @@ body::before {
   .landing-tile-f { grid-area: f; }
   .landing-tile-g { grid-area: g; }
   .landing-tile-h { grid-area: h; }
+  .landing-tile-i { grid-area: i; }
 }

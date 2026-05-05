@@ -58,6 +58,7 @@ const OnboardingPage = lazy(() => import('@pages/OnboardingPage'));
 const LandingPage = lazy(() => import('@pages/LandingPage'));
 const HubPage = lazy(() => import('@pages/HubPage'));
 const AdminPage = lazy(() => import('@pages/AdminPage'));
+const RadioPage = lazy(() => import('@pages/RadioPage'));
 
 function PageLoader() {
   return (
@@ -164,6 +165,7 @@ function ProtectedApp() {
               <Route path="/signup" element={user ? <Navigate to="/muziek" replace /> : <SignupPage />} />
 
               {/* Publicly browsable */}
+              <Route path="/radio" element={<RadioPage />} />
               <Route path="/muziek" element={<HomePage />} />
               <Route path="/artists" element={<ArtistsPage />} />
               <Route path="/artists/:id" element={<ArtistDetailPage />} />
