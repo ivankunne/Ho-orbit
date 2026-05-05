@@ -128,7 +128,7 @@ export function AuthProvider({ children }) {
 
   const updateProfile = (updates) => {
     // Whitelist editable fields — never allow overwriting id, role, verified, etc.
-    const EDITABLE = ['displayName', 'bio', 'location', 'email', 'avatar', 'banner', 'preferredGenres', 'notifications', 'social', 'bookingInfo'];
+    const EDITABLE = ['displayName', 'bio', 'location', 'email', 'avatar', 'banner', 'preferredGenres', 'notifications', 'social', 'bookingInfo', 'needsOnboarding', 'role', 'discoverPrefs'];
     const safe = Object.fromEntries(Object.entries(updates).filter(([k]) => EDITABLE.includes(k)));
     const updated = { ...user, ...safe };
     setUser(updated);
