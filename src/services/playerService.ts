@@ -23,10 +23,7 @@ export async function getQueue(trackIds) {
 }
 
 export async function incrementPlays(trackId: string | number) {
-  const { data } = await supabase.from('tracks').select('plays').eq('id', trackId).single();
-  if (data != null) {
-    await supabase.from('tracks').update({ plays: (data.plays ?? 0) + 1 }).eq('id', trackId);
-  }
+  await supabase.rpc('increment_track_plays', { track_id: trackId });
 }
 
 export async function getAllTracks() {
