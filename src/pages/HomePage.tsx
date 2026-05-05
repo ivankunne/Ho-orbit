@@ -161,7 +161,7 @@ export default function HomePage() {
               </div>
               <Radio size={14} className="text-red-400 shrink-0" />
               <div className="min-w-0">
-                <span className="text-sm font-semibold text-white">{liveStations[0]?.name || 'h-orbit Radio'}</span>
+                <span className="text-sm font-semibold text-white">{liveStations[0]?.name}</span>
                 {liveStations[0]?.description && (
                   <span className="text-sm text-slate-400 ml-2 hidden sm:inline truncate">{liveStations[0].description}</span>
                 )}

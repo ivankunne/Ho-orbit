@@ -257,7 +257,7 @@ export default function RadioPage() {
             <Radio size={22} className="text-red-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">h-orbit Radio</h1>
+            <h1 className="text-2xl font-bold text-white">Radio</h1>
             <p className="text-sm text-slate-500">
               {liveStations.length > 0
                 ? `${liveStations.length} zender${liveStations.length !== 1 ? 's' : ''} live`
