@@ -14,6 +14,8 @@ import { useAppState } from '@context/AppStateContext';
 import { formatPlays } from '@utils/format';
 import { TrendingRow } from '@components/TrendingRow';
 import { supabase } from '@/lib/supabase';
+import { useRadio } from '@context/RadioContext';
+import { Radio } from 'lucide-react';
 
 const GENRE_LABEL: Record<string, string> = {
   nederpop: 'Nederpop', hiphop: 'Hip-Hop', elektronisch: 'Elektronisch',
@@ -38,6 +40,7 @@ export default function HomePage() {
   const { user } = useAuth();
   const { playTrack } = usePlayer();
   const { followedArtists, toggleFollow } = useAppState();
+  const { isLive, isRadioPlaying, playRadio, stopRadio, radioData } = useRadio();
   const navigate = useNavigate();
   const preferredGenres = user?.preferredGenres || [];
 
@@ -146,6 +149,36 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ── Live Radio Banner ── */}
+      {isLive && (
+        <div className="bg-red-500/8 border-y border-red-500/20">
+          <div className="max-w-7xl mx-auto px-4 lg:px-6 py-3 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex items-center gap-1.5 bg-red-500/15 border border-red-500/30 rounded-full px-2.5 py-1 shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse inline-block" />
+                <span className="text-[11px] font-bold text-red-400 uppercase tracking-wider">Live</span>
+              </div>
+              <Radio size={14} className="text-red-400 shrink-0" />
+              <div className="min-w-0">
+                <span className="text-sm font-semibold text-white">{radioData?.title || 'h-orbit Radio'}</span>
+                {radioData?.description && (
+                  <span className="text-sm text-slate-400 ml-2 hidden sm:inline truncate">{radioData.description}</span>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={() => isRadioPlaying ? stopRadio() : playRadio()}
+              className="flex items-center gap-2 bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-red-300 hover:text-red-200 rounded-full px-4 py-1.5 text-sm font-medium transition-all shrink-0"
+            >
+              {isRadioPlaying
+                ? <><Pause size={13} fill="currentColor" /> Pauzeren</>
+                : <><Play size={13} fill="currentColor" className="ml-0.5" /> Beluisteren</>
+              }
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto px-4 lg:px-6 pb-16">
 

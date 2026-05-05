@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useMatch } from 'react-router-dom';
 import { useEffect, useState, lazy, Suspense, type ReactNode } from 'react';
 import { AuthProvider, useAuth } from '@context/AuthContext';
+import { RadioProvider } from '@context/RadioContext';
 import { AppStateProvider, useAppState } from '@context/AppStateContext';
 import { PlayerProvider, usePlayer } from '@context/PlayerContext';
 import { ToastProvider } from '@components/Toast';
@@ -217,6 +218,7 @@ export default function App() {
     <AuthProvider>
       <AppStateProvider>
         <PlayerProvider>
+        <RadioProvider>
         <ToastProvider>
           <BrowserRouter>
             <ScrollToTop />
@@ -225,6 +227,7 @@ export default function App() {
             <ProtectedApp />
           </BrowserRouter>
         </ToastProvider>
+        </RadioProvider>
         </PlayerProvider>
       </AppStateProvider>
     </AuthProvider>
