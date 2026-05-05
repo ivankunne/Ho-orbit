@@ -643,113 +643,90 @@ function ReportsSection() {
 
 // ─── Radio section ────────────────────────────────────────────────────────────
 
-function RadioSection() {
-  const [isLive, setIsLive] = useState(false);
-  const [streamUrl, setStreamUrl] = useState('');
-  const [title, setTitle] = useState('h-orbit Radio');
-  const [description, setDescription] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [loading, setLoading] = useState(true);
+interface AdminRadioStation {
+  id: string;
+  name: string;
+  genre: string;
+  description: string;
+  stream_url: string;
+  is_live: boolean;
+}
 
-  useEffect(() => {
-    supabase.from('radio_stream').select('*').eq('id', 1).single().then(({ data }) => {
-      if (data) {
-        setIsLive(data.is_live);
-        setStreamUrl(data.stream_url ?? '');
-        setTitle(data.title ?? 'h-orbit Radio');
-        setDescription(data.description ?? '');
-      }
-      setLoading(false);
-    });
+function RadioSection() {
+  const [stations, setStations] = useState<AdminRadioStation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase.from('radio_streams').select('*').order('created_at');
+    setStations((data as AdminRadioStation[]) ?? []);
+    setLoading(false);
   }, []);
 
-  const save = async () => {
-    setSaving(true);
-    await supabase.from('radio_stream').update({ is_live: isLive, stream_url: streamUrl, title, description }).eq('id', 1);
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+  useEffect(() => { load(); }, [load]);
+
+  const toggleLive = async (station: AdminRadioStation) => {
+    setTogglingId(station.id);
+    await supabase.from('radio_streams').update({ is_live: !station.is_live }).eq('id', station.id);
+    await load();
+    setTogglingId(null);
   };
 
   if (loading) return <LoadingState />;
 
-  return (
-    <div className="space-y-6 max-w-lg">
-      {/* Live toggle */}
-      <div className="flex items-center justify-between p-4 bg-white/[0.03] border border-white/8 rounded-2xl">
-        <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isLive ? 'bg-red-500/20 border border-red-500/30' : 'bg-white/5 border border-white/10'}`}>
-            <Radio size={18} className={isLive ? 'text-red-400' : 'text-slate-500'} />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-white">Radio status</p>
-            <p className="text-xs text-slate-500">{isLive ? 'Zender staat live — zichtbaar voor alle bezoekers' : 'Zender is offline — banner verborgen'}</p>
-          </div>
-        </div>
-        <button
-          onClick={() => setIsLive(l => !l)}
-          className={`relative w-12 h-6 rounded-full transition-colors ${isLive ? 'bg-red-500' : 'bg-white/15'}`}
-        >
-          <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${isLive ? 'translate-x-6' : 'translate-x-0.5'}`} />
-        </button>
-      </div>
+  const liveCount = stations.filter(s => s.is_live).length;
 
-      {isLive && (
+  return (
+    <div className="space-y-5">
+      {liveCount > 0 && (
         <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/25 rounded-xl">
           <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
-          <p className="text-xs text-red-400 font-medium">Radio staat nu live — bezoekers zien de banner direct via Realtime</p>
+          <p className="text-xs text-red-400 font-medium">{liveCount} zender{liveCount > 1 ? 's' : ''} staat nu live — zichtbaar voor alle bezoekers</p>
         </div>
       )}
 
-      {/* Stream URL */}
-      <div>
-        <label className="block text-sm font-medium text-slate-300 mb-2">Stream URL *</label>
-        <input
-          type="url"
-          value={streamUrl}
-          onChange={e => setStreamUrl(e.target.value)}
-          placeholder="https://stream.example.com/live.mp3"
-          className="w-full bg-white/[0.04] border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500/40 transition-colors"
-        />
-        <p className="text-xs text-slate-600 mt-1">MP3 stream URL of HLS (.m3u8) van het radiostation</p>
-      </div>
+      {stations.length === 0 ? (
+        <EmptyState icon={<Radio size={32} />} label="Geen radiostations gevonden. Voeg ze toe via de Radio-pagina." />
+      ) : (
+        <div className="space-y-3">
+          {stations.map(station => (
+            <div key={station.id} className={`bg-white/[0.03] border rounded-2xl p-4 transition-all ${station.is_live ? 'border-red-500/30' : 'border-white/8 hover:border-white/15'}`}>
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${station.is_live ? 'bg-red-500/20 border border-red-500/30' : 'bg-white/5 border border-white/10'}`}>
+                  <Radio size={16} className={station.is_live ? 'text-red-400' : 'text-slate-500'} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-white">{station.name}</p>
+                    {station.is_live && (
+                      <span className="flex items-center gap-1 bg-red-500/15 border border-red-500/30 rounded-full px-2 py-0.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse inline-block" />
+                        <span className="text-[9px] font-bold text-red-400 uppercase tracking-wider">Live</span>
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">{station.genre}{station.description ? ` · ${station.description}` : ''}</p>
+                  <p className="text-[10px] text-slate-600 mt-0.5 font-mono truncate">{station.stream_url || 'Geen stream URL'}</p>
+                </div>
+                <button
+                  onClick={() => toggleLive(station)}
+                  disabled={togglingId === station.id}
+                  className={`relative w-12 h-6 rounded-full transition-colors shrink-0 ${station.is_live ? 'bg-red-500' : 'bg-white/15'} ${togglingId === station.id ? 'opacity-50' : ''}`}
+                >
+                  <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${station.is_live ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
-      {/* Title */}
-      <div>
-        <label className="block text-sm font-medium text-slate-300 mb-2">Zendernaam</label>
-        <input
-          type="text"
-          value={title}
-          onChange={e => setTitle(e.target.value)}
-          placeholder="h-orbit Radio"
-          className="w-full bg-white/[0.04] border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500/40 transition-colors"
-        />
-      </div>
-
-      {/* Description */}
-      <div>
-        <label className="block text-sm font-medium text-slate-300 mb-2">Omschrijving</label>
-        <input
-          type="text"
-          value={description}
-          onChange={e => setDescription(e.target.value)}
-          placeholder="bijv. Nederlandse muziek 24/7"
-          className="w-full bg-white/[0.04] border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500/40 transition-colors"
-        />
-      </div>
-
-      <button
-        onClick={save}
-        disabled={saving || !streamUrl.trim()}
-        className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-          saved ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30' :
-          saving || !streamUrl.trim() ? 'bg-white/5 text-slate-600 cursor-not-allowed border border-white/8' :
-          'bg-violet-600 hover:bg-violet-500 text-white'
-        }`}
-      >
-        {saved ? <><CheckCircle size={14} /> Opgeslagen!</> : saving ? <><RefreshCw size={14} className="animate-spin" /> Opslaan…</> : 'Instellingen opslaan'}
-      </button>
+      <p className="text-xs text-slate-600 mt-2">
+        Stations toevoegen, bewerken of verwijderen kan via de{' '}
+        <a href="/radio" className="text-violet-400 hover:text-violet-300 underline">Radio-pagina</a>{' '}
+        (beschikbaar voor admins en gebruikers met de Radio-rol).
+      </p>
     </div>
   );
 }

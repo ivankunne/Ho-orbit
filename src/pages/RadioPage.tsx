@@ -1,187 +1,331 @@
-import { useState, useEffect } from 'react';
-import { Radio, Play, Pause, WifiOff, Settings2, CheckCircle, RefreshCw } from 'lucide-react';
-import { useRadio } from '@context/RadioContext';
+import { useState } from 'react';
+import { Radio, Play, Pause, WifiOff, Settings2, CheckCircle, RefreshCw, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { useRadio, type RadioStation } from '@context/RadioContext';
 import { useAuth } from '@context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { EqBars } from '@components/Waveform';
 
-export default function RadioPage() {
-  const { isLive, isRadioPlaying, playRadio, stopRadio, radioData } = useRadio();
-  const { user } = useAuth();
-  const isStudio = user?.isAdmin || user?.role === 'Radio';
+// ─── Station card (public listener view) ────────────────────────────────────
 
-  const [streamUrl, setStreamUrl]     = useState('');
-  const [title, setTitle]             = useState('h-orbit Radio');
-  const [description, setDescription] = useState('');
-  const [liveLocal, setLiveLocal]     = useState(false);
-  const [saving, setSaving]           = useState(false);
-  const [saved, setSaved]             = useState(false);
-
-  useEffect(() => {
-    if (!isStudio || !radioData) return;
-    setStreamUrl(radioData.stream_url ?? '');
-    setTitle(radioData.title ?? 'h-orbit Radio');
-    setDescription(radioData.description ?? '');
-    setLiveLocal(radioData.is_live ?? false);
-  }, [radioData, isStudio]);
-
-  const save = async () => {
-    setSaving(true);
-    await supabase.from('radio_stream')
-      .update({ is_live: liveLocal, stream_url: streamUrl, title, description })
-      .eq('id', 1);
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
-  };
+function StationCard({ station }: { station: RadioStation }) {
+  const { currentStation, isRadioPlaying, toggleStation } = useRadio();
+  const isThisPlaying = isRadioPlaying && currentStation?.id === station.id;
 
   return (
-    <div className="min-h-screen max-w-3xl mx-auto px-4 lg:px-6 py-10">
-
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-8">
-        <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${isLive ? 'bg-red-500/20 border border-red-500/30' : 'bg-white/5 border border-white/10'}`}>
-          <Radio size={22} className={isLive ? 'text-red-400' : 'text-slate-500'} />
+    <div className={`relative flex flex-col gap-4 p-5 rounded-2xl border transition-all ${
+      isThisPlaying
+        ? 'bg-red-500/8 border-red-500/30'
+        : station.is_live
+          ? 'bg-white/[0.03] border-white/10 hover:border-white/20'
+          : 'bg-white/[0.02] border-white/6 opacity-60'
+    }`}>
+      {/* Live badge */}
+      {station.is_live && (
+        <div className="absolute top-4 right-4 flex items-center gap-1.5 bg-red-500/15 border border-red-500/30 rounded-full px-2 py-0.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse inline-block" />
+          <span className="text-[10px] font-bold text-red-400 uppercase tracking-wider">Live</span>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold text-white">{radioData?.title || 'h-orbit Radio'}</h1>
-          <p className="text-sm text-slate-500">Live audio van de Nederlandse muziekscene</p>
+      )}
+
+      <div className="flex items-center gap-4">
+        {/* Icon */}
+        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${
+          isThisPlaying ? 'bg-red-500/20 border border-red-500/30' : 'bg-white/5 border border-white/10'
+        }`}>
+          {isThisPlaying
+            ? <EqBars playing />
+            : <Radio size={22} className={station.is_live ? 'text-red-400' : 'text-slate-600'} />
+          }
+        </div>
+
+        <div className="flex-1 min-w-0 pr-16">
+          <p className="font-bold text-white text-lg leading-tight">{station.name}</p>
+          {station.genre && <p className="text-xs text-slate-500 mt-0.5">{station.genre}</p>}
+          {station.description && <p className="text-sm text-slate-400 mt-1 line-clamp-2">{station.description}</p>}
         </div>
       </div>
 
-      {/* Player card */}
-      {isLive ? (
-        <div className="relative bg-gradient-to-br from-red-500/10 to-transparent border border-red-500/25 rounded-3xl p-8 flex flex-col items-center gap-6 overflow-hidden">
-          {/* Animated rings */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-64 h-64 rounded-full border border-red-500/8 animate-ping" style={{ animationDuration: '3s' }} />
-            <div className="absolute w-48 h-48 rounded-full border border-red-500/12 animate-ping" style={{ animationDuration: '2.2s', animationDelay: '0.4s' }} />
-          </div>
+      {station.is_live ? (
+        <button
+          onClick={() => toggleStation(station)}
+          className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-xl font-semibold text-sm transition-all ${
+            isThisPlaying
+              ? 'bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30'
+              : 'bg-red-500 hover:bg-red-400 text-white shadow-lg shadow-red-500/20'
+          }`}
+        >
+          {isThisPlaying
+            ? <><Pause size={15} fill="currentColor" /> Pauzeren</>
+            : <><Play  size={15} fill="currentColor" className="ml-0.5" /> Beluisteren</>
+          }
+        </button>
+      ) : (
+        <div className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm text-slate-600 border border-white/6">
+          <WifiOff size={14} /> Momenteel offline
+        </div>
+      )}
+    </div>
+  );
+}
 
-          {/* Icon */}
-          <div className="relative w-24 h-24 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center">
-            {isRadioPlaying
-              ? <EqBars playing className="scale-150" />
-              : <Radio size={36} className="text-red-400" />
-            }
-          </div>
+// ─── Studio station row (edit/manage) ────────────────────────────────────────
 
-          {/* LIVE badge */}
-          <div className="flex items-center gap-2 bg-red-500/15 border border-red-500/30 rounded-full px-3 py-1.5">
-            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse inline-block" />
-            <span className="text-xs font-bold text-red-400 uppercase tracking-widest">Live uitzending</span>
-          </div>
+function StudioRow({ station, onRefresh }: { station: RadioStation; onRefresh: () => void }) {
+  const [open, setOpen]           = useState(false);
+  const [name, setName]           = useState(station.name);
+  const [description, setDesc]    = useState(station.description);
+  const [streamUrl, setStreamUrl] = useState(station.stream_url);
+  const [genre, setGenre]         = useState(station.genre);
+  const [isLive, setIsLive]       = useState(station.is_live);
+  const [saving, setSaving]       = useState(false);
+  const [saved, setSaved]         = useState(false);
+  const [deleting, setDeleting]   = useState(false);
 
-          {/* Title + description */}
-          <div className="text-center relative">
-            <p className="text-2xl font-bold text-white">{radioData?.title || 'h-orbit Radio'}</p>
-            {radioData?.description && (
-              <p className="text-slate-400 mt-1">{radioData.description}</p>
-            )}
-          </div>
+  const save = async () => {
+    setSaving(true);
+    await supabase.from('radio_streams').update({ name, description, stream_url: streamUrl, genre, is_live: isLive }).eq('id', station.id);
+    setSaving(false); setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+    onRefresh();
+  };
 
-          {/* Play button */}
-          <button
-            onClick={() => isRadioPlaying ? stopRadio() : playRadio()}
-            className="relative flex items-center gap-3 bg-red-500 hover:bg-red-400 active:scale-95 text-white font-semibold px-8 py-3.5 rounded-2xl transition-all shadow-lg shadow-red-500/30"
-          >
-            {isRadioPlaying
-              ? <><Pause size={20} fill="currentColor" /> Pauzeren</>
-              : <><Play  size={20} fill="currentColor" className="ml-0.5" /> Beluisteren</>
-            }
+  const remove = async () => {
+    if (!confirm(`Zender "${station.name}" verwijderen?`)) return;
+    setDeleting(true);
+    await supabase.from('radio_streams').delete().eq('id', station.id);
+    onRefresh();
+  };
+
+  return (
+    <div className="bg-white/[0.03] border border-white/8 rounded-2xl overflow-hidden">
+      {/* Header row */}
+      <div className="flex items-center gap-3 px-4 py-3">
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isLive ? 'bg-red-500/20 border border-red-500/30' : 'bg-white/5 border border-white/10'}`}>
+          <Radio size={14} className={isLive ? 'text-red-400' : 'text-slate-500'} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-white truncate">{station.name}</p>
+          <p className="text-xs text-slate-500">{station.genre || 'Geen genre'} · {station.is_live ? <span className="text-red-400">Live</span> : 'Offline'}</p>
+        </div>
+        {/* Live quick-toggle */}
+        <button
+          onClick={async () => {
+            const next = !isLive;
+            setIsLive(next);
+            await supabase.from('radio_streams').update({ is_live: next }).eq('id', station.id);
+            onRefresh();
+          }}
+          className={`relative w-10 h-5 rounded-full transition-colors shrink-0 ${isLive ? 'bg-red-500' : 'bg-white/15'}`}
+        >
+          <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${isLive ? 'translate-x-5' : 'translate-x-0.5'}`} />
+        </button>
+        <button onClick={() => setOpen(o => !o)} className="text-slate-500 hover:text-white transition-colors p-1">
+          {open ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+        </button>
+        <button onClick={remove} disabled={deleting} className="text-slate-600 hover:text-red-400 transition-colors p-1">
+          <Trash2 size={14} />
+        </button>
+      </div>
+
+      {/* Expanded edit form */}
+      {open && (
+        <div className="border-t border-white/8 px-4 py-4 space-y-3 bg-white/[0.02]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">Zendernaam</label>
+              <input value={name} onChange={e => setName(e.target.value)}
+                className="w-full bg-white/[0.04] border border-white/8 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500/40 transition-colors" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">Genre</label>
+              <input value={genre} onChange={e => setGenre(e.target.value)} placeholder="bijv. Hip-Hop, Nederpop…"
+                className="w-full bg-white/[0.04] border border-white/8 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500/40 transition-colors" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-400 mb-1.5">Stream URL</label>
+            <input type="url" value={streamUrl} onChange={e => setStreamUrl(e.target.value)} placeholder="https://stream.example.com/live.mp3"
+              className="w-full bg-white/[0.04] border border-white/8 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500/40 transition-colors" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-400 mb-1.5">Omschrijving</label>
+            <input value={description} onChange={e => setDesc(e.target.value)} placeholder="Korte beschrijving van de zender"
+              className="w-full bg-white/[0.04] border border-white/8 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500/40 transition-colors" />
+          </div>
+          <button onClick={save} disabled={saving || !streamUrl.trim()}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+              saved ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30' :
+              saving || !streamUrl.trim() ? 'bg-white/5 text-slate-600 cursor-not-allowed' :
+              'bg-violet-600 hover:bg-violet-500 text-white'
+            }`}>
+            {saved ? <><CheckCircle size={13} /> Opgeslagen</> : saving ? <><RefreshCw size={13} className="animate-spin" /> Opslaan…</> : 'Opslaan'}
           </button>
         </div>
-      ) : (
-        <div className="bg-white/[0.03] border border-white/8 rounded-3xl p-12 flex flex-col items-center gap-4 text-center">
+      )}
+    </div>
+  );
+}
+
+// ─── Add station form ─────────────────────────────────────────────────────────
+
+function AddStationForm({ onRefresh, onClose }: { onRefresh: () => void; onClose: () => void }) {
+  const [name, setName]           = useState('');
+  const [genre, setGenre]         = useState('');
+  const [streamUrl, setStreamUrl] = useState('');
+  const [description, setDesc]    = useState('');
+  const [saving, setSaving]       = useState(false);
+
+  const save = async () => {
+    if (!name.trim() || !streamUrl.trim()) return;
+    setSaving(true);
+    await supabase.from('radio_streams').insert({ name, genre, stream_url: streamUrl, description, is_live: false });
+    setSaving(false);
+    onRefresh();
+    onClose();
+  };
+
+  return (
+    <div className="bg-white/[0.03] border border-violet-500/20 rounded-2xl p-5 space-y-3">
+      <p className="text-sm font-semibold text-white mb-1">Nieuwe zender</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs font-medium text-slate-400 mb-1.5">Naam *</label>
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="bijv. Vibez"
+            className="w-full bg-white/[0.04] border border-white/8 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500/40 transition-colors" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-slate-400 mb-1.5">Genre</label>
+          <input value={genre} onChange={e => setGenre(e.target.value)} placeholder="bijv. Hip-Hop, Nederpop…"
+            className="w-full bg-white/[0.04] border border-white/8 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500/40 transition-colors" />
+        </div>
+      </div>
+      <div>
+        <label className="block text-xs font-medium text-slate-400 mb-1.5">Stream URL *</label>
+        <input type="url" value={streamUrl} onChange={e => setStreamUrl(e.target.value)} placeholder="https://stream.example.com/live.mp3"
+          className="w-full bg-white/[0.04] border border-white/8 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500/40 transition-colors" />
+      </div>
+      <div>
+        <label className="block text-xs font-medium text-slate-400 mb-1.5">Omschrijving</label>
+        <input value={description} onChange={e => setDesc(e.target.value)} placeholder="Korte beschrijving"
+          className="w-full bg-white/[0.04] border border-white/8 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500/40 transition-colors" />
+      </div>
+      <div className="flex gap-2">
+        <button onClick={save} disabled={saving || !name.trim() || !streamUrl.trim()}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+            saving || !name.trim() || !streamUrl.trim() ? 'bg-white/5 text-slate-600 cursor-not-allowed' : 'bg-violet-600 hover:bg-violet-500 text-white'
+          }`}>
+          {saving ? <><RefreshCw size={13} className="animate-spin" /> Toevoegen…</> : 'Toevoegen'}
+        </button>
+        <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-colors">
+          Annuleer
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main RadioPage ───────────────────────────────────────────────────────────
+
+export default function RadioPage() {
+  const { stations, liveStations, fetchStations: _refresh } = useRadio() as any;
+  const { user } = useAuth();
+  const isStudio = user?.isAdmin || user?.role === 'Radio';
+  const [showAddForm, setShowAddForm] = useState(false);
+
+  const refresh = () => {
+    // Trigger a refetch via Supabase (the Realtime channel will handle it, but we can also force)
+    supabase.from('radio_streams').select('*').order('created_at').then(({ data }) => {
+      if (data) (window as any).__radioRefresh?.(data);
+    });
+  };
+
+  const offlineStations = stations.filter((s: RadioStation) => !s.is_live);
+
+  return (
+    <div className="min-h-screen max-w-4xl mx-auto px-4 lg:px-6 py-10">
+
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3 mb-8">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-red-500/15 border border-red-500/25 flex items-center justify-center">
+            <Radio size={22} className="text-red-400" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-white">h-orbit Radio</h1>
+            <p className="text-sm text-slate-500">
+              {liveStations.length > 0
+                ? `${liveStations.length} zender${liveStations.length !== 1 ? 's' : ''} live`
+                : 'Alle zenders offline'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Live stations */}
+      {liveStations.length > 0 && (
+        <section className="mb-10">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse inline-block" />
+            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Nu live</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {liveStations.map((s: RadioStation) => <StationCard key={s.id} station={s} />)}
+          </div>
+        </section>
+      )}
+
+      {/* Offline stations */}
+      {offlineStations.length > 0 && (
+        <section className="mb-10">
+          <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wider mb-4">Overige zenders</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {offlineStations.map((s: RadioStation) => <StationCard key={s.id} station={s} />)}
+          </div>
+        </section>
+      )}
+
+      {/* Empty state */}
+      {stations.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
           <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
             <WifiOff size={28} className="text-slate-600" />
           </div>
           <div>
-            <p className="text-lg font-semibold text-white">Momenteel offline</p>
-            <p className="text-slate-500 text-sm mt-1">De radio-uitzending is nu niet actief. Kom later terug.</p>
+            <p className="text-lg font-semibold text-white">Geen zenders gevonden</p>
+            <p className="text-slate-500 text-sm mt-1">Er zijn nog geen radiozenders toegevoegd.</p>
           </div>
         </div>
       )}
 
-      {/* Studio controls — Radio role & Admin only */}
+      {/* Studio — Radio / Admin only */}
       {isStudio && (
-        <div className="mt-10">
-          <div className="flex items-center gap-2 mb-5">
-            <Settings2 size={16} className="text-slate-500" />
-            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Studio</h2>
+        <div className="mt-6 pt-8 border-t border-white/8">
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2">
+              <Settings2 size={16} className="text-slate-500" />
+              <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Studio</h2>
+            </div>
+            <button
+              onClick={() => setShowAddForm(v => !v)}
+              className="flex items-center gap-1.5 bg-violet-600/15 hover:bg-violet-600/25 border border-violet-500/30 text-violet-400 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+            >
+              <Plus size={13} /> Zender toevoegen
+            </button>
           </div>
 
-          <div className="bg-white/[0.03] border border-white/8 rounded-2xl p-5 space-y-5">
-            {/* Live toggle */}
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-white">Zender live zetten</p>
-                <p className="text-xs text-slate-500 mt-0.5">{liveLocal ? 'Zender staat live — zichtbaar voor iedereen' : 'Zender is offline'}</p>
-              </div>
-              <button
-                onClick={() => setLiveLocal(l => !l)}
-                className={`relative w-12 h-6 rounded-full transition-colors ${liveLocal ? 'bg-red-500' : 'bg-white/15'}`}
-              >
-                <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${liveLocal ? 'translate-x-6' : 'translate-x-0.5'}`} />
-              </button>
+          {showAddForm && (
+            <div className="mb-4">
+              <AddStationForm onRefresh={refresh} onClose={() => setShowAddForm(false)} />
             </div>
+          )}
 
-            {liveLocal && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-xl">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />
-                <p className="text-xs text-red-400">Na opslaan gaat de banner live voor alle bezoekers</p>
-              </div>
+          <div className="space-y-2">
+            {stations.map((s: RadioStation) => (
+              <StudioRow key={s.id} station={s} onRefresh={refresh} />
+            ))}
+            {stations.length === 0 && (
+              <p className="text-sm text-slate-600 text-center py-6">Nog geen zenders — voeg er een toe.</p>
             )}
-
-            {/* Stream URL */}
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Stream URL</label>
-              <input
-                type="url"
-                value={streamUrl}
-                onChange={e => setStreamUrl(e.target.value)}
-                placeholder="https://stream.example.com/live.mp3"
-                className="w-full bg-white/[0.04] border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500/40 transition-colors"
-              />
-            </div>
-
-            {/* Station name */}
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Zendernaam</label>
-              <input
-                type="text"
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                placeholder="h-orbit Radio"
-                className="w-full bg-white/[0.04] border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500/40 transition-colors"
-              />
-            </div>
-
-            {/* Description */}
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Omschrijving</label>
-              <input
-                type="text"
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                placeholder="bijv. Nederlandse muziek 24/7"
-                className="w-full bg-white/[0.04] border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500/40 transition-colors"
-              />
-            </div>
-
-            <button
-              onClick={save}
-              disabled={saving || !streamUrl.trim()}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                saved ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30' :
-                saving || !streamUrl.trim() ? 'bg-white/5 text-slate-600 cursor-not-allowed border border-white/8' :
-                'bg-red-500 hover:bg-red-400 text-white'
-              }`}
-            >
-              {saved   ? <><CheckCircle size={14} /> Opgeslagen!</> :
-               saving  ? <><RefreshCw size={14} className="animate-spin" /> Opslaan…</> :
-               'Instellingen opslaan'}
-            </button>
           </div>
         </div>
       )}

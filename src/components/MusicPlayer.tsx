@@ -24,7 +24,7 @@ export default function MusicPlayer() {
     skipForward, skipBack, seek, playTrack,
   } = usePlayer();
 
-  const { isRadioPlaying, toggleRadio, stopRadio, playRadio, radioData } = useRadio();
+  const { isRadioPlaying, stopRadio, currentStation } = useRadio();
   const { currentTime, duration } = usePlayerProgress();
 
   const [expanded, setExpanded] = useState(false);
@@ -102,14 +102,14 @@ export default function MusicPlayer() {
                       <span className="text-[11px] font-bold text-red-400 uppercase tracking-wider">Live</span>
                     </div>
                   </div>
-                  <p className="text-xl font-bold text-white mt-1">{radioData?.title || 'h-orbit Radio'}</p>
-                  {radioData?.description && (
+                  <p className="text-xl font-bold text-white mt-1">{currentStation?.name || 'h-orbit Radio'}</p>
+                  {currentStation?.description && (
                     <p className="text-sm text-slate-400 mt-1 max-w-xs">{radioData.description}</p>
                   )}
                   <p className="text-xs text-slate-600 mt-3">Live stream · spoelen niet mogelijk</p>
                 </div>
                 <button
-                  onClick={toggleRadio}
+                  onClick={stopRadio}
                   className="w-14 h-14 bg-white rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shadow-lg shadow-black/30"
                 >
                   <Pause size={20} className="text-black" fill="black" />
@@ -235,7 +235,7 @@ export default function MusicPlayer() {
                   </div>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-white truncate">{radioData?.title || 'h-orbit Radio'}</p>
+                  <p className="text-sm font-semibold text-white truncate">{currentStation?.name || 'h-orbit Radio'}</p>
                   <p className="text-xs text-red-400 flex items-center gap-1.5">
                     <span className="w-1 h-1 rounded-full bg-red-500 animate-pulse inline-block" />
                     LIVE
@@ -246,7 +246,7 @@ export default function MusicPlayer() {
               {/* Play/pause */}
               <div className="flex-1 flex items-center justify-center">
                 <button
-                  onClick={toggleRadio}
+                  onClick={stopRadio}
                   className="w-9 h-9 bg-white rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shadow-lg shadow-black/30"
                 >
                   <Pause size={16} className="text-black" fill="black" />

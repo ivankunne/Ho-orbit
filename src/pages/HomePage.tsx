@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  TrendingUp, ChevronRight, Flame, Sparkles, Play,
+  TrendingUp, ChevronRight, Flame, Sparkles, Play, Pause,
   MapPin, Newspaper, Map, Users, Music2, Compass,
   Handshake, Star, UserPlus,
   Building2,
@@ -40,7 +40,7 @@ export default function HomePage() {
   const { user } = useAuth();
   const { playTrack } = usePlayer();
   const { followedArtists, toggleFollow } = useAppState();
-  const { isLive, isRadioPlaying, playRadio, stopRadio, radioData } = useRadio();
+  const { isLive, isRadioPlaying, liveStations, currentStation, playStation, stopRadio } = useRadio();
   const navigate = useNavigate();
   const preferredGenres = user?.preferredGenres || [];
 
@@ -161,20 +161,23 @@ export default function HomePage() {
               </div>
               <Radio size={14} className="text-red-400 shrink-0" />
               <div className="min-w-0">
-                <span className="text-sm font-semibold text-white">{radioData?.title || 'h-orbit Radio'}</span>
-                {radioData?.description && (
-                  <span className="text-sm text-slate-400 ml-2 hidden sm:inline truncate">{radioData.description}</span>
+                <span className="text-sm font-semibold text-white">{liveStations[0]?.name || 'h-orbit Radio'}</span>
+                {liveStations[0]?.description && (
+                  <span className="text-sm text-slate-400 ml-2 hidden sm:inline truncate">{liveStations[0].description}</span>
                 )}
               </div>
             </div>
             <button
-              onClick={() => isRadioPlaying ? stopRadio() : playRadio()}
+              onClick={() => {
+                const station = liveStations[0];
+                if (!station) return;
+                isRadioPlaying && currentStation?.id === station.id ? stopRadio() : playStation(station);
+              }}
               className="flex items-center gap-2 bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-red-300 hover:text-red-200 rounded-full px-4 py-1.5 text-sm font-medium transition-all shrink-0"
             >
-              {isRadioPlaying
+              {isRadioPlaying && currentStation?.id === liveStations[0]?.id
                 ? <><Pause size={13} fill="currentColor" /> Pauzeren</>
-                : <><Play size={13} fill="currentColor" className="ml-0.5" /> Beluisteren</>
-              }
+                : <><Play size={13} fill="currentColor" className="ml-0.5" /> Beluisteren</>}
             </button>
           </div>
         </div>

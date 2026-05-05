@@ -1,45 +1,61 @@
 import { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 
-export interface RadioStream {
-  id: number;
-  is_live: boolean;
-  stream_url: string;
-  title: string;
+export interface RadioStation {
+  id: string;
+  name: string;
   description: string;
+  stream_url: string;
+  is_live: boolean;
+  genre: string;
+  created_at: string;
 }
 
 interface RadioContextValue {
-  radioData: RadioStream | null;
+  stations: RadioStation[];
+  liveStations: RadioStation[];
   isLive: boolean;
+  currentStation: RadioStation | null;
   isRadioPlaying: boolean;
-  playRadio: () => void;
+  playStation: (station: RadioStation) => void;
   stopRadio: () => void;
-  toggleRadio: () => void;
+  toggleStation: (station: RadioStation) => void;
 }
 
 const RadioContext = createContext<RadioContextValue | null>(null);
 
 export function RadioProvider({ children }) {
-  const [radioData, setRadioData] = useState<RadioStream | null>(null);
+  const [stations, setStations]           = useState<RadioStation[]>([]);
+  const [currentStation, setCurrentStation] = useState<RadioStation | null>(null);
   const [isRadioPlaying, setIsRadioPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   if (!audioRef.current) audioRef.current = new Audio();
 
+  const fetchStations = useCallback(async () => {
+    const { data } = await supabase.from('radio_streams').select('*').order('created_at');
+    if (data) setStations(data as RadioStation[]);
+  }, []);
+
+  // When the stations list refreshes, stop playback if the current station went offline
   useEffect(() => {
-    supabase.from('radio_stream').select('*').eq('id', 1).single()
-      .then(({ data }) => { if (data) setRadioData(data as RadioStream); });
+    setCurrentStation(prev => {
+      if (!prev) return null;
+      const updated = stations.find(s => s.id === prev.id);
+      if (!updated || !updated.is_live) {
+        audioRef.current?.pause();
+        setIsRadioPlaying(false);
+        return null;
+      }
+      return updated;
+    });
+  }, [stations]);
+
+  useEffect(() => {
+    fetchStations();
 
     const channel = supabase
-      .channel('radio_realtime')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'radio_stream' }, ({ new: row }) => {
-        const updated = row as RadioStream;
-        setRadioData(updated);
-        if (!updated.is_live) {
-          audioRef.current?.pause();
-          setIsRadioPlaying(false);
-        }
-      })
+      .channel('radio_streams_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'radio_streams' }, fetchStations)
       .subscribe();
 
     const audio = audioRef.current!;
@@ -50,36 +66,42 @@ export function RadioProvider({ children }) {
       supabase.removeChannel(channel);
       audio.removeEventListener('error', onError);
     };
-  }, []);
+  }, [fetchStations]);
 
-  const playRadio = useCallback(() => {
-    if (!radioData?.stream_url || !radioData.is_live) return;
+  const playStation = useCallback((station: RadioStation) => {
+    if (!station.stream_url || !station.is_live) return;
     const audio = audioRef.current!;
-    audio.src = radioData.stream_url;
+    audio.src = station.stream_url;
     audio.play().catch(() => setIsRadioPlaying(false));
+    setCurrentStation(station);
     setIsRadioPlaying(true);
-  }, [radioData]);
+  }, []);
 
   const stopRadio = useCallback(() => {
     const audio = audioRef.current!;
     audio.pause();
     audio.src = '';
     setIsRadioPlaying(false);
+    setCurrentStation(null);
   }, []);
 
-  const toggleRadio = useCallback(() => {
-    if (isRadioPlaying) stopRadio();
-    else playRadio();
-  }, [isRadioPlaying, playRadio, stopRadio]);
+  const toggleStation = useCallback((station: RadioStation) => {
+    if (isRadioPlaying && currentStation?.id === station.id) stopRadio();
+    else playStation(station);
+  }, [isRadioPlaying, currentStation, playStation, stopRadio]);
+
+  const liveStations = stations.filter(s => s.is_live);
 
   return (
     <RadioContext.Provider value={{
-      radioData,
-      isLive: radioData?.is_live ?? false,
+      stations,
+      liveStations,
+      isLive: liveStations.length > 0,
+      currentStation,
       isRadioPlaying,
-      playRadio,
+      playStation,
       stopRadio,
-      toggleRadio,
+      toggleStation,
     }}>
       {children}
     </RadioContext.Provider>
