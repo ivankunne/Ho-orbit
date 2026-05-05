@@ -9,6 +9,7 @@ export interface RadioStation {
   is_live: boolean;
   genre: string;
   created_at: string;
+  owner_id?: string;
 }
 
 interface RadioContextValue {
@@ -20,6 +21,7 @@ interface RadioContextValue {
   playStation: (station: RadioStation) => void;
   stopRadio: () => void;
   toggleStation: (station: RadioStation) => void;
+  fetchStations: () => Promise<void>;
 }
 
 const RadioContext = createContext<RadioContextValue | null>(null);
@@ -102,6 +104,7 @@ export function RadioProvider({ children }) {
       playStation,
       stopRadio,
       toggleStation,
+      fetchStations,
     }}>
       {children}
     </RadioContext.Provider>

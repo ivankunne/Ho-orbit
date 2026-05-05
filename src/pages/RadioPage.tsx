@@ -19,7 +19,6 @@ function StationCard({ station }: { station: RadioStation }) {
           ? 'bg-white/[0.03] border-white/10 hover:border-white/20'
           : 'bg-white/[0.02] border-white/6 opacity-60'
     }`}>
-      {/* Live badge */}
       {station.is_live && (
         <div className="absolute top-4 right-4 flex items-center gap-1.5 bg-red-500/15 border border-red-500/30 rounded-full px-2 py-0.5">
           <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse inline-block" />
@@ -28,7 +27,6 @@ function StationCard({ station }: { station: RadioStation }) {
       )}
 
       <div className="flex items-center gap-4">
-        {/* Icon */}
         <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${
           isThisPlaying ? 'bg-red-500/20 border border-red-500/30' : 'bg-white/5 border border-white/10'
         }`}>
@@ -37,7 +35,6 @@ function StationCard({ station }: { station: RadioStation }) {
             : <Radio size={22} className={station.is_live ? 'text-red-400' : 'text-slate-600'} />
           }
         </div>
-
         <div className="flex-1 min-w-0 pr-16">
           <p className="font-bold text-white text-lg leading-tight">{station.name}</p>
           {station.genre && <p className="text-xs text-slate-500 mt-0.5">{station.genre}</p>}
@@ -96,25 +93,30 @@ function StudioRow({ station, onRefresh }: { station: RadioStation; onRefresh: (
     onRefresh();
   };
 
+  const quickToggleLive = async () => {
+    const next = !isLive;
+    setIsLive(next);
+    await supabase.from('radio_streams').update({ is_live: next }).eq('id', station.id);
+    onRefresh();
+  };
+
   return (
     <div className="bg-white/[0.03] border border-white/8 rounded-2xl overflow-hidden">
-      {/* Header row */}
       <div className="flex items-center gap-3 px-4 py-3">
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isLive ? 'bg-red-500/20 border border-red-500/30' : 'bg-white/5 border border-white/10'}`}>
           <Radio size={14} className={isLive ? 'text-red-400' : 'text-slate-500'} />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-white truncate">{station.name}</p>
-          <p className="text-xs text-slate-500">{station.genre || 'Geen genre'} · {station.is_live ? <span className="text-red-400">Live</span> : 'Offline'}</p>
+          <p className="text-xs text-slate-500">
+            {station.genre || 'Geen genre'} ·{' '}
+            {isLive ? <span className="text-red-400">Live</span> : 'Offline'}
+          </p>
         </div>
         {/* Live quick-toggle */}
         <button
-          onClick={async () => {
-            const next = !isLive;
-            setIsLive(next);
-            await supabase.from('radio_streams').update({ is_live: next }).eq('id', station.id);
-            onRefresh();
-          }}
+          onClick={quickToggleLive}
+          title={isLive ? 'Zender offline zetten' : 'Zender live zetten'}
           className={`relative w-10 h-5 rounded-full transition-colors shrink-0 ${isLive ? 'bg-red-500' : 'bg-white/15'}`}
         >
           <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${isLive ? 'translate-x-5' : 'translate-x-0.5'}`} />
@@ -127,7 +129,6 @@ function StudioRow({ station, onRefresh }: { station: RadioStation; onRefresh: (
         </button>
       </div>
 
-      {/* Expanded edit form */}
       {open && (
         <div className="border-t border-white/8 px-4 py-4 space-y-3 bg-white/[0.02]">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -143,9 +144,10 @@ function StudioRow({ station, onRefresh }: { station: RadioStation; onRefresh: (
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">Stream URL</label>
+            <label className="block text-xs font-medium text-slate-400 mb-1.5">Stream URL *</label>
             <input type="url" value={streamUrl} onChange={e => setStreamUrl(e.target.value)} placeholder="https://stream.example.com/live.mp3"
               className="w-full bg-white/[0.04] border border-white/8 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500/40 transition-colors" />
+            <p className="text-xs text-slate-600 mt-1">MP3 stream URL of HLS (.m3u8)</p>
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-400 mb-1.5">Omschrijving</label>
@@ -166,9 +168,9 @@ function StudioRow({ station, onRefresh }: { station: RadioStation; onRefresh: (
   );
 }
 
-// ─── Add station form ─────────────────────────────────────────────────────────
+// ─── Add / register station form ─────────────────────────────────────────────
 
-function AddStationForm({ onRefresh, onClose }: { onRefresh: () => void; onClose: () => void }) {
+function AddStationForm({ onRefresh, onClose, userId }: { onRefresh: () => void; onClose: () => void; userId?: string }) {
   const [name, setName]           = useState('');
   const [genre, setGenre]         = useState('');
   const [streamUrl, setStreamUrl] = useState('');
@@ -178,7 +180,10 @@ function AddStationForm({ onRefresh, onClose }: { onRefresh: () => void; onClose
   const save = async () => {
     if (!name.trim() || !streamUrl.trim()) return;
     setSaving(true);
-    await supabase.from('radio_streams').insert({ name, genre, stream_url: streamUrl, description, is_live: false });
+    await supabase.from('radio_streams').insert({
+      name, genre, stream_url: streamUrl, description, is_live: false,
+      ...(userId ? { owner_id: userId } : {}),
+    });
     setSaving(false);
     onRefresh();
     onClose();
@@ -186,7 +191,7 @@ function AddStationForm({ onRefresh, onClose }: { onRefresh: () => void; onClose
 
   return (
     <div className="bg-white/[0.03] border border-violet-500/20 rounded-2xl p-5 space-y-3">
-      <p className="text-sm font-semibold text-white mb-1">Nieuwe zender</p>
+      <p className="text-sm font-semibold text-white mb-1">Zender registreren</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-slate-400 mb-1.5">Naam *</label>
@@ -203,10 +208,11 @@ function AddStationForm({ onRefresh, onClose }: { onRefresh: () => void; onClose
         <label className="block text-xs font-medium text-slate-400 mb-1.5">Stream URL *</label>
         <input type="url" value={streamUrl} onChange={e => setStreamUrl(e.target.value)} placeholder="https://stream.example.com/live.mp3"
           className="w-full bg-white/[0.04] border border-white/8 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500/40 transition-colors" />
+        <p className="text-xs text-slate-600 mt-1">Je kunt dit later ook nog invullen of aanpassen.</p>
       </div>
       <div>
         <label className="block text-xs font-medium text-slate-400 mb-1.5">Omschrijving</label>
-        <input value={description} onChange={e => setDesc(e.target.value)} placeholder="Korte beschrijving"
+        <input value={description} onChange={e => setDesc(e.target.value)} placeholder="Korte beschrijving van je zender"
           className="w-full bg-white/[0.04] border border-white/8 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500/40 transition-colors" />
       </div>
       <div className="flex gap-2">
@@ -214,7 +220,7 @@ function AddStationForm({ onRefresh, onClose }: { onRefresh: () => void; onClose
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
             saving || !name.trim() || !streamUrl.trim() ? 'bg-white/5 text-slate-600 cursor-not-allowed' : 'bg-violet-600 hover:bg-violet-500 text-white'
           }`}>
-          {saving ? <><RefreshCw size={13} className="animate-spin" /> Toevoegen…</> : 'Toevoegen'}
+          {saving ? <><RefreshCw size={13} className="animate-spin" /> Toevoegen…</> : 'Zender toevoegen'}
         </button>
         <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-colors">
           Annuleer
@@ -227,19 +233,19 @@ function AddStationForm({ onRefresh, onClose }: { onRefresh: () => void; onClose
 // ─── Main RadioPage ───────────────────────────────────────────────────────────
 
 export default function RadioPage() {
-  const { stations, liveStations, fetchStations: _refresh } = useRadio() as any;
+  const { stations, liveStations, fetchStations } = useRadio();
   const { user } = useAuth();
-  const isStudio = user?.isAdmin || user?.role === 'Radio';
+  const isAdmin    = Boolean(user?.isAdmin);
+  const isRadioHost = user?.role === 'Radio';
+  const isStudio   = isAdmin || isRadioHost;
   const [showAddForm, setShowAddForm] = useState(false);
 
-  const refresh = () => {
-    // Trigger a refetch via Supabase (the Realtime channel will handle it, but we can also force)
-    supabase.from('radio_streams').select('*').order('created_at').then(({ data }) => {
-      if (data) (window as any).__radioRefresh?.(data);
-    });
-  };
+  // Admins manage all stations; Radio hosts only manage their own
+  const studioStations = isAdmin
+    ? stations
+    : stations.filter(s => s.owner_id === user?.id);
 
-  const offlineStations = stations.filter((s: RadioStation) => !s.is_live);
+  const offlineStations = stations.filter(s => !s.is_live);
 
   return (
     <div className="min-h-screen max-w-4xl mx-auto px-4 lg:px-6 py-10">
@@ -269,7 +275,7 @@ export default function RadioPage() {
             <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Nu live</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {liveStations.map((s: RadioStation) => <StationCard key={s.id} station={s} />)}
+            {liveStations.map(s => <StationCard key={s.id} station={s} />)}
           </div>
         </section>
       )}
@@ -279,13 +285,13 @@ export default function RadioPage() {
         <section className="mb-10">
           <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wider mb-4">Overige zenders</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {offlineStations.map((s: RadioStation) => <StationCard key={s.id} station={s} />)}
+            {offlineStations.map(s => <StationCard key={s.id} station={s} />)}
           </div>
         </section>
       )}
 
-      {/* Empty state */}
-      {stations.length === 0 && (
+      {/* Empty public state */}
+      {stations.length === 0 && !isStudio && (
         <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
           <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
             <WifiOff size={28} className="text-slate-600" />
@@ -297,36 +303,60 @@ export default function RadioPage() {
         </div>
       )}
 
-      {/* Studio — Radio / Admin only */}
+      {/* ── Studio — Radio hosts & admins ── */}
       {isStudio && (
         <div className="mt-6 pt-8 border-t border-white/8">
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Settings2 size={16} className="text-slate-500" />
-              <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Studio</h2>
+              <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+                {isAdmin ? 'Studio — alle zenders' : 'Jouw studio'}
+              </h2>
             </div>
-            <button
-              onClick={() => setShowAddForm(v => !v)}
-              className="flex items-center gap-1.5 bg-violet-600/15 hover:bg-violet-600/25 border border-violet-500/30 text-violet-400 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
-            >
-              <Plus size={13} /> Zender toevoegen
-            </button>
+            {/* Admins can always add; Radio hosts can add if they don't have one yet */}
+            {(isAdmin || studioStations.length === 0) && (
+              <button
+                onClick={() => setShowAddForm(v => !v)}
+                className="flex items-center gap-1.5 bg-violet-600/15 hover:bg-violet-600/25 border border-violet-500/30 text-violet-400 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+              >
+                <Plus size={13} /> Zender toevoegen
+              </button>
+            )}
           </div>
 
-          {showAddForm && (
-            <div className="mb-4">
-              <AddStationForm onRefresh={refresh} onClose={() => setShowAddForm(false)} />
+          {/* Radio host with no station yet */}
+          {isRadioHost && !isAdmin && studioStations.length === 0 && !showAddForm && (
+            <div className="mb-5 p-4 bg-violet-500/8 border border-violet-500/20 rounded-2xl">
+              <p className="text-sm text-slate-300 mb-1 font-medium">Verbind jouw zender</p>
+              <p className="text-xs text-slate-500">
+                Je hebt de Radio-rol maar nog geen zender gekoppeld. Voeg je stream URL toe en je kunt zelf live gaan — geen admin nodig.
+              </p>
             </div>
           )}
 
-          <div className="space-y-2">
-            {stations.map((s: RadioStation) => (
-              <StudioRow key={s.id} station={s} onRefresh={refresh} />
-            ))}
-            {stations.length === 0 && (
-              <p className="text-sm text-slate-600 text-center py-6">Nog geen zenders — voeg er een toe.</p>
-            )}
-          </div>
+          {showAddForm && (
+            <div className="mb-4">
+              <AddStationForm
+                onRefresh={fetchStations}
+                onClose={() => setShowAddForm(false)}
+                userId={user?.id ? String(user.id) : undefined}
+              />
+            </div>
+          )}
+
+          {studioStations.length > 0 ? (
+            <div className="space-y-2">
+              {studioStations.map(s => (
+                <StudioRow key={s.id} station={s} onRefresh={fetchStations} />
+              ))}
+            </div>
+          ) : (
+            !showAddForm && (
+              <p className="text-sm text-slate-600 text-center py-6">
+                {isAdmin ? 'Nog geen zenders — voeg er een toe.' : 'Klik op "Zender toevoegen" om te beginnen.'}
+              </p>
+            )
+          )}
         </div>
       )}
     </div>
