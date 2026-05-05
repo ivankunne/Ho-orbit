@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
-import { getStreamUrl } from '@services/playerService';
+import { getStreamUrl, incrementPlays } from '@services/playerService';
 import { addToHistory } from '@services/historyService';
 
 const PlayerContext = createContext(null);
@@ -18,6 +18,8 @@ export function PlayerProvider({ children }) {
   const audioRef = useRef(new Audio());
   const isNewTrack = useRef(false);
   const [userId, setUserId] = useState(null);
+  const streamCountedRef = useRef(false);
+  const trackIdRef = useRef<string | number | null>(null);
 
   // Subscriber pattern for progress updates (only MusicPlayer subscribes)
   const progressListeners = useRef(new Set());
@@ -47,6 +49,8 @@ export function PlayerProvider({ children }) {
     });
     // Record in listening history
     if (userId) addToHistory(userId, track.id);
+    trackIdRef.current = track.id;
+    streamCountedRef.current = false;
     currentTimeRef.current = 0;
     durationRef.current = 0;
     setLiked(false);
@@ -76,6 +80,10 @@ export function PlayerProvider({ children }) {
     const onTimeUpdate = () => {
       currentTimeRef.current = audio.currentTime;
       notifyProgress();
+      if (audio.currentTime >= 30 && !streamCountedRef.current && trackIdRef.current != null) {
+        streamCountedRef.current = true;
+        incrementPlays(trackIdRef.current);
+      }
     };
     const onLoaded = () => {
       durationRef.current = audio.duration || 0;

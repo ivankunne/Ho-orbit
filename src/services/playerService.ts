@@ -22,6 +22,13 @@ export async function getQueue(trackIds) {
   return data ?? [];
 }
 
+export async function incrementPlays(trackId: string | number) {
+  const { data } = await supabase.from('tracks').select('plays').eq('id', trackId).single();
+  if (data != null) {
+    await supabase.from('tracks').update({ plays: (data.plays ?? 0) + 1 }).eq('id', trackId);
+  }
+}
+
 export async function getAllTracks() {
   const { data } = await supabase
     .from('tracks')
