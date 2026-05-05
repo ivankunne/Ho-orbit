@@ -8,7 +8,7 @@ const MOCK_USERS = [
     username: 'Test123',
     password: 'Test123',
     displayName: 'Test Gebruiker',
-    email: 'test@ho-orbit.nl',
+    email: 'test@h-orbit.nl',
     avatar: 'https://picsum.photos/seed/test123/200/200',
     banner: 'https://picsum.photos/seed/test123-banner/1200/400',
     bio: 'Muziekliefhebber en amateur producer uit Amsterdam. Altijd op zoek naar nieuwe Nederlandse muziek.',
@@ -28,7 +28,7 @@ const MOCK_USERS = [
     username: 'admin',
     password: 'admin',
     displayName: 'h-orbit Admin',
-    email: 'admin@ho-orbit.nl',
+    email: 'admin@h-orbit.nl',
     avatar: 'https://picsum.photos/seed/horbiteadmin/200/200',
     banner: 'https://picsum.photos/seed/admin-banner/1200/400',
     bio: 'Platform beheerder.',
@@ -48,7 +48,7 @@ const MOCK_USERS = [
     username: 'sander_h',
     password: 'wachtwoord',
     displayName: 'Sander Hoekstra',
-    email: 'sander@ho-orbit.nl',
+    email: 'sander@h-orbit.nl',
     avatar: 'https://picsum.photos/seed/currentuser/200/200',
     banner: 'https://picsum.photos/seed/sander-banner/1200/400',
     bio: 'Producer & blogger gebaseerd in Rotterdam. Ik schrijf over de Nederlandse muziekscene en maak beats in mijn thuisstudio.',
@@ -69,10 +69,10 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     try {
-      const saved = sessionStorage.getItem('ho_orbit_user');
+      const saved = sessionStorage.getItem('h_orbit_user');
       return saved ? JSON.parse(saved) : null;
     } catch {
-      sessionStorage.removeItem('ho_orbit_user');
+      sessionStorage.removeItem('h_orbit_user');
       return null;
     }
   });
@@ -86,7 +86,7 @@ export function AuthProvider({ children }) {
     if (found) {
       const { password: _pw, ...safeUser } = found;
       setUser(safeUser);
-      sessionStorage.setItem('ho_orbit_user', JSON.stringify(safeUser));
+      sessionStorage.setItem('h_orbit_user', JSON.stringify(safeUser));
       setError('');
       return true;
     }
@@ -116,14 +116,14 @@ export function AuthProvider({ children }) {
       needsOnboarding: true,
     };
     setUser(newUser);
-    sessionStorage.setItem('ho_orbit_user', JSON.stringify(newUser));
+    sessionStorage.setItem('h_orbit_user', JSON.stringify(newUser));
     setError('');
     return true;
   };
 
   const logout = () => {
     setUser(null);
-    sessionStorage.removeItem('ho_orbit_user');
+    sessionStorage.removeItem('h_orbit_user');
   };
 
   const updateProfile = (updates) => {
@@ -132,7 +132,7 @@ export function AuthProvider({ children }) {
     const safe = Object.fromEntries(Object.entries(updates).filter(([k]) => EDITABLE.includes(k)));
     const updated = { ...user, ...safe };
     setUser(updated);
-    sessionStorage.setItem('ho_orbit_user', JSON.stringify(updated));
+    sessionStorage.setItem('h_orbit_user', JSON.stringify(updated));
   };
 
   return (
