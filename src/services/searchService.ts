@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { mapProfileToArtist } from '@utils/artistHelpers';
 
 export async function search(query: string) {
   if (!query || query.trim().length < 2) {
@@ -9,9 +10,9 @@ export async function search(query: string) {
 
   const [artistRes, trackRes, eventRes, tutorialRes, articleRes] = await Promise.all([
     supabase
-      .from('artists')
-      .select('id, name, genre, location, image_url')
-      .or(`name.ilike.%${q}%,genre.ilike.%${q}%,location.ilike.%${q}%`)
+      .from('profiles')
+      .select('*')
+      .or(`display_name.ilike.%${q}%,username.ilike.%${q}%,location.ilike.%${q}%,bio.ilike.%${q}%`)
       .limit(5),
 
     supabase
@@ -41,7 +42,7 @@ export async function search(query: string) {
   ]);
 
   return {
-    artists: artistRes.data ?? [],
+    artists: (artistRes.data ?? []).map(mapProfileToArtist),
     tracks: trackRes.data ?? [],
     events: eventRes.data ?? [],
     tutorials: tutorialRes.data ?? [],

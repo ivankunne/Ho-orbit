@@ -24,7 +24,7 @@ export default function TutorialDetailPage() {
   const [completedSteps, setCompletedSteps] = useState(new Set());
 
   useEffect(() => {
-    supabase.from('tutorials').select('*').eq('id', Number(id)).single()
+    supabase.from('tutorials').select('*').eq('id', id).single()
       .then(({ data }) => { setTutorial(data); setLoading(false); });
   }, [id]);
 
@@ -79,7 +79,7 @@ export default function TutorialDetailPage() {
               <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${difficultyColors[tutorial.difficulty]}`}>
                 {tutorial.difficulty}
               </span>
-              {tutorial.tags.map(tag => (
+              {(tutorial.tags ?? []).map(tag => (
                 <span key={tag} className="text-xs bg-white/6 text-slate-400 px-2 py-0.5 rounded-full">
                   {tag}
                 </span>

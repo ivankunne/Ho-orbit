@@ -5,6 +5,7 @@ import { useAuth } from '@context/AuthContext';
 import UserAvatar from '@components/UserAvatar';
 import { useAppState } from '@context/AppStateContext';
 import { supabase } from '@/lib/supabase';
+import { mapProfileToArtist } from '@utils/artistHelpers';
 import { getUploadedTracks, type UploadedTrack } from '@services/uploadService';
 
 
@@ -100,7 +101,7 @@ export default function ProfilePage() {
         supabase.from('events').select('*').in('id', rsvpEvents).then(({ data }) => setAttendingEventList(data ?? []));
       }
       if (followedArtists.length > 0) {
-        supabase.from('artists').select('*').in('id', followedArtists).then(({ data }) => setFollowedArtistList(data ?? []));
+        supabase.from('profiles').select('*').in('id', followedArtists).then(({ data }) => setFollowedArtistList((data ?? []).map(mapProfileToArtist)));
       }
     }
   }, [isOwnProfile, likedTracks.join(','), rsvpEvents.join(','), followedArtists.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps

@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, Users, ChevronRight, BadgeCheck, ArrowUpDown } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { fetchArtistProfiles } from '@utils/artistHelpers';
 import { getGenreColor } from '@data/genreColors';
 import EmptyState from '@components/EmptyState';
 import BlurImage from '@components/BlurImage';
@@ -25,7 +25,7 @@ export default function ArtistsPage() {
   const [artists, setArtists] = useState([]);
 
   useEffect(() => {
-    supabase.from('artists').select('*').order('monthly_listeners', { ascending: false }).then(({ data }) => setArtists(data ?? []));
+    fetchArtistProfiles(100).then(setArtists);
   }, []);
 
   const locations = useMemo(() => {

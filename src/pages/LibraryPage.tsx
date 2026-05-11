@@ -6,6 +6,7 @@ import { useAuth } from '@context/AuthContext';
 import { useToast } from '@components/Toast';
 import { usePlayer } from '@context/PlayerContext';
 import { supabase } from '@/lib/supabase';
+import { mapProfileToArtist } from '@utils/artistHelpers';
 import {
   getPlaylists, createPlaylist, addTrackToPlaylist,
 } from '@services/playlistService';
@@ -135,7 +136,7 @@ export default function LibraryPage() {
 
   useEffect(() => {
     if (followedArtists.length === 0) { setFollowedArtistList([]); return; }
-    supabase.from('artists').select('*').in('id', followedArtists).then(({ data }) => setFollowedArtistList(data ?? []));
+    supabase.from('profiles').select('*').in('id', followedArtists).then(({ data }) => setFollowedArtistList((data ?? []).map(mapProfileToArtist)));
   }, [followedArtists.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {

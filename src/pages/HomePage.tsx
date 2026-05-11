@@ -14,6 +14,7 @@ import { useAppState } from '@context/AppStateContext';
 import { formatPlays } from '@utils/format';
 import { TrendingRow } from '@components/TrendingRow';
 import { supabase } from '@/lib/supabase';
+import { fetchArtistProfiles } from '@utils/artistHelpers';
 import { useRadio } from '@context/RadioContext';
 import { Radio } from 'lucide-react';
 
@@ -45,7 +46,7 @@ export default function HomePage() {
   const preferredGenres = user?.preferredGenres || [];
 
   useEffect(() => {
-    supabase.from('artists').select('*').limit(12).then(({ data }) => setArtists(data ?? []));
+    fetchArtistProfiles(12).then(setArtists);
     supabase.from('tracks').select('*').or('is_user_upload.is.null,is_user_upload.eq.false,upload_status.eq.approved').order('plays', { ascending: false }).limit(100).then(({ data }) => setTracks(data ?? []));
     supabase.from('dutch_cities').select('*').limit(6).then(({ data }) => setCities(data ?? []));
     supabase.from('articles').select('*').order('published_at', { ascending: false }).limit(3).then(({ data }) => setNewsArticles(data ?? []));

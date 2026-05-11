@@ -13,6 +13,7 @@ import { getWaveform } from '@components/Waveform';
 import { formatPlays } from '@utils/format';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@components/ui/tabs';
 import { supabase } from '@/lib/supabase';
+import { mapProfileToArtist } from '@utils/artistHelpers';
 
 export default function ArtistDetailPage() {
   const { id } = useParams();
@@ -28,20 +29,37 @@ export default function ArtistDetailPage() {
   const { playTrack, track: currentTrack } = usePlayer();
 
   useEffect(() => {
-    supabase.from('artists').select('*').eq('id', id).single()
-      .then(({ data }) => {
-        setArtist(data);
-        setLoading(false);
-        if (data) {
-          supabase.from('events').select('*').eq('artist_id', data.id)
-            .then(({ data: evts }) => setArtistEvents(evts ?? []));
-          supabase.from('tracks').select('*')
-            .eq('upload_status', 'approved')
-            .ilike('artist_name', data.name)
-            .order('created_at', { ascending: false })
-            .then(({ data: uTracks }) => setUploadedTracks(uTracks ?? []));
+    async function load() {
+      let artistData: any = null;
+      let isProfileArtist = false;
+
+      const { data } = await supabase.from('artists').select('*').eq('id', id).single();
+      if (data) {
+        artistData = data;
+      } else {
+        const { data: profileData } = await supabase.from('profiles').select('*').eq('id', id).single();
+        if (profileData) {
+          artistData = mapProfileToArtist(profileData);
+          isProfileArtist = true;
         }
-      });
+      }
+
+      setArtist(artistData);
+      setLoading(false);
+
+      if (artistData) {
+        supabase.from('events').select('*').eq('artist_id', artistData.id)
+          .then(({ data: evts }) => setArtistEvents(evts ?? []));
+
+        const tracksQuery = supabase.from('tracks').select('*').eq('upload_status', 'approved');
+        (isProfileArtist
+          ? tracksQuery.eq('uploaded_by', id)
+          : tracksQuery.ilike('artist_name', artistData.name)
+        ).order('created_at', { ascending: false })
+          .then(({ data: uTracks }) => setUploadedTracks(uTracks ?? []));
+      }
+    }
+    load();
   }, [id]);
 
   if (loading) return null;

@@ -62,11 +62,12 @@ export function AppStateProvider({ children }) {
     );
     if (isFollowing) {
       await supabase.from('user_following_artists').upsert({ user_id: currentUserId, artist_id: artistId });
-      const { data: artist } = await supabase.from('artists').select('name').eq('id', artistId).single();
-      if (artist) {
+      const { data: profile } = await supabase.from('profiles').select('display_name, username').eq('id', artistId).single();
+      const artistName = profile?.display_name || profile?.username;
+      if (artistName) {
         addNotification(currentUserId, {
           type: 'follow', title: 'Artiest gevolgd',
-          body: `Je volgt nu ${artist.name}`, link: `/artists/${artistId}`,
+          body: `Je volgt nu ${artistName}`, link: `/artists/${artistId}`,
         });
       }
     } else {

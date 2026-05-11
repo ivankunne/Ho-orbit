@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, X, Music, Calendar, BookOpen, FileText, ArrowRight, TrendingUp, Loader } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { fetchArtistProfiles } from '@utils/artistHelpers';
 import { search } from '@services/searchService';
 
 const QUICK_LINKS = [
@@ -39,8 +40,7 @@ export default function SearchOverlay({ onClose }) {
     inputRef.current?.focus();
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
-    supabase.from('artists').select('id, name, genre, image_url').order('followers_count', { ascending: false }).limit(3)
-      .then(({ data }) => setTrendingArtists(data ?? []));
+    fetchArtistProfiles(3).then(setTrendingArtists);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 

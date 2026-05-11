@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { MapPin, Users, Newspaper, Music } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { fetchArtistProfiles } from '@utils/artistHelpers';
 import SceneMap from '@components/SceneMap';
 
 export default function DutchScenePage() {
@@ -15,7 +16,7 @@ export default function DutchScenePage() {
       .from('dutch_cities')
       .select('*, dutch_city_artists(artists(id, name, image_url, genre, location))')
       .then(({ data }) => setCities(data ?? []));
-    supabase.from('artists').select('*').then(({ data }) => setArtists(data ?? []));
+    fetchArtistProfiles(50).then(setArtists);
     supabase.from('articles').select('*').order('published_at', { ascending: false }).limit(3)
       .then(({ data }) => setNewsArticles(data ?? []));
   }, []);
