@@ -1,11 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   ShieldCheck, Music, Users, Calendar, Flag, MessageSquare,
   CheckCircle, XCircle, Clock, Search, RefreshCw,
   Ban, UserCheck, Eye, EyeOff, AlertTriangle,
   Play, Pause, Volume2, Radio,
 } from 'lucide-react';
-import { useRef, useState as useLocalState } from 'react';
 import { useAuth } from '@context/AuthContext';
 import {
   getAllUploads, approveUpload, rejectUpload,
@@ -114,7 +113,7 @@ const DEMO_FALLBACK = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1
 
 function TrackPlayer({ src, hasRealAudio }: { src: string; hasRealAudio: boolean }) {
   const audioRef = useRef<HTMLAudioElement>(null);
-  const [playing, setPlaying] = useLocalState(false);
+  const [playing, setPlaying] = useState(false);
   const resolvedSrc = src || DEMO_FALLBACK;
 
   const toggle = () => {

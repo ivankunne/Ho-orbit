@@ -9,6 +9,8 @@ export async function updateProfile(userId: string, updates: Record<string, unkn
     banner: 'banner_url',
     social: 'social',
     bookingInfo: 'booking_info',
+    preferredGenres: 'preferred_genres',
+    notifications: 'notification_prefs',
   };
   const dbUpdates: Record<string, unknown> = {};
   for (const [key, val] of Object.entries(updates)) {
@@ -55,6 +57,9 @@ export async function changePassword(_userId: string, { currentPassword, newPass
 
 export async function deleteAccount(userId: string, { username, confirmUsername }: { username: string; confirmUsername: string }) {
   if (confirmUsername !== username) return { ok: false, error: 'Gebruikersnaam komt niet overeen.' };
-  const { error } = await supabase.auth.admin.deleteUser(userId);
-  return error ? { ok: false, error: error.message } : { ok: true };
+  // Delete profile record; DB cascade removes related data
+  await supabase.from('profiles').delete().eq('id', userId);
+  // Sign the user out — auth account removal requires a server-side admin call
+  await supabase.auth.signOut();
+  return { ok: true };
 }

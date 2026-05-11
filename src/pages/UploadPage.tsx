@@ -10,7 +10,6 @@ import { Textarea } from '@components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@components/ui/select';
 import { Checkbox } from '@components/ui/checkbox';
 import { Button } from '@components/ui/button';
-import { Progress } from '@components/ui/progress';
 
 const TAGS_OPTIONS = ['Instrumentaal', 'Akoestisch', 'Live opname', 'Demo', 'Remix', 'Cover', 'Origineel', 'Samenwerking'];
 
@@ -23,7 +22,6 @@ export default function UploadPage() {
   const [artworkFile, setArtworkFile] = useState(null);
   const [selectedTags, setSelectedTags] = useState([]);
   const [uploadState, setUploadState] = useState('idle'); // idle | uploading | success
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [form, setForm] = useState({
     title: '',
     genre: '',
@@ -79,53 +77,41 @@ export default function UploadPage() {
     return valid;
   };
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     if (!validateCodes()) return;
     setUploadState('uploading');
-    setUploadProgress(0);
-    const interval = setInterval(() => {
-      setUploadProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          // After progress hits 100, save the track metadata
-          uploadTrack({
-            title: form.title || trackFile?.name || 'Naamloos',
-            genre: form.genre,
-            description: form.description,
-            tags: selectedTags,
-            explicit: form.explicit,
-            isPrivate: form.privateTrack,
-            userId: user?.id,
-            artistName: user?.displayName || user?.username,
-            audioFile: trackFile ?? undefined,
-            coverFile: artworkFile ?? undefined,
-            isrc: form.isrc || undefined,
-            upc: form.upc || undefined,
-          }).then(track => {
-            if (user?.id) {
-              addNotification(user.id, {
-                type: 'system',
-                title: 'Upload ontvangen',
-                body: `"${track.title}" is ingediend en wacht op goedkeuring`,
-                link: '/profiel',
-              });
-            }
-            setUploadState('success');
-          }).catch((err) => {
-            console.error('Upload mislukt:', err);
-            setUploadState('idle');
-            setUploadProgress(0);
-          });
-          return 100;
-        }
-        return prev + Math.random() * 15;
+    try {
+      const track = await uploadTrack({
+        title: form.title || trackFile?.name || 'Naamloos',
+        genre: form.genre,
+        description: form.description,
+        tags: selectedTags,
+        explicit: form.explicit,
+        isPrivate: form.privateTrack,
+        userId: user?.id,
+        artistName: user?.displayName || user?.username,
+        audioFile: trackFile ?? undefined,
+        coverFile: artworkFile ?? undefined,
+        isrc: form.isrc || undefined,
+        upc: form.upc || undefined,
       });
-    }, 300);
+      if (user?.id) {
+        addNotification(user.id, {
+          type: 'system',
+          title: 'Upload ontvangen',
+          body: `"${track.title}" is ingediend en wacht op goedkeuring`,
+          link: '/profiel',
+        });
+      }
+      setUploadState('success');
+    } catch (err) {
+      console.error('Upload mislukt:', err);
+      setUploadState('idle');
+    }
   };
 
   const handleReset = () => {
     setUploadState('idle');
-    setUploadProgress(0);
     setTrackFile(null);
     setArtworkFile(null);
     setSelectedTags([]);
@@ -219,12 +205,10 @@ export default function UploadPage() {
         {/* Uploadvoortgang */}
         {uploadState === 'uploading' && (
           <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center gap-3">
               <Loader size={16} className="text-violet-400 animate-spin" />
-              <span className="text-sm font-medium text-white">Uploaden...</span>
-              <span className="text-sm text-slate-400 ml-auto">{Math.floor(uploadProgress)}%</span>
+              <span className="text-sm font-medium text-white">Bestand uploaden, even geduld...</span>
             </div>
-            <Progress value={uploadProgress} className="w-full" />
           </div>
         )}
 

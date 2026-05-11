@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { User, Bell, Lock, Palette, Check, LogOut, Camera, AlertTriangle, Eye, EyeOff, Sun, Moon, Loader, Mail, Phone, Briefcase } from 'lucide-react';
 import UserAvatar from '@components/UserAvatar';
 import { useAuth } from '@context/AuthContext';
-import { changePassword, deleteAccount, updateProfile as persistProfile, uploadAvatar, uploadBanner } from '@services/userService';
+import { changePassword, deleteAccount, updateProfile as persistProfile, updatePreferences, uploadAvatar, uploadBanner } from '@services/userService';
 import { getTheme, toggleTheme } from '@utils/theme';
 import { Input } from '@components/ui/input';
 import { Textarea } from '@components/ui/textarea';
@@ -369,7 +369,7 @@ function ProfielSection({ user, updateProfile, userId }: { user: any; updateProf
 }
 
 /* ─── Meldingen ───────────────────────────────────────────── */
-function MeldingenSection({ user, updateProfile }) {
+function MeldingenSection({ user, updateProfile }: { user: any; updateProfile: (u: any) => void }) {
   const defaults = {
     'Nieuwe volger': true,
     'Reacties op nummers': true,
@@ -391,9 +391,11 @@ function MeldingenSection({ user, updateProfile }) {
     { label: 'Nieuwsbrief', desc: 'Wekelijkse h-orbit nieuwsbrief' },
   ];
 
-  const handleSave = () => {
-    // TODO: replace with → userService.updatePreferences(user.id, { notifications })
+  const handleSave = async () => {
     updateProfile({ notifications });
+    if (user?.id && typeof user.id === 'string') {
+      await updatePreferences(user.id, notifications);
+    }
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };

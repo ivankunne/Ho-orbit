@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Music, Check, ArrowRight, ChevronLeft, Headphones, Radio, Users, MapPin } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
+import { supabase } from '@lib/supabase';
 
 const GENRES = [
   { id: 'nederpop',   label: 'Nederpop',      color: 'bg-pink-500/15 border-pink-500/30 text-pink-300' },
@@ -57,13 +58,24 @@ export default function OnboardingPage() {
   }
 
   function handleFinish() {
+    const location = selectedCity ? `${selectedCity}, Nederland` : user.location;
+    // Update local state immediately so UI transitions away from onboarding
     updateProfile({
       needsOnboarding: false,
       preferredGenres: selectedGenres,
       role: ROLES.find(r => r.id === selectedRole)?.label || user.role,
-      location: selectedCity ? `${selectedCity}, Nederland` : user.location,
+      location,
       discoverPrefs: selectedDiscover,
     });
+    // Persist to DB
+    if (user?.id) {
+      supabase.from('profiles').update({
+        needs_onboarding: false,
+        preferred_genres: selectedGenres,
+        location: location || null,
+        discover_prefs: selectedDiscover,
+      }).eq('id', user.id).then(() => {});
+    }
   }
 
   return (

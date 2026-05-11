@@ -104,7 +104,7 @@ export default function MusicPlayer() {
                   </div>
                   <p className="text-xl font-bold text-white mt-1">{currentStation?.name}</p>
                   {currentStation?.description && (
-                    <p className="text-sm text-slate-400 mt-1 max-w-xs">{radioData.description}</p>
+                    <p className="text-sm text-slate-400 mt-1 max-w-xs">{currentStation.description}</p>
                   )}
                   <p className="text-xs text-slate-600 mt-3">Live stream · spoelen niet mogelijk</p>
                 </div>

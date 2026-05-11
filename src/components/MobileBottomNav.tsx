@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Home, Search, Calendar, User, Library } from 'lucide-react';
 
 const tabs = [
-  { label: 'Ontdekken', path: '/',         icon: Home },
+  { label: 'Ontdekken', path: '/muziek',    icon: Home },
   { label: 'Artiesten', path: '/artists',  icon: Search },
   { label: 'Events',    path: '/events',   icon: Calendar },
   { label: 'Bibliotheek', path: '/library', icon: Library },
