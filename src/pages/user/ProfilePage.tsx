@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { MapPin, Users, Music, Calendar, Heart, BadgeCheck, Settings, Share2, TrendingUp, Play, BarChart2, Clock, ExternalLink, Mail, Phone, Briefcase } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
+import UserAvatar from '@components/UserAvatar';
 import { useAppState } from '@context/AppStateContext';
 import { supabase } from '@/lib/supabase';
 import { getUploadedTracks, type UploadedTrack } from '@services/uploadService';
@@ -58,8 +59,8 @@ export default function ProfilePage() {
             id: data.id,
             username: data.username,
             displayName: data.display_name || data.username,
-            avatar: data.avatar_url || `https://picsum.photos/seed/${data.username}/200/200`,
-            banner: data.banner_url || `https://picsum.photos/seed/${data.username}-banner/1200/400`,
+            avatar: data.avatar_url || null,
+            banner: data.banner_url || null,
             bio: data.bio || '',
             location: data.location || '',
             role: data.role || 'Luisteraar',
@@ -133,10 +134,11 @@ export default function ProfilePage() {
       <div className="max-w-4xl mx-auto px-4 lg:px-6">
         {/* Profielkop */}
         <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-16 mb-6 relative z-10">
-          <img
+          <UserAvatar
             src={profileUser.avatar}
-            alt={profileUser.displayName}
-            className="w-28 h-28 lg:w-32 lg:h-32 rounded-full object-cover ring-4 ring-[#1a1528] shrink-0"
+            name={profileUser.displayName || profileUser.username}
+            size={128}
+            className="ring-4 ring-[#1a1528]"
           />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-0.5">

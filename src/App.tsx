@@ -1,6 +1,8 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation, useMatch } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useMatch, useNavigate } from 'react-router-dom';
 import { useEffect, useState, lazy, Suspense, type ReactNode } from 'react';
 import { AuthProvider, useAuth } from '@context/AuthContext';
+import { AuthModalProvider, useAuthModal } from '@context/AuthModalContext';
+import AuthModal from '@components/AuthModal';
 import { RadioProvider } from '@context/RadioContext';
 import { AppStateProvider, useAppState } from '@context/AppStateContext';
 import { PlayerProvider, usePlayer } from '@context/PlayerContext';
@@ -52,8 +54,6 @@ const ProfilePage = lazy(() => import('@pages/user/ProfilePage'));
 const AccountPage = lazy(() => import('@pages/user/AccountPage'));
 const PlaylistDetailPage = lazy(() => import('@pages/PlaylistDetailPage'));
 const NotFoundPage = lazy(() => import('@pages/NotFoundPage'));
-const LoginPage = lazy(() => import('@pages/auth/LoginPage'));
-const SignupPage = lazy(() => import('@pages/auth/SignupPage'));
 const OnboardingPage = lazy(() => import('@pages/OnboardingPage'));
 const LandingPage = lazy(() => import('@pages/LandingPage'));
 const HubPage = lazy(() => import('@pages/HubPage'));
@@ -122,11 +122,23 @@ function GlobalShortcuts({ onOpenSearch, onToggleShortcutsModal }) {
   return null;
 }
 
+function AuthRedirect({ tab }: { tab: 'login' | 'signup' }) {
+  const { open } = useAuthModal();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!user) open(tab);
+    navigate('/muziek', { replace: true });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return null;
+}
+
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
-  const location = useLocation();
   if (loading) return <PageLoader />;
-  if (!user) return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+  if (!user) return <AuthRedirect tab="login" />;
   return <>{children}</>;
 }
 
@@ -160,9 +172,9 @@ function ProtectedApp() {
               {/* Public landing */}
               <Route path="/" element={<LandingPage />} />
 
-              {/* Auth pages — redirect to /muziek if already logged in */}
-              <Route path="/login" element={user ? <Navigate to="/muziek" replace /> : <LoginPage />} />
-              <Route path="/signup" element={user ? <Navigate to="/muziek" replace /> : <SignupPage />} />
+              {/* Auth routes — open modal overlay, redirect to /muziek */}
+              <Route path="/login" element={<AuthRedirect tab="login" />} />
+              <Route path="/signup" element={<AuthRedirect tab="signup" />} />
 
               {/* Publicly browsable */}
               <Route path="/radio" element={<RadioPage />} />
@@ -211,6 +223,7 @@ function ProtectedApp() {
       )}
 
       <KeyboardShortcutsModal open={showShortcuts} onOpenChange={setShowShortcuts} />
+      <AuthModal />
     </div>
   );
 }
@@ -223,10 +236,12 @@ export default function App() {
         <RadioProvider>
         <ToastProvider>
           <BrowserRouter>
-            <ScrollToTop />
-            <PlayerUserBridge />
-            <AppStateUserBridge />
-            <ProtectedApp />
+            <AuthModalProvider>
+              <ScrollToTop />
+              <PlayerUserBridge />
+              <AppStateUserBridge />
+              <ProtectedApp />
+            </AuthModalProvider>
           </BrowserRouter>
         </ToastProvider>
         </RadioProvider>

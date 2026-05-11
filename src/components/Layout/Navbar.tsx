@@ -9,6 +9,8 @@ import {
 import { useState as useThemeState } from 'react';
 import { getTheme, toggleTheme } from '@utils/theme';
 import { useAuth } from '@context/AuthContext';
+import { useAuthModal } from '@context/AuthModalContext';
+import UserAvatar from '@components/UserAvatar';
 import { useRadio } from '@context/RadioContext';
 import SearchOverlay from '../SearchOverlay';
 import NotificationsPanel, { useNotificationCount } from '../NotificationsPanel';
@@ -78,6 +80,7 @@ const magazineDropdown = [
 export default function Navbar({ externalShowSearch = false, onExternalSearchClose }) {
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { open: openAuthModal } = useAuthModal();
   const { isLive } = useRadio();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -313,10 +316,11 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
                     onClick={() => setUserMenuOpen(!userMenuOpen)}
                     className="flex items-center gap-2 p-1 rounded-lg hover:bg-white/5 transition-colors"
                   >
-                    <img
+                    <UserAvatar
                       src={user.avatar}
-                      alt={user.displayName}
-                      className="w-8 h-8 rounded-full object-cover ring-2 ring-violet-500/30"
+                      name={user.displayName || user.username}
+                      size={32}
+                      className="ring-2 ring-violet-500/30"
                     />
                     <span className="hidden sm:block text-sm text-slate-300 font-medium">
                       {user.displayName?.split(' ')[0] || user.username}
@@ -328,7 +332,7 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
                     <div className="absolute right-0 top-full mt-2 w-56 sm:w-60 max-w-[calc(100vw-1rem)] bg-[#231d3a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
                       <div className="p-4 border-b border-white/5">
                         <div className="flex items-center gap-3">
-                          <img src={user.avatar} alt="" className="w-10 h-10 rounded-full object-cover" />
+                          <UserAvatar src={user.avatar} name={user.displayName || user.username} size={40} />
                           <div className="min-w-0">
                             <p className="text-sm font-semibold text-white truncate">{user.displayName}</p>
                             <p className="text-xs text-slate-500">@{user.username}</p>
@@ -391,18 +395,18 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
             ) : (
               /* Niet ingelogd: toon login / aanmelden knoppen */
               <div className="hidden sm:flex items-center gap-2">
-                <Link
-                  to="/login"
+                <button
+                  onClick={() => openAuthModal('login')}
                   className="text-sm font-medium text-slate-400 hover:text-white transition-colors px-3 py-2 rounded-lg hover:bg-white/5"
                 >
                   Inloggen
-                </Link>
-                <Link
-                  to="/signup"
+                </button>
+                <button
+                  onClick={() => openAuthModal('signup')}
                   className="flex items-center gap-1.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all hover:scale-105"
                 >
                   Aanmelden
-                </Link>
+                </button>
               </div>
             )}
 
@@ -547,20 +551,18 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
               </>
             ) : (
               <div className="flex flex-col gap-2 mt-2 pt-2 border-t border-white/5">
-                <Link
-                  to="/login"
-                  onClick={() => setMobileMenuOpen(false)}
+                <button
+                  onClick={() => { setMobileMenuOpen(false); openAuthModal('login'); }}
                   className="flex items-center justify-center px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 border border-white/10 transition-colors"
                 >
                   Inloggen
-                </Link>
-                <Link
-                  to="/signup"
-                  onClick={() => setMobileMenuOpen(false)}
+                </button>
+                <button
+                  onClick={() => { setMobileMenuOpen(false); openAuthModal('signup'); }}
                   className="flex items-center justify-center px-3 py-2.5 rounded-lg text-sm font-semibold bg-violet-600 hover:bg-violet-500 text-white transition-colors"
                 >
                   Gratis aanmelden
-                </Link>
+                </button>
               </div>
             )}
           </div>

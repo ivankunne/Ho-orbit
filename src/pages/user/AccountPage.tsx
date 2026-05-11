@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { User, Bell, Lock, Palette, Check, LogOut, Camera, AlertTriangle, Eye, EyeOff, Sun, Moon, Loader, Mail, Phone, Briefcase } from 'lucide-react';
+import UserAvatar from '@components/UserAvatar';
 import { useAuth } from '@context/AuthContext';
 import { changePassword, deleteAccount, updateProfile as persistProfile, uploadAvatar, uploadBanner } from '@services/userService';
 import { getTheme, toggleTheme } from '@utils/theme';
@@ -80,10 +81,11 @@ export default function AccountPage() {
         <div className="lg:col-span-1">
           <div className="bg-white/3 border border-white/5 rounded-2xl p-4 mb-4 text-center">
             <div className="relative inline-block mb-3">
-              <img
+              <UserAvatar
                 src={user.avatar}
-                alt={user.displayName}
-                className={`w-20 h-20 rounded-full object-cover mx-auto transition-opacity ${avatarUploading ? 'opacity-50' : ''}`}
+                name={user.displayName || user.username}
+                size={80}
+                className={`mx-auto transition-opacity ${avatarUploading ? 'opacity-50' : ''}`}
               />
               <button
                 onClick={() => avatarInputRef.current?.click()}

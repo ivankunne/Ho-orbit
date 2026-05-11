@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Heart, Send, MessageSquare, Trash2 } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
+import UserAvatar from '@components/UserAvatar';
 import { useToast } from './Toast';
 import { getComments, addComment, deleteComment, toggleCommentLike } from '@services/commentService';
 import { addNotification } from '@services/notificationService';
@@ -107,10 +108,11 @@ export default function CommentSection({ resourceType, resourceId, resourceTitle
       {user && (
         <form onSubmit={handleSubmit} className="mb-8">
           <div className="flex gap-3">
-            <img
+            <UserAvatar
               src={user.avatar}
-              alt={user.displayName}
-              className="w-9 h-9 rounded-full object-cover shrink-0 mt-0.5"
+              name={user.displayName || user.username}
+              size={36}
+              className="mt-0.5"
             />
             <div className="flex-1">
               <div className="relative">

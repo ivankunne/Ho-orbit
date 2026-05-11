@@ -10,6 +10,7 @@ import { addNotification } from '@services/notificationService';
 import { useAuth } from '@context/AuthContext';
 import { useToast } from '@components/Toast';
 import BlurImage from '@components/BlurImage';
+import UserAvatar from '@components/UserAvatar';
 
 function formatDate(iso) {
   try {
@@ -251,11 +252,11 @@ export default function ForumThreadPage() {
       {/* Reply box */}
       <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
         <div className="flex items-center gap-3 mb-4">
-          <BlurImage
-            src={user?.avatar || 'https://picsum.photos/seed/default/40/40'}
-            alt={user?.displayName || ''}
-            className="w-8 h-8 rounded-full shrink-0"
-            imgClassName="object-cover"
+          <UserAvatar
+            src={user?.avatar}
+            name={user?.displayName || user?.username}
+            size={32}
+            className="shrink-0"
           />
           <p className="text-sm font-semibold text-white">Jouw reactie</p>
         </div>
