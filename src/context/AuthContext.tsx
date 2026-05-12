@@ -49,19 +49,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-        setUser(mapProfile(profile, session.user));
+        try {
+          const result = await Promise.race([
+            supabase.from('profiles').select('*').eq('id', session.user.id).single(),
+            new Promise<never>((_, r) => setTimeout(() => r(new Error('timeout')), 8_000)),
+          ]);
+          setUser(mapProfile(result.data, session.user));
+        } catch {
+          // Profile fetch timed out or failed — still log the user in with auth data only
+          setUser(mapProfile(null, session.user));
+        }
       } else {
         setUser(null);
       }
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    // Safety net: never leave app in loading state forever
+    const safetyTimer = setTimeout(() => setLoading(false), 10_000);
+    return () => { subscription.unsubscribe(); clearTimeout(safetyTimer); };
   }, []);
 
   const login = async (emailOrUsername: string, password: string): Promise<boolean> => {
