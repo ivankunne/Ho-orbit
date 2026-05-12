@@ -197,6 +197,9 @@ export default function HomePage() {
               Alle artiesten <ChevronRight size={15} />
             </Link>
           </div>
+          {artists.length === 0 ? (
+            <p className="text-sm text-slate-500 py-4">Nog geen artiesten beschikbaar.</p>
+          ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {artists.slice(0, 6).map((artist, i) => {
               const gc = getGenreColor(artist.genre);
@@ -230,6 +233,7 @@ export default function HomePage() {
               );
             })}
           </div>
+          )}
         </section>
 
         {/* ── Zoek samenwerking (Collaboration Board) — hidden when empty ── */}
@@ -261,6 +265,9 @@ export default function HomePage() {
           <p className="text-slate-400 text-sm mb-5 max-w-2xl">
             Opkomende artiesten die net begonnen zijn. Volg ze en ontdek hun muziek als eerste.
           </p>
+          {risingArtists.length === 0 ? (
+            <p className="text-sm text-slate-500 py-4">Nog geen nieuwe artiesten beschikbaar.</p>
+          ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {risingArtists.map(artist => {
               const isFollowing = followedArtists.includes(artist.id);
@@ -319,6 +326,7 @@ export default function HomePage() {
               );
             })}
           </div>
+          )}
         </section>
 
         {/* ── Oefenruimtes (Rehearsal Spaces) — hidden when no data ── */}
@@ -413,11 +421,17 @@ export default function HomePage() {
                 <span className="w-8" />
               </div>
               <div className="bg-white/2 border border-white/5 rounded-2xl overflow-hidden">
-                {(filteredTracks.length ? filteredTracks : tracks).map((track, i) => (
-                  <div key={track.id} className={i < tracks.length - 1 ? 'border-b border-white/5' : ''}>
-                    <TrendingRow track={track} rank={i + 1} queue={filteredTracks.length ? filteredTracks : tracks} prevPosition={PREV_POSITIONS[track.id]} />
-                  </div>
-                ))}
+                {tracks.length === 0 ? (
+                  <div className="py-12 text-center text-slate-500 text-sm">Nog geen nummers beschikbaar. Kom later terug!</div>
+                ) : filteredTracks.length === 0 ? (
+                  <div className="py-12 text-center text-slate-500 text-sm">Geen nummers gevonden voor dit genre.</div>
+                ) : (
+                  filteredTracks.map((track, i) => (
+                    <div key={track.id} className={i < filteredTracks.length - 1 ? 'border-b border-white/5' : ''}>
+                      <TrendingRow track={track} rank={i + 1} queue={filteredTracks} prevPosition={PREV_POSITIONS[track.id]} />
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 

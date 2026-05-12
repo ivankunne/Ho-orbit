@@ -26,7 +26,7 @@ function mapProfile(profile: any, authUser: any) {
     notifications: profile?.notification_prefs || {},
     social: profile?.social || {},
     bookingInfo: profile?.booking_info || {},
-    needsOnboarding: profile?.needs_onboarding ?? !profile,
+    needsOnboarding: profile?.needs_onboarding ?? false,
     discoverPrefs: profile?.discover_prefs || {},
   };
 }
@@ -54,7 +54,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             supabase.from('profiles').select('*').eq('id', session.user.id).single(),
             new Promise<never>((_, r) => setTimeout(() => r(new Error('timeout')), 8_000)),
           ]);
-          setUser(mapProfile(result.data, session.user));
+          if (result.error) {
+            setUser(mapProfile({ needs_onboarding: false }, session.user));
+          } else {
+            setUser(mapProfile(result.data, session.user));
+          }
         } catch {
           // Profile fetch timed out or failed — log user in without triggering onboarding
           setUser(mapProfile({ needs_onboarding: false }, session.user));

@@ -44,7 +44,9 @@ function groupByMonth(events) {
 }
 
 function EventCard({ event, featured = false, rsvpd, onToggleRsvp, now }) {
-  const attendance = Math.round((event.attendees_count / event.max_capacity) * 100);
+  const attendeesCount = event.attendees_count ?? 0;
+  const maxCapacity = event.max_capacity ?? 0;
+  const attendance = maxCapacity > 0 ? Math.round((attendeesCount / maxCapacity) * 100) : 0;
 
   if (featured) {
     return (
@@ -104,7 +106,7 @@ function EventCard({ event, featured = false, rsvpd, onToggleRsvp, now }) {
         <div className="space-y-1 text-xs text-slate-400">
           <div className="flex items-center gap-1.5"><Clock size={11} /> {event.time}</div>
           <div className="flex items-center gap-1.5"><MapPin size={11} /> {event.venue}, {event.city}</div>
-          <div className="flex items-center gap-1.5"><Users size={11} /> {event.attendees_count?.toLocaleString('nl-NL')} aanwezigen</div>
+          <div className="flex items-center gap-1.5"><Users size={11} /> {attendeesCount.toLocaleString('nl-NL')} aanwezigen</div>
         </div>
         <div className="mt-3">
           <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
@@ -195,7 +197,14 @@ export default function EventsPage() {
         <>
           {featured && <EventCard event={featured} featured rsvpd={rsvpEvents.includes(featured.id)} onToggleRsvp={() => handleRsvp(featured)} now={now} />}
 
-          {/* TODO: Vervang met API-aanroep naar /api/evenementen */}
+          {events.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <Calendar size={40} className="text-slate-600 mb-4" />
+              <p className="text-base font-semibold text-white mb-1">Nog geen evenementen</p>
+              <p className="text-sm text-slate-500">Er staan momenteel geen evenementen gepland. Kom later terug!</p>
+            </div>
+          )}
+
           {Object.entries(grouped).map(([month, monthEvents]) => (
             <div key={month} className="mb-8">
               <div className="flex items-center gap-3 mb-4">

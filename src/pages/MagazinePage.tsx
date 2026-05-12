@@ -122,7 +122,6 @@ export default function MagazinePage() {
       </div>
 
       {/* Artikelraster */}
-      {/* TODO: Vervang met API-aanroep naar /api/artikelen */}
       {regularArticles.length === 0 ? (
         <div className="text-center py-16 text-slate-400">
           <p>Nog geen artikelen in deze categorie.</p>

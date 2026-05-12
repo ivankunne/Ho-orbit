@@ -33,11 +33,6 @@ function useCountdown(dateStr) {
   return t;
 }
 
-const fakeAttendees = Array.from({ length: 12 }, (_, i) => ({
-  id: i + 1,
-  name: ['Sander', 'Anouk', 'Joost', 'Emma', 'Lars', 'Lisa', 'Robin', 'Anna', 'Torben', 'Ingrid', 'Pablo', 'Luka'][i],
-  avatar: `https://picsum.photos/seed/attendee${i + 1}/40/40`,
-}));
 
 export default function EventDetailPage() {
   const { id } = useParams();
@@ -71,7 +66,9 @@ export default function EventDetailPage() {
   }
 
   const rsvpd = rsvpEvents.includes(event.id);
-  const attendance = Math.round((event.attendees_count / event.max_capacity) * 100);
+  const attendeesCount = event.attendees_count ?? 0;
+  const maxCapacity = event.max_capacity ?? 0;
+  const attendance = maxCapacity > 0 ? Math.round((attendeesCount / maxCapacity) * 100) : 0;
 
   return (
     <div className="max-w-4xl mx-auto px-4 lg:px-6 py-10">
@@ -101,7 +98,7 @@ export default function EventDetailPage() {
               { icon: Calendar, label: 'Datum', value: new Date(event.date).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) },
               { icon: Clock, label: 'Aanvang', value: event.time },
               { icon: MapPin, label: 'Locatie', value: `${event.venue}, ${event.city}` },
-              { icon: Users, label: 'Aanwezig', value: `${event.attendees_count?.toLocaleString('nl-NL')} / ${event.max_capacity?.toLocaleString('nl-NL')}` },
+              { icon: Users, label: 'Aanwezig', value: `${attendeesCount.toLocaleString('nl-NL')} / ${maxCapacity > 0 ? maxCapacity.toLocaleString('nl-NL') : '—'}` },
             ].map(({ icon: Icon, label, value }) => (
               <div key={label} className="flex items-start gap-3 p-3 bg-white/3 rounded-xl">
                 <div className="w-8 h-8 bg-violet-600/20 rounded-lg flex items-center justify-center shrink-0">
@@ -120,7 +117,7 @@ export default function EventDetailPage() {
             <div className="flex justify-between text-xs text-slate-400 mb-2">
               <span>Bezetting: {attendance}%</span>
               <span className={attendance > 80 ? 'text-red-400' : 'text-green-400'}>
-                {event.max_capacity - event.attendees_count} plaatsen vrij
+                {maxCapacity > 0 ? `${maxCapacity - attendeesCount} plaatsen vrij` : 'Onbeperkte capaciteit'}
               </span>
             </div>
             <div className="w-full bg-white/10 rounded-full h-2">
@@ -158,17 +155,11 @@ export default function EventDetailPage() {
           {/* Aanwezigen */}
           <div>
             <h2 className="text-base font-semibold text-white mb-3">Aanwezigen</h2>
-            <div className="flex flex-wrap gap-3">
-              {fakeAttendees.map(att => (
-                <div key={att.id} className="flex items-center gap-2 bg-white/4 rounded-full px-3 py-1.5">
-                  <img src={att.avatar} alt={att.name} className="w-6 h-6 rounded-full object-cover" />
-                  <span className="text-xs text-slate-300">{att.name}</span>
-                </div>
-              ))}
-              <div className="flex items-center gap-2 bg-white/4 rounded-full px-3 py-1.5">
-                <span className="text-xs text-slate-400">+{event.attendees_count - 12} meer</span>
-              </div>
-            </div>
+            {attendeesCount > 0 ? (
+              <p className="text-sm text-slate-400">{attendeesCount.toLocaleString('nl-NL')} personen hebben zich aangemeld voor dit evenement.</p>
+            ) : (
+              <p className="text-sm text-slate-500">Nog niemand aangemeld. Wees de eerste!</p>
+            )}
           </div>
         </div>
 

@@ -108,11 +108,9 @@ export default function ProfilePage() {
 
   const profileUser = isOwnProfile ? currentUser : otherProfile;
 
-  if (profileLoading) return (
+  if (profileLoading || !profileUser) return (
     <div className="flex items-center justify-center min-h-64 text-slate-500">Laden…</div>
   );
-
-  if (!profileUser) return null;
 
   const tabs = [
     { key: 'nummers', label: 'Nummers', count: uploadedTracks.length },

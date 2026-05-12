@@ -198,7 +198,7 @@ function ProtectedApp() {
               <Route path="/library/playlists/:id" element={<ProtectedRoute><PlaylistDetailPage /></ProtectedRoute>} />
               <Route path="/hub" element={<ProtectedRoute><HubPage /></ProtectedRoute>} />
               <Route path="/profiel" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-              <Route path="/profiel/:username" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+              <Route path="/profiel/:username" element={<ProfilePage />} />
               <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
               <Route path="/admin" element={user?.isAdmin ? <AdminPage /> : <Navigate to="/" replace />} />
 

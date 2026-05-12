@@ -68,30 +68,32 @@ export default function TutorialsPage() {
       </div>
 
       {/* Uitgelichte tutorial */}
-      <Link to={`/tutorials/${featured.id}`} className="mb-10 group relative rounded-2xl overflow-hidden cursor-pointer block">
-        <img src={featured.thumbnail_url} alt={featured.title} className="w-full h-64 lg:h-80 object-cover group-hover:scale-105 transition-transform duration-500" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#1a1528] via-[#1a1528]/50 to-transparent" />
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-          <div className="w-16 h-16 bg-violet-600 rounded-full flex items-center justify-center">
-            <Play size={28} className="text-white ml-1" fill="white" />
+      {featured && (
+        <Link to={`/tutorials/${featured.id}`} className="mb-10 group relative rounded-2xl overflow-hidden cursor-pointer block">
+          <img src={featured.thumbnail_url} alt={featured.title} className="w-full h-64 lg:h-80 object-cover group-hover:scale-105 transition-transform duration-500" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#1a1528] via-[#1a1528]/50 to-transparent" />
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="w-16 h-16 bg-violet-600 rounded-full flex items-center justify-center">
+              <Play size={28} className="text-white ml-1" fill="white" />
+            </div>
           </div>
-        </div>
-        <div className="absolute bottom-0 left-0 right-0 p-6">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="bg-violet-600 text-white text-xs font-bold px-2 py-0.5 rounded">UITGELICHT</span>
-            <span className={`text-xs font-medium px-2 py-0.5 rounded ${difficultyColors[featured.difficulty]}`}>{featured.difficulty}</span>
+          <div className="absolute bottom-0 left-0 right-0 p-6">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="bg-violet-600 text-white text-xs font-bold px-2 py-0.5 rounded">UITGELICHT</span>
+              <span className={`text-xs font-medium px-2 py-0.5 rounded ${difficultyColors[featured.difficulty]}`}>{featured.difficulty}</span>
+            </div>
+            <h2 className="text-xl lg:text-2xl font-bold text-white mb-1">{featured.title}</h2>
+            <div className="flex items-center gap-4 text-sm text-slate-400">
+              <span>door {featured.instructor}</span>
+              <span className="flex items-center gap-1"><Clock size={13} /> {featured.duration}</span>
+              <span className="flex items-center gap-1"><Eye size={13} /> {formatViews(featured.views_count)} weergaven</span>
+            </div>
           </div>
-          <h2 className="text-xl lg:text-2xl font-bold text-white mb-1">{featured.title}</h2>
-          <div className="flex items-center gap-4 text-sm text-slate-400">
-            <span>door {featured.instructor}</span>
-            <span className="flex items-center gap-1"><Clock size={13} /> {featured.duration}</span>
-            <span className="flex items-center gap-1"><Eye size={13} /> {formatViews(featured.views_count)} weergaven</span>
+          <div className="absolute top-4 right-4 bg-black/60 text-white text-sm font-medium px-2 py-1 rounded-lg">
+            {featured.duration}
           </div>
-        </div>
-        <div className="absolute top-4 right-4 bg-black/60 text-white text-sm font-medium px-2 py-1 rounded-lg">
-          {featured.duration}
-        </div>
-      </Link>
+        </Link>
+      )}
 
       {/* Verder kijken */}
       {inProgress.length > 0 && (
@@ -182,7 +184,13 @@ export default function TutorialsPage() {
 
       {/* Tutorial raster */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-        {filtered.length === 0 && (
+        {filtered.length === 0 && tutorials.length === 0 && (
+          <EmptyState
+            title="Nog geen tutorials"
+            subtitle="Er zijn nog geen tutorials beschikbaar. Kom later terug!"
+          />
+        )}
+        {filtered.length === 0 && tutorials.length > 0 && (
           <EmptyState
             title="Geen tutorials gevonden"
             subtitle="Er zijn geen tutorials die overeenkomen met deze filters. Probeer een andere moeilijkheidsgraad of tag."
