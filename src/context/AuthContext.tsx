@@ -68,39 +68,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError('');
     let email = emailOrUsername.trim();
 
-    if (!email.includes('@')) {
-      const { data } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('username', email)
-        .maybeSingle();
-      if (!data?.email) {
-        setError('Onjuiste gebruikersnaam of wachtwoord.');
+    try {
+      if (!email.includes('@')) {
+        const res = await Promise.race([
+          supabase.from('profiles').select('email').eq('username', email).maybeSingle(),
+          new Promise<never>((_, r) => setTimeout(() => r(new Error('timeout')), 10_000)),
+        ]);
+        if (!res.data?.email) {
+          setError('Onjuiste gebruikersnaam of wachtwoord.');
+          return false;
+        }
+        email = res.data.email;
+      }
+
+      const result = await Promise.race([
+        supabase.auth.signInWithPassword({ email, password }),
+        new Promise<never>((_, r) => setTimeout(() => r(new Error('timeout')), 15_000)),
+      ]);
+      if (result.error) {
+        setError(translateError(result.error.message));
         return false;
       }
-      email = data.email;
-    }
-
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
-    if (authError) {
-      setError(translateError(authError.message));
+      return true;
+    } catch (e: any) {
+      if (e?.message === 'timeout') {
+        setError('Verbinding met de server duurt te lang. Controleer je internet of probeer later opnieuw.');
+      } else {
+        setError(translateError(e?.message || 'Inloggen mislukt.'));
+      }
       return false;
     }
-    return true;
   };
 
   const signup = async (data: any): Promise<{ ok: boolean; needsConfirmation?: boolean }> => {
     setError('');
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: data.email,
-      password: data.password,
-      options: {
-        data: {
-          username: data.username,
-          display_name: data.displayName || data.username,
-        },
-      },
-    });
+    let authData: any, authError: any;
+    try {
+      const result = await Promise.race([
+        supabase.auth.signUp({
+          email: data.email,
+          password: data.password,
+          options: { data: { username: data.username, display_name: data.displayName || data.username } },
+        }),
+        new Promise<never>((_, r) => setTimeout(() => r(new Error('timeout')), 20_000)),
+      ]);
+      authData = result.data;
+      authError = result.error;
+    } catch (e: any) {
+      setError(e?.message === 'timeout'
+        ? 'Verbinding met de server duurt te lang. Controleer je internet of probeer later opnieuw.'
+        : translateError(e?.message || 'Aanmelden mislukt.'));
+      return { ok: false };
+    }
 
     if (authError) {
       setError(translateError(authError.message));
