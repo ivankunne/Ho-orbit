@@ -124,11 +124,10 @@ function GlobalShortcuts({ onOpenSearch, onToggleShortcutsModal }) {
 
 function AuthRedirect({ tab }: { tab: 'login' | 'signup' }) {
   const { open } = useAuthModal();
-  const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user) open(tab);
+    open(tab);
     navigate('/muziek', { replace: true });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -138,7 +137,7 @@ function AuthRedirect({ tab }: { tab: 'login' | 'signup' }) {
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return <PageLoader />;
-  if (!user) return <AuthRedirect tab="login" />;
+  if (!user) return <Navigate to="/muziek" replace />;
   return <>{children}</>;
 }
 
