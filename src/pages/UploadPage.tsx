@@ -22,6 +22,8 @@ export default function UploadPage() {
   const [artworkFile, setArtworkFile] = useState(null);
   const [selectedTags, setSelectedTags] = useState([]);
   const [uploadState, setUploadState] = useState('idle'); // idle | uploading | success
+  const [uploadStep, setUploadStep] = useState('');
+  const [uploadError, setUploadError] = useState('');
   const [form, setForm] = useState({
     title: '',
     genre: '',
@@ -77,9 +79,17 @@ export default function UploadPage() {
     return valid;
   };
 
+  const STEP_LABELS: Record<string, string> = {
+    audio: 'Audiobestand uploaden...',
+    cover: 'Artwork uploaden...',
+    saving: 'Opslaan in database...',
+  };
+
   const handleUpload = async () => {
     if (!validateCodes()) return;
     setUploadState('uploading');
+    setUploadError('');
+    setUploadStep('audio');
     try {
       const track = await uploadTrack({
         title: form.title || trackFile?.name || 'Naamloos',
@@ -94,6 +104,7 @@ export default function UploadPage() {
         coverFile: artworkFile ?? undefined,
         isrc: form.isrc || undefined,
         upc: form.upc || undefined,
+        onStep: setUploadStep,
       });
       if (user?.id) {
         addNotification(user.id, {
@@ -104,14 +115,18 @@ export default function UploadPage() {
         });
       }
       setUploadState('success');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Upload mislukt:', err);
+      setUploadError(err?.message || 'Upload mislukt. Controleer je verbinding en probeer opnieuw.');
       setUploadState('idle');
+      setUploadStep('');
     }
   };
 
   const handleReset = () => {
     setUploadState('idle');
+    setUploadStep('');
+    setUploadError('');
     setTrackFile(null);
     setArtworkFile(null);
     setSelectedTags([]);
@@ -206,8 +221,22 @@ export default function UploadPage() {
         {uploadState === 'uploading' && (
           <div className="bg-white/5 border border-white/10 rounded-xl p-4">
             <div className="flex items-center gap-3">
-              <Loader size={16} className="text-violet-400 animate-spin" />
-              <span className="text-sm font-medium text-white">Bestand uploaden, even geduld...</span>
+              <Loader size={16} className="text-violet-400 animate-spin shrink-0" />
+              <div>
+                <span className="text-sm font-medium text-white">{STEP_LABELS[uploadStep] || 'Bezig met uploaden...'}</span>
+                <p className="text-xs text-slate-500 mt-0.5">Dit kan even duren voor grote bestanden</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Foutmelding */}
+        {uploadError && (
+          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-start gap-3">
+            <X size={16} className="text-red-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-red-400">Upload mislukt</p>
+              <p className="text-xs text-red-400/80 mt-0.5">{uploadError}</p>
             </div>
           </div>
         )}

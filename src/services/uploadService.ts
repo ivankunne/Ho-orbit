@@ -59,32 +59,32 @@ async function uploadCoverFile(file: File, trackTitle: string): Promise<string> 
 }
 
 export async function uploadTrack({
-  title, genre, description, tags, explicit, isPrivate, userId, artistName, audioFile, coverFile, isrc, upc,
+  title, genre, description, tags, explicit, isPrivate, userId, artistName, audioFile, coverFile, isrc, upc, onStep,
 }: {
   title: string; genre: string; description: string; tags: string[];
   explicit: boolean; isPrivate: boolean; userId: string; artistName: string;
   audioFile?: File; coverFile?: File; isrc?: string; upc?: string;
+  onStep?: (step: 'audio' | 'cover' | 'saving') => void;
 }): Promise<UploadedTrack> {
   const seed = hashStr(title + userId);
 
   let streamUrl = '';
   if (audioFile) {
-    try {
-      streamUrl = await uploadAudioFile(audioFile, title);
-    } catch (e) {
-      console.warn('Audio upload to storage failed, saving metadata only:', e);
-    }
+    onStep?.('audio');
+    streamUrl = await uploadAudioFile(audioFile, title);
   }
 
   let coverUrl = `https://picsum.photos/seed/${seed}/300/300`;
   if (coverFile) {
+    onStep?.('cover');
     try {
       coverUrl = await uploadCoverFile(coverFile, title);
     } catch (e) {
-      console.warn('Cover upload to storage failed, using placeholder:', e);
+      console.warn('Cover upload failed, using placeholder:', e);
     }
   }
 
+  onStep?.('saving');
   const { data, error } = await supabase
     .from('tracks')
     .insert({
@@ -107,7 +107,7 @@ export async function uploadTrack({
     })
     .select()
     .single();
-  if (error || !data) throw error;
+  if (error || !data) throw new Error(error?.message || 'Opslaan in database mislukt');
   return mapTrack(data);
 }
 
