@@ -56,8 +56,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ]);
           setUser(mapProfile(result.data, session.user));
         } catch {
-          // Profile fetch timed out or failed — still log the user in with auth data only
-          setUser(mapProfile(null, session.user));
+          // Profile fetch timed out or failed — log user in without triggering onboarding
+          setUser(mapProfile({ needs_onboarding: false }, session.user));
         }
       } else {
         setUser(null);
