@@ -38,12 +38,26 @@ function hashStr(str: string): number {
   return Math.abs(h);
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number, msg: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error(msg)), ms)),
+  ]);
+}
+
 async function uploadAudioFile(file: File, trackTitle: string): Promise<string> {
   const ext = file.name.split('.').pop() ?? 'mp3';
   const safeName = trackTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase();
   const path = `${Date.now()}_${safeName}.${ext}`;
-  const { error } = await supabase.storage.from('audio').upload(path, file, { contentType: file.type });
+  const contentType = file.type || `audio/${ext}`;
+  console.log('[upload] starting storage upload', { path, size: file.size, contentType });
+  const { error } = await withTimeout(
+    supabase.storage.from('audio').upload(path, file, { contentType }),
+    60_000,
+    'Storage upload time-out na 60s — controleer je verbinding of Supabase project status'
+  );
   if (error) throw error;
+  console.log('[upload] storage upload complete');
   const { data } = supabase.storage.from('audio').getPublicUrl(path);
   return data.publicUrl;
 }
