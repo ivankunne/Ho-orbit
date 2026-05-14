@@ -6,6 +6,7 @@ import {
   Play, Pause, Volume2, Radio,
 } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
+import { getStreamUrl } from '@services/playerService';
 import {
   getAllUploads, approveUpload, rejectUpload,
   type UploadedTrack,
@@ -114,17 +115,40 @@ const DEMO_FALLBACK = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1
 function TrackPlayer({ src, hasRealAudio }: { src: string; hasRealAudio: boolean }) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
-  const resolvedSrc = src || DEMO_FALLBACK;
+  const [loadError, setLoadError] = useState(false);
+  const [resolvedSrc, setResolvedSrc] = useState(src || DEMO_FALLBACK);
 
-  const toggle = () => {
+  // Resolve signed URL when src changes so private buckets also work
+  useEffect(() => {
+    getStreamUrl('admin-preview', src || undefined).then(url => {
+      setResolvedSrc(url);
+    });
+  }, [src]);
+
+  const toggle = async () => {
     if (!audioRef.current) return;
-    if (playing) { audioRef.current.pause(); setPlaying(false); }
-    else { audioRef.current.play(); setPlaying(true); }
+    setLoadError(false);
+    if (playing) {
+      audioRef.current.pause();
+      setPlaying(false);
+    } else {
+      try {
+        await audioRef.current.play();
+        setPlaying(true);
+      } catch {
+        setLoadError(true);
+      }
+    }
   };
 
   return (
     <div className="flex items-center gap-2 mt-2">
-      <audio ref={audioRef} src={resolvedSrc} onEnded={() => setPlaying(false)} />
+      <audio
+        ref={audioRef}
+        src={resolvedSrc}
+        onEnded={() => setPlaying(false)}
+        onError={() => { setPlaying(false); setLoadError(true); }}
+      />
       <button
         onClick={toggle}
         className="flex items-center gap-1.5 bg-violet-600/20 hover:bg-violet-600/35 text-violet-400 border border-violet-500/30 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
@@ -133,6 +157,7 @@ function TrackPlayer({ src, hasRealAudio }: { src: string; hasRealAudio: boolean
         {playing ? 'Pauzeren' : 'Beluisteren'}
       </button>
       {!hasRealAudio && <span className="text-[10px] text-slate-600 italic">demo audio</span>}
+      {loadError && <span className="text-[10px] text-red-400 italic">afspelen mislukt</span>}
     </div>
   );
 }

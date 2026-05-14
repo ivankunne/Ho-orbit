@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  Music, Search, Bell, ChevronDown, Menu, X,
+  Search, Bell, ChevronDown, Menu, X,
   Upload, Home, Users, BookOpen, FileText, Globe, MessageSquare,
   Calendar, User, Settings, LogOut, Library, Sun, Moon, Zap,
   Mic2, Star, MapPin, Disc3, ExternalLink, ShieldCheck, Radio,
@@ -126,11 +126,8 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
       <div className="max-w-7xl mx-auto px-4 lg:px-6">
         <div className="flex items-center h-16 gap-4">
           {/* Logo */}
-          <Link to="/muziek" className="flex items-center gap-2 shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center">
-              <Music size={18} className="text-white" />
-            </div>
-            <span className="font-bold text-xl text-white tracking-tight">h-orbit</span>
+          <Link to="/muziek" className="flex items-center shrink-0">
+            <img src="/H-orbit-logo.png" alt="h-orbit" className="h-9 w-auto" />
           </Link>
 
           {/* Desktop Nav */}

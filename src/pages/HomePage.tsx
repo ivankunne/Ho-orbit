@@ -47,7 +47,7 @@ export default function HomePage() {
 
   useEffect(() => {
     fetchArtistProfiles(12).then(setArtists);
-    supabase.from('tracks').select('*').or('is_user_upload.is.null,is_user_upload.eq.false,upload_status.eq.approved').order('plays', { ascending: false }).limit(100).then(({ data }) => setTracks(data ?? []));
+    supabase.from('tracks').select('*').or('is_user_upload.is.null,is_user_upload.eq.false,upload_status.eq.approved').order('plays', { ascending: false }).limit(100).then(({ data }) => setTracks((data ?? []).map(t => ({ ...t, artist: t.artist || t.artist_name || '' }))));
     supabase.from('dutch_cities').select('*').limit(6).then(({ data }) => setCities(data ?? []));
     supabase.from('articles').select('*').order('published_at', { ascending: false }).limit(3).then(({ data }) => setNewsArticles(data ?? []));
   }, []);

@@ -36,15 +36,17 @@ export function PlayerProvider({ children }) {
   // --- Load track when currentIndex/queue changes ---
   useEffect(() => {
     if (!track) return;
+    let cancelled = false;
     isNewTrack.current = true;
 
     getStreamUrl(track.id, track.stream_url).then(url => {
+      if (cancelled) return;
       audioRef.current.src = url;
       isNewTrack.current = false;
       // play() handles loading by itself — never call load() first,
       // it causes an AbortError that silently kills the play request
       if (isPlaying) {
-        audioRef.current.play().catch(() => {});
+        audioRef.current.play().catch(() => setIsPlaying(false));
       }
     });
     // Record in listening history
@@ -55,6 +57,7 @@ export function PlayerProvider({ children }) {
     durationRef.current = 0;
     setLiked(false);
     notifyProgress();
+    return () => { cancelled = true; };
   }, [currentIndex, queue]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Sync play/pause state ---
@@ -101,15 +104,21 @@ export function PlayerProvider({ children }) {
         notifyProgress();
       }
     };
+    const onError = () => {
+      console.warn('[player] Audio error for track', trackIdRef.current, audio.error?.message);
+      setIsPlaying(false);
+    };
 
     audio.addEventListener('timeupdate', onTimeUpdate);
     audio.addEventListener('loadedmetadata', onLoaded);
     audio.addEventListener('ended', onEnded);
+    audio.addEventListener('error', onError);
 
     return () => {
       audio.removeEventListener('timeupdate', onTimeUpdate);
       audio.removeEventListener('loadedmetadata', onLoaded);
       audio.removeEventListener('ended', onEnded);
+      audio.removeEventListener('error', onError);
     };
   }, [repeatMode, currentIndex, queue.length]); // eslint-disable-line react-hooks/exhaustive-deps
 

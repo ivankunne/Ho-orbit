@@ -123,10 +123,7 @@ export default function LandingPage() {
           mounted ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3'
         }`}
       >
-        <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center shadow-lg shadow-violet-600/40">
-          <Music size={16} className="text-white" />
-        </div>
-        <span className="font-bold text-white tracking-tight">h-orbit</span>
+        <img src="/H-orbit-logo.png" alt="h-orbit" className="h-8 w-auto" />
       </div>
 
       {/* Bento grid */}

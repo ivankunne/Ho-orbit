@@ -60,10 +60,8 @@ export default function OnboardingModal({ open, onOpenChange, onComplete }) {
         <div className="p-6 pb-4 border-b border-white/8">
           <DialogHeader className="mb-4">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-violet-600 rounded-lg flex items-center justify-center">
-                <Music size={16} className="text-white" />
-              </div>
-              <DialogTitle>h-orbit</DialogTitle>
+              <img src="/H-orbit-logo.png" alt="h-orbit" className="h-8 w-auto" />
+              <DialogTitle className="sr-only">h-orbit</DialogTitle>
             </div>
           </DialogHeader>
           <p className="text-slate-400 text-sm mb-4">Vertel ons wat je leuk vindt zodat we h-orbit voor jou kunnen personaliseren.</p>

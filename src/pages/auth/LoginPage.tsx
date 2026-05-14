@@ -74,10 +74,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="mb-10">
           <Link to="/" className="flex items-center gap-2.5 w-fit">
-            <div className="w-10 h-10 rounded-xl bg-violet-600 flex items-center justify-center">
-              <Music size={22} className="text-white" />
-            </div>
-            <span className="font-bold text-2xl text-white tracking-tight">h-orbit</span>
+            <img src="/H-orbit-logo.png" alt="h-orbit" className="h-10 w-auto" />
           </Link>
         </div>
 

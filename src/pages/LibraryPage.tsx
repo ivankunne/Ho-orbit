@@ -131,7 +131,7 @@ export default function LibraryPage() {
 
   useEffect(() => {
     if (likedTracks.length === 0) { setLikedTrackList([]); return; }
-    supabase.from('tracks').select('*').in('id', likedTracks).then(({ data }) => setLikedTrackList(data ?? []));
+    supabase.from('tracks').select('*').in('id', likedTracks).then(({ data }) => setLikedTrackList((data ?? []).map(t => ({ ...t, artist: t.artist || t.artist_name || '' }))));
   }, [likedTracks.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {

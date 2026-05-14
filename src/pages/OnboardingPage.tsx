@@ -87,10 +87,7 @@ export default function OnboardingPage() {
       <div className="w-full max-w-lg relative">
         {/* Logo */}
         <div className="flex items-center gap-2.5 mb-8">
-          <div className="w-9 h-9 rounded-xl bg-violet-600 flex items-center justify-center">
-            <Music size={20} className="text-white" />
-          </div>
-          <span className="font-bold text-xl text-white">h-orbit</span>
+          <img src="/H-orbit-logo.png" alt="h-orbit" className="h-9 w-auto" />
         </div>
 
         {/* Progress */}

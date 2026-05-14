@@ -476,10 +476,7 @@ export default function AuthModal() {
 
         <div className="p-6">
           <div className="flex items-center gap-2 mb-5 pr-8">
-            <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center shrink-0">
-              <Music size={15} className="text-white" />
-            </div>
-            <span className="font-bold text-lg text-white tracking-tight">h-orbit</span>
+            <img src="/H-orbit-logo.png" alt="h-orbit" className="h-8 w-auto" />
           </div>
 
           <div className="flex border-b border-white/10 -mx-6 px-6 mb-6">
