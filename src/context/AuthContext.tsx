@@ -191,10 +191,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const ext = data.avatarFile.name.split('.').pop() ?? 'jpg';
           const path = `avatars/${authData.user.id}_${Date.now()}.${ext}`;
           const { error: uploadError } = await supabase.storage
-            .from('avatars')
+            .from('audio')
             .upload(path, data.avatarFile, { contentType: data.avatarFile.type, upsert: true });
           if (!uploadError) {
-            const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
+            const { data: { publicUrl } } = supabase.storage.from('audio').getPublicUrl(path);
             await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', authData.user.id);
           }
         } catch {
