@@ -40,17 +40,25 @@ export function AppStateProvider({ children }) {
     setLikedTracks((prev) =>
       isLiking ? [...prev, trackId] : prev.filter((id) => id !== trackId)
     );
-    if (isLiking) {
-      await supabase.from('user_liked_tracks').upsert({ user_id: currentUserId, track_id: trackId });
-      const { data: track } = await supabase.from('tracks').select('title').eq('id', trackId).single();
-      if (track) {
-        addNotification(currentUserId, {
-          type: 'like', title: 'Nummer geliked',
-          body: `Je hebt "${track.title}" geliked`, link: '/library',
-        });
+    try {
+      if (isLiking) {
+        const { error } = await supabase.from('user_liked_tracks').upsert({ user_id: currentUserId, track_id: trackId });
+        if (error) throw error;
+        const { data: track } = await supabase.from('tracks').select('title').eq('id', trackId).single();
+        if (track) {
+          addNotification(currentUserId, {
+            type: 'like', title: 'Nummer geliked',
+            body: `Je hebt "${track.title}" geliked`, link: '/library',
+          });
+        }
+      } else {
+        const { error } = await supabase.from('user_liked_tracks').delete().eq('user_id', currentUserId).eq('track_id', trackId);
+        if (error) throw error;
       }
-    } else {
-      await supabase.from('user_liked_tracks').delete().eq('user_id', currentUserId).eq('track_id', trackId);
+    } catch {
+      setLikedTracks((prev) =>
+        isLiking ? prev.filter((id) => id !== trackId) : [...prev, trackId]
+      );
     }
   }, [currentUserId, likedTracks]);
 
@@ -60,18 +68,26 @@ export function AppStateProvider({ children }) {
     setFollowedArtists((prev) =>
       isFollowing ? [...prev, artistId] : prev.filter((id) => id !== artistId)
     );
-    if (isFollowing) {
-      await supabase.from('user_following_artists').upsert({ user_id: currentUserId, artist_id: artistId });
-      const { data: profile } = await supabase.from('profiles').select('display_name, username').eq('id', artistId).single();
-      const artistName = profile?.display_name || profile?.username;
-      if (artistName) {
-        addNotification(currentUserId, {
-          type: 'follow', title: 'Artiest gevolgd',
-          body: `Je volgt nu ${artistName}`, link: `/artists/${artistId}`,
-        });
+    try {
+      if (isFollowing) {
+        const { error } = await supabase.from('user_following_artists').upsert({ user_id: currentUserId, artist_id: artistId });
+        if (error) throw error;
+        const { data: profile } = await supabase.from('profiles').select('display_name, username').eq('id', artistId).single();
+        const artistName = profile?.display_name || profile?.username;
+        if (artistName) {
+          addNotification(currentUserId, {
+            type: 'follow', title: 'Artiest gevolgd',
+            body: `Je volgt nu ${artistName}`, link: `/artists/${artistId}`,
+          });
+        }
+      } else {
+        const { error } = await supabase.from('user_following_artists').delete().eq('user_id', currentUserId).eq('artist_id', artistId);
+        if (error) throw error;
       }
-    } else {
-      await supabase.from('user_following_artists').delete().eq('user_id', currentUserId).eq('artist_id', artistId);
+    } catch {
+      setFollowedArtists((prev) =>
+        isFollowing ? prev.filter((id) => id !== artistId) : [...prev, artistId]
+      );
     }
   }, [currentUserId, followedArtists]);
 
@@ -81,18 +97,26 @@ export function AppStateProvider({ children }) {
     setRsvpEvents((prev) =>
       isRsvping ? [...prev, eventId] : prev.filter((id) => id !== eventId)
     );
-    if (isRsvping) {
-      await supabase.from('user_attending_events').upsert({ user_id: currentUserId, event_id: eventId });
-      const { data: event } = await supabase.from('events').select('name').eq('id', eventId).single();
-      if (event) {
-        addNotification(currentUserId, {
-          type: 'rsvp', title: 'Aangemeld voor event',
-          body: `Je staat op de lijst voor ${event.name}`,
-          link: `/events/${eventId}`,
-        });
+    try {
+      if (isRsvping) {
+        const { error } = await supabase.from('user_attending_events').upsert({ user_id: currentUserId, event_id: eventId });
+        if (error) throw error;
+        const { data: event } = await supabase.from('events').select('name').eq('id', eventId).single();
+        if (event) {
+          addNotification(currentUserId, {
+            type: 'rsvp', title: 'Aangemeld voor event',
+            body: `Je staat op de lijst voor ${event.name}`,
+            link: `/events/${eventId}`,
+          });
+        }
+      } else {
+        const { error } = await supabase.from('user_attending_events').delete().eq('user_id', currentUserId).eq('event_id', eventId);
+        if (error) throw error;
       }
-    } else {
-      await supabase.from('user_attending_events').delete().eq('user_id', currentUserId).eq('event_id', eventId);
+    } catch {
+      setRsvpEvents((prev) =>
+        isRsvping ? prev.filter((id) => id !== eventId) : [...prev, eventId]
+      );
     }
   }, [currentUserId, rsvpEvents]);
 

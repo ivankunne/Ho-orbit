@@ -47,31 +47,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        try {
-          const result = await Promise.race([
-            supabase.from('profiles').select('*').eq('id', session.user.id).single(),
-            new Promise<never>((_, r) => setTimeout(() => r(new Error('timeout')), 8_000)),
-          ]);
-          if (result.error) {
-            setUser(mapProfile({ needs_onboarding: false }, session.user));
-          } else {
-            setUser(mapProfile(result.data, session.user));
-          }
-        } catch {
-          // Profile fetch timed out or failed — log user in without triggering onboarding
-          setUser(mapProfile({ needs_onboarding: false }, session.user));
-        }
-      } else {
-        setUser(null);
+    let active = true;
+
+    async function applySession(session: any) {
+      if (!session?.user) {
+        if (active) { setUser(null); setLoading(false); }
+        return;
       }
-      setLoading(false);
+      try {
+        const result = await Promise.race([
+          supabase.from('profiles').select('*').eq('id', session.user.id).single(),
+          new Promise<never>((_, r) => setTimeout(() => r(new Error('timeout')), 4_000)),
+        ]);
+        if (active) {
+          setUser(mapProfile(result.error ? { needs_onboarding: false } : result.data, session.user));
+          setLoading(false);
+        }
+      } catch {
+        if (active) { setUser(mapProfile({ needs_onboarding: false }, session.user)); setLoading(false); }
+      }
+    }
+
+    // Read session from localStorage directly — fast, no network round-trip for valid sessions.
+    // This avoids the hard-refresh race where onAuthStateChange temporarily fires with null.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (active) applySession(session);
+    }).catch(() => {
+      if (active) setLoading(false);
     });
 
-    // Safety net: never leave app in loading state forever
-    const safetyTimer = setTimeout(() => setLoading(false), 10_000);
-    return () => { subscription.unsubscribe(); clearTimeout(safetyTimer); };
+    // Handle real-time auth changes: sign-in, sign-out, token refresh.
+    // Skip INITIAL_SESSION — already handled by getSession above.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!active || event === 'INITIAL_SESSION') return;
+      applySession(session);
+    });
+
+    const safetyTimer = setTimeout(() => { if (active) setLoading(false); }, 5_000);
+    return () => { active = false; subscription.unsubscribe(); clearTimeout(safetyTimer); };
   }, []);
 
   const login = async (emailOrUsername: string, password: string): Promise<boolean> => {
@@ -144,12 +157,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: data.email,
         location: data.location || null,
         role: data.isArtist ? 'Artiest' : 'Luisteraar',
-        needs_onboarding: true,
+        needs_onboarding: authData.session ? true : false,
         followers: 0,
         following: 0,
         verified: false,
         is_admin: false,
       });
+
+      // Only set onboarding flag when user gets an immediate session (no email confirmation needed)
+      if (authData.session) {
+        sessionStorage.setItem('ho_show_onboarding', 'true');
+      }
 
       // Upload avatar if provided and the user has an active session
       if (authData.session && data.avatarFile instanceof File) {

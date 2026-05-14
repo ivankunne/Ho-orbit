@@ -29,6 +29,8 @@ export default function ArtistDetailPage() {
   const { playTrack, track: currentTrack } = usePlayer();
 
   useEffect(() => {
+    let active = true;
+
     async function load() {
       let artistData: any = null;
       let isProfileArtist = false;
@@ -44,22 +46,25 @@ export default function ArtistDetailPage() {
         }
       }
 
+      if (!active) return;
       setArtist(artistData);
       setLoading(false);
 
       if (artistData) {
         supabase.from('events').select('*').eq('artist_id', artistData.id)
-          .then(({ data: evts }) => setArtistEvents(evts ?? []));
+          .then(({ data: evts }) => { if (active) setArtistEvents(evts ?? []); });
 
         const tracksQuery = supabase.from('tracks').select('*').eq('upload_status', 'approved');
         (isProfileArtist
           ? tracksQuery.eq('uploaded_by', id)
           : tracksQuery.ilike('artist_name', artistData.name)
         ).order('created_at', { ascending: false })
-          .then(({ data: uTracks }) => setUploadedTracks(uTracks ?? []));
+          .then(({ data: uTracks }) => { if (active) setUploadedTracks(uTracks ?? []); });
       }
     }
+
     load();
+    return () => { active = false; };
   }, [id]);
 
   if (loading) return null;

@@ -58,6 +58,7 @@ export default function OnboardingPage() {
   }
 
   function handleFinish() {
+    sessionStorage.removeItem('ho_show_onboarding');
     const location = selectedCity ? `${selectedCity}, Nederland` : user.location;
     // Update local state immediately so UI transitions away from onboarding
     updateProfile({

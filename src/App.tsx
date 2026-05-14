@@ -147,7 +147,7 @@ function ProtectedApp() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const isLanding = !!useMatch('/');
 
-  if (user?.needsOnboarding) {
+  if (user?.needsOnboarding && sessionStorage.getItem('ho_show_onboarding') === 'true') {
     return (
       <Suspense fallback={<PageLoader />}>
         <OnboardingPage />

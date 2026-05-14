@@ -132,9 +132,14 @@ function SignupForm({ onSuccess, onSwitch }: { onSuccess: () => void; onSwitch: 
     setFormErrors(e => ({ ...e, [key]: '' }));
   };
 
+  useEffect(() => {
+    return () => { if (avatarPreview) URL.revokeObjectURL(avatarPreview); };
+  }, [avatarPreview]);
+
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (avatarPreview) URL.revokeObjectURL(avatarPreview);
     setAvatarFile(file);
     setAvatarPreview(URL.createObjectURL(file));
   };

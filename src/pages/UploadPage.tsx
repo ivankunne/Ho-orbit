@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Upload, Music, Image, X, CheckCircle, Loader } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 const genres = ['Nederpop','Nederlandstalige Hip-Hop','Elektronisch','Jazz','Folk','Bluesrock','R&B','Indie','Techno','Overig'];
@@ -38,6 +38,16 @@ export default function UploadPage() {
 
   const fileRef = useRef();
   const artworkRef = useRef();
+
+  const artworkPreviewUrl = useMemo(() => {
+    if (!artworkFile) return null;
+    const url = URL.createObjectURL(artworkFile);
+    return url;
+  }, [artworkFile]);
+
+  useEffect(() => {
+    return () => { if (artworkPreviewUrl) URL.revokeObjectURL(artworkPreviewUrl); };
+  }, [artworkPreviewUrl]);
 
   const handleDrop = (e) => {
     e.preventDefault();
@@ -292,7 +302,7 @@ export default function UploadPage() {
               {artworkFile ? (
                 <div className="flex items-center gap-3 px-4 py-3">
                   <img
-                    src={URL.createObjectURL(artworkFile)}
+                    src={artworkPreviewUrl}
                     alt="Cover preview"
                     className="w-14 h-14 rounded-lg object-cover shrink-0"
                   />
