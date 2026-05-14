@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { usePlayer, usePlayerProgress } from '@context/PlayerContext';
 import { useRadio } from '@context/RadioContext';
+import { useAppState } from '@context/AppStateContext';
 import { useState } from 'react';
 import { getWaveform, EqBars } from '@components/Waveform';
 
@@ -19,10 +20,13 @@ function formatTime(secs) {
 export default function MusicPlayer() {
   const {
     track, queue, currentIndex, isPlaying,
-    volume, shuffle, repeatMode, liked,
-    setIsPlaying, setVolume, setShuffle, setLiked, toggleRepeat,
+    volume, shuffle, repeatMode,
+    setIsPlaying, setVolume, setShuffle, toggleRepeat,
     skipForward, skipBack, seek, playTrack,
   } = usePlayer();
+
+  const { toggleLike, likedTracks } = useAppState();
+  const liked = likedTracks.includes(track?.id);
 
   const { isRadioPlaying, stopRadio, currentStation } = useRadio();
   const { currentTime, duration } = usePlayerProgress();
@@ -161,7 +165,7 @@ export default function MusicPlayer() {
                       </Link>
                     </div>
                     <button
-                      onClick={() => setLiked(l => !l)}
+                      onClick={() => track && toggleLike(track.id)}
                       className={`shrink-0 mt-1 transition-colors ${liked ? 'text-violet-400' : 'text-slate-500 hover:text-white'}`}
                     >
                       <Heart size={20} fill={liked ? 'currentColor' : 'none'} />
@@ -287,7 +291,7 @@ export default function MusicPlayer() {
 
               {/* Heart */}
               <button
-                onClick={() => setLiked(l => !l)}
+                onClick={() => track && toggleLike(track.id)}
                 className={`hidden lg:block shrink-0 transition-colors ${liked ? 'text-violet-400' : 'text-slate-500 hover:text-white'}`}
               >
                 <Heart size={16} fill={liked ? 'currentColor' : 'none'} />
@@ -306,7 +310,7 @@ export default function MusicPlayer() {
                     <SkipBack size={18} fill="currentColor" />
                   </button>
                   <button
-                    onClick={() => setIsPlaying(p => !p)}
+                    onClick={() => { if (!isPlaying) stopRadio(); setIsPlaying(p => !p); }}
                     className="w-9 h-9 bg-white rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shadow-lg shadow-black/30"
                   >
                     {isPlaying

@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { pausePlayerAudio } from '@context/PlayerContext';
 
 export interface RadioStation {
   id: string;
@@ -72,6 +73,7 @@ export function RadioProvider({ children }) {
 
   const playStation = useCallback((station: RadioStation) => {
     if (!station.stream_url || !station.is_live) return;
+    pausePlayerAudio(); // stop track audio synchronously before starting radio
     const audio = audioRef.current!;
     audio.src = station.stream_url;
     audio.play().catch(() => setIsRadioPlaying(false));

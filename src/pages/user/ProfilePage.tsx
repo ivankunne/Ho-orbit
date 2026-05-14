@@ -35,7 +35,6 @@ export default function ProfilePage() {
   const { user: currentUser } = useAuth();
   const { likedTracks, followedArtists, rsvpEvents, toggleFollow } = useAppState();
   const [activeTab, setActiveTab] = useState('nummers');
-  const [following, setFollowing] = useState(false);
   const [uploadedTracks, setUploadedTracks] = useState<UploadedTrack[]>([]);
   const [likedTrackList, setLikedTrackList] = useState([]);
   const [attendingEventList, setAttendingEventList] = useState([]);
@@ -44,6 +43,9 @@ export default function ProfilePage() {
   const [profileLoading, setProfileLoading] = useState(false);
 
   const isOwnProfile = !username || username === currentUser?.username;
+
+  // Derive follow state from the persisted followedArtists list
+  const isFollowingOther = otherProfile ? followedArtists.includes(otherProfile.id) : false;
 
   // Load other user's profile from Supabase
   useEffect(() => {
@@ -162,14 +164,14 @@ export default function ProfilePage() {
             ) : (
               <>
                 <button
-                  onClick={() => setFollowing(!following)}
+                  onClick={() => otherProfile && toggleFollow(otherProfile.id)}
                   className={`font-semibold px-4 py-2 rounded-xl transition-colors border text-sm ${
-                    following
+                    isFollowingOther
                       ? 'border-violet-500 text-violet-400'
                       : 'border-white/20 text-white bg-violet-600 border-violet-500 hover:bg-violet-500'
                   }`}
                 >
-                  {following ? 'Volgend' : 'Volgen'}
+                  {isFollowingOther ? 'Volgend' : 'Volgen'}
                 </button>
                 <button className="p-2 rounded-xl border border-white/20 text-slate-400 hover:text-white transition-colors">
                   <Share2 size={16} />

@@ -49,7 +49,7 @@ export default function PlaylistDetailPage() {
         if (!pl) { navigate('/library'); return; }
         setPlaylist(pl);
         setNameInput(pl.name);
-        setTracks(resolveTrackObjects(pl.trackIds));
+        setTracks(await resolveTrackObjects(pl.trackIds));
       } catch {
         addToast('Er is iets misgegaan. Probeer het opnieuw.', 'error');
       } finally {

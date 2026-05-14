@@ -4,6 +4,7 @@ import { Search, X, Music, Calendar, BookOpen, FileText, ArrowRight, TrendingUp,
 import { supabase } from '@/lib/supabase';
 import { fetchArtistProfiles } from '@utils/artistHelpers';
 import { search } from '@services/searchService';
+import { usePlayer } from '@context/PlayerContext';
 
 const QUICK_LINKS = [
   { label: 'Artiesten', path: '/artists', icon: Music },
@@ -35,6 +36,20 @@ export default function SearchOverlay({ onClose }) {
   const inputRef  = useRef(null);
   const debounce  = useRef(null);
   const navigate  = useNavigate();
+  const { playTrack } = usePlayer();
+
+  function handlePlayTrack(t) {
+    playTrack({
+      id: t.id,
+      title: t.title,
+      artist: t.artist_name,
+      artistId: t.artist_id,
+      genre: t.genre,
+      cover_url: t.cover_url,
+      stream_url: null,
+    });
+    onClose();
+  }
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -64,11 +79,11 @@ export default function SearchOverlay({ onClose }) {
   // Flatten results for keyboard nav
   const flatResults = results
     ? [
-        ...results.artists.map(a => ({ path: `/artists/${a.id}`, label: a.name })),
-        ...results.tracks.map(t  => ({ path: `/artists/${t.artist_id}`, label: t.title })),
-        ...results.events.map(e  => ({ path: `/events/${e.id}`, label: e.name })),
-        ...results.tutorials.map(t => ({ path: `/tutorials/${t.id}`, label: t.title })),
-        ...results.articles.map(a => ({ path: `/magazine/${a.id}`, label: a.title })),
+        ...results.artists.map(a  => ({ path: `/artists/${a.id}`, label: a.name, action: null })),
+        ...results.tracks.map(t   => ({ path: null, label: t.title, action: () => handlePlayTrack(t) })),
+        ...results.events.map(e   => ({ path: `/events/${e.id}`, label: e.name, action: null })),
+        ...results.tutorials.map(t => ({ path: `/tutorials/${t.id}`, label: t.title, action: null })),
+        ...results.articles.map(a  => ({ path: `/magazine/${a.id}`, label: a.title, action: null })),
       ]
     : [];
 
@@ -82,10 +97,11 @@ export default function SearchOverlay({ onClose }) {
       setFocusIndex(i => Math.max(i - 1, -1));
     } else if (e.key === 'Enter' && focusIndex >= 0) {
       e.preventDefault();
-      navigate(flatResults[focusIndex].path);
-      onClose();
+      const item = flatResults[focusIndex];
+      if (item.action) { item.action(); }
+      else if (item.path) { navigate(item.path); onClose(); }
     }
-  }, [flatResults, focusIndex, navigate, onClose]);
+  }, [flatResults, focusIndex, navigate, onClose]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function go(path) {
     navigate(path);
@@ -200,7 +216,7 @@ export default function SearchOverlay({ onClose }) {
                   {results.tracks.map(t => {
                     const fi = nextIdx();
                     return (
-                      <button key={t.id} onClick={() => go(`/artists/${t.artist_id}`)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 w-full text-left transition-colors group ${fi === focusIndex ? 'bg-white/8' : ''}`}>
+                      <button key={t.id} onClick={() => handlePlayTrack(t)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 w-full text-left transition-colors group ${fi === focusIndex ? 'bg-white/8' : ''}`}>
                         <img src={t.cover_url} alt={t.title} className="w-9 h-9 rounded-lg object-cover shrink-0" />
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-white truncate">{highlight(t.title, query)}</p>

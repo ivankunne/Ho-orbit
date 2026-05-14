@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, Users, Clock, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAppState } from '@context/AppStateContext';
+import { useAuth } from '@context/AuthContext';
 import { useToast } from '@components/Toast';
 import BlurImage from '@components/BlurImage';
 
@@ -234,6 +235,7 @@ function CalendarView({ events, rsvpEvents, onRsvp }) {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
+  const navigate = useNavigate();
 
   function prevMonth() {
     if (month === 0) { setMonth(11); setYear(y => y - 1); }
@@ -303,7 +305,7 @@ function CalendarView({ events, rsvpEvents, onRsvp }) {
                 {dayEvents.slice(0, 2).map(ev => (
                   <div
                     key={ev.id}
-                    onClick={() => onRsvp(ev)}
+                    onClick={() => navigate(`/events/${ev.id}`)}
                     title={ev.name}
                     className={`text-[9px] font-medium px-1 py-0.5 rounded truncate leading-tight ${
                       rsvpEvents.includes(ev.id)
@@ -327,16 +329,45 @@ function CalendarView({ events, rsvpEvents, onRsvp }) {
 }
 
 function CreateEventForm() {
+  const { user } = useAuth();
+  const addToast = useToast();
   const [form, setForm] = useState({
     title: '', date: '', time: '', venue: '', city: '', genre: '',
     description: '', ticketLink: '', price: '',
   });
   const [submitted, setSubmitted] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  // TODO: Vervang met API-aanroep naar POST /api/evenementen
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitted(true);
+    if (!form.title || !form.date || !form.venue || !form.city) {
+      addToast('Vul minimaal titel, datum, locatie en stad in.', 'error');
+      return;
+    }
+    setSaving(true);
+    try {
+      const { error } = await supabase.from('events').insert({
+        name: form.title,
+        date: form.date,
+        time: form.time || null,
+        venue: form.venue,
+        city: form.city,
+        genre: form.genre || null,
+        description: form.description || null,
+        price: form.price || null,
+        ticket_link: form.ticketLink || null,
+        status: 'pending',
+        featured: false,
+        attendees_count: 0,
+        ...(user?.id ? { submitted_by: user.id } : {}),
+      });
+      if (error) throw error;
+      setSubmitted(true);
+    } catch (err: any) {
+      addToast(err?.message ?? 'Opslaan mislukt. Probeer het opnieuw.', 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (submitted) {
@@ -402,9 +433,10 @@ function CreateEventForm() {
       <div className="flex justify-end">
         <button
           type="submit"
-          className="bg-violet-600 hover:bg-violet-500 text-white font-semibold px-6 py-3 rounded-xl transition-colors"
+          disabled={saving}
+          className="bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-6 py-3 rounded-xl transition-colors"
         >
-          Evenement publiceren
+          {saving ? 'Opslaan…' : 'Evenement publiceren'}
         </button>
       </div>
     </form>

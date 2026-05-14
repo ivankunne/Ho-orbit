@@ -60,11 +60,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           new Promise<never>((_, r) => setTimeout(() => r(new Error('timeout')), 4_000)),
         ]);
         if (active) {
-          setUser(mapProfile(result.error ? { needs_onboarding: false } : result.data, session.user));
-          setLoading(false);
+          if (result.error) {
+            // DB error — use auth metadata, retry profile in background
+            setUser(mapProfile(null, session.user));
+            setLoading(false);
+            supabase.from('profiles').select('*').eq('id', session.user.id).single()
+              .then(({ data }) => { if (active && data) setUser(mapProfile(data, session.user)); })
+              .catch(() => {});
+          } else {
+            setUser(mapProfile(result.data, session.user));
+            setLoading(false);
+          }
         }
       } catch {
-        if (active) { setUser(mapProfile({ needs_onboarding: false }, session.user)); setLoading(false); }
+        // Timeout — use auth metadata immediately, retry profile in background
+        if (active) {
+          setUser(mapProfile(null, session.user));
+          setLoading(false);
+          supabase.from('profiles').select('*').eq('id', session.user.id).single()
+            .then(({ data }) => { if (active && data) setUser(mapProfile(data, session.user)); })
+            .catch(() => {});
+        }
       }
     }
 
@@ -175,10 +191,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const ext = data.avatarFile.name.split('.').pop() ?? 'jpg';
           const path = `avatars/${authData.user.id}_${Date.now()}.${ext}`;
           const { error: uploadError } = await supabase.storage
-            .from('audio')
+            .from('avatars')
             .upload(path, data.avatarFile, { contentType: data.avatarFile.type, upsert: true });
           if (!uploadError) {
-            const { data: { publicUrl } } = supabase.storage.from('audio').getPublicUrl(path);
+            const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
             await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', authData.user.id);
           }
         } catch {

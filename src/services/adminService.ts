@@ -122,6 +122,15 @@ export async function getPendingEvents(): Promise<PendingEvent[]> {
   const { data } = await supabase
     .from('events')
     .select('*')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
+  return (data ?? []).map(mapEvent);
+}
+
+export async function getAllEvents(): Promise<PendingEvent[]> {
+  const { data } = await supabase
+    .from('events')
+    .select('*')
     .order('created_at', { ascending: false });
   return (data ?? []).map(mapEvent);
 }
@@ -206,7 +215,9 @@ function mapReport(d: Record<string, unknown>): ContentReport {
   };
 }
 
-// ─── Forum hidden content (localStorage — no DB table needed) ─────────────────
+// ─── Forum hidden content ─────────────────────────────────────────────────────
+// Uses Supabase as the source of truth (is_hidden column on forum_threads/replies).
+// Also writes to localStorage as a fast cache for AdminPage reads.
 
 const HIDDEN_KEY = 'ho_admin_hidden';
 
@@ -214,7 +225,7 @@ function loadHidden(): HiddenItem[] {
   try { return JSON.parse(localStorage.getItem(HIDDEN_KEY) ?? '[]'); } catch { return []; }
 }
 function saveHidden(items: HiddenItem[]) {
-  localStorage.setItem(HIDDEN_KEY, JSON.stringify(items));
+  try { localStorage.setItem(HIDDEN_KEY, JSON.stringify(items)); } catch { /* storage full */ }
 }
 
 export function getHiddenItems(): HiddenItem[] {
@@ -224,11 +235,19 @@ export function getHiddenItems(): HiddenItem[] {
 export function hideForumItem(type: 'thread' | 'reply', id: number, title: string, reason: string): void {
   const hidden = loadHidden();
   if (hidden.some(h => h.type === type && h.id === id)) return;
-  saveHidden([...hidden, { type, id, title, hiddenAt: new Date().toISOString(), reason: reason || null }]);
+  const entry: HiddenItem = { type, id, title, hiddenAt: new Date().toISOString(), reason: reason || null };
+  saveHidden([...hidden, entry]);
+  // Persist to Supabase so hiding survives localStorage clears
+  const table = type === 'thread' ? 'forum_threads' : 'forum_replies';
+  supabase.from(table).update({ is_hidden: true, hidden_reason: reason || null }).eq('id', id)
+    .then(({ error }) => { if (error) console.warn('[admin] hide persist failed:', error.message); });
 }
 
 export function unhideForumItem(type: 'thread' | 'reply', id: number): void {
   saveHidden(loadHidden().filter(h => !(h.type === type && h.id === id)));
+  const table = type === 'thread' ? 'forum_threads' : 'forum_replies';
+  supabase.from(table).update({ is_hidden: false, hidden_reason: null }).eq('id', id)
+    .then(({ error }) => { if (error) console.warn('[admin] unhide persist failed:', error.message); });
 }
 
 export function isHidden(type: 'thread' | 'reply', id: number): boolean {

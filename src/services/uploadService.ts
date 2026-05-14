@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isUUID = (id: string | null | undefined) => !!id && UUID_RE.test(id);
 
-export type UploadStatus = 'pending' | 'approved';
+export type UploadStatus = 'pending' | 'approved' | 'rejected';
 
 export interface UploadedTrack {
   id: string;
@@ -45,6 +45,22 @@ function withTimeout<T>(promise: Promise<T>, ms: number, msg: string): Promise<T
   ]);
 }
 
+async function getAudioDuration(file: File): Promise<string> {
+  return new Promise(resolve => {
+    const audio = new Audio();
+    const url = URL.createObjectURL(file);
+    audio.onloadedmetadata = () => {
+      URL.revokeObjectURL(url);
+      const total = Math.round(audio.duration || 0);
+      const m = Math.floor(total / 60);
+      const s = total % 60;
+      resolve(`${m}:${s.toString().padStart(2, '0')}`);
+    };
+    audio.onerror = () => { URL.revokeObjectURL(url); resolve('0:00'); };
+    audio.src = url;
+  });
+}
+
 async function uploadAudioFile(file: File, trackTitle: string): Promise<string> {
   const ext = file.name.split('.').pop() ?? 'mp3';
   const safeName = trackTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase();
@@ -83,7 +99,9 @@ export async function uploadTrack({
   const seed = hashStr(title + userId);
 
   let streamUrl = '';
+  let duration = '0:00';
   if (audioFile) {
+    duration = await getAudioDuration(audioFile);
     onStep?.('audio');
     streamUrl = await uploadAudioFile(audioFile, title);
   }
@@ -112,7 +130,7 @@ export async function uploadTrack({
       cover_url: coverUrl,
       stream_url: streamUrl,
       plays: 0,
-      duration: '3:00',
+      duration,
       is_user_upload: true,
       ...(isUUID(userId) ? { uploaded_by: userId } : {}),
       upload_status: 'pending',
@@ -154,8 +172,15 @@ export async function approveUpload(trackId: string, adminId: string): Promise<v
   if (error) throw error;
 }
 
-export async function rejectUpload(trackId: string): Promise<void> {
-  const { error } = await supabase.from('tracks').delete().eq('id', trackId);
+export async function rejectUpload(trackId: string, reason?: string): Promise<void> {
+  const { error } = await supabase
+    .from('tracks')
+    .update({
+      upload_status: 'rejected',
+      rejection_reason: reason ?? null,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq('id', trackId);
   if (error) throw error;
 }
 

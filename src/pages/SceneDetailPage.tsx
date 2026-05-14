@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@components/Toast';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
@@ -6,6 +6,7 @@ import {
   Building2, ChevronRight, Quote, Award, Ticket
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@context/AuthContext';
 import { StarRating } from '@components/StarRating';
 import { Textarea } from '@components/ui/textarea';
 import { Button } from '@components/ui/button';
@@ -29,10 +30,13 @@ export default function SceneDetailPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const addToast = useToast();
+  const { user } = useAuth();
   const [activeGalleryIdx, setActiveGalleryIdx] = useState(null);
   const [userRating, setUserRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const reviewTextRef = useRef<HTMLTextAreaElement>(null);
   const [scene, setScene] = useState(null);
   const [sceneArtists, setSceneArtists] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -265,6 +269,7 @@ export default function SceneDetailPage() {
                   )}
                 </div>
                 <Textarea
+                  ref={reviewTextRef}
                   placeholder="Vertel iets over je ervaring met deze scène..."
                   className="mb-3 text-sm"
                 />
@@ -274,15 +279,30 @@ export default function SceneDetailPage() {
                   </div>
                 ) : (
                   <Button
-                    disabled={!userRating}
-                    onClick={() => {
+                    disabled={!userRating || submittingReview}
+                    onClick={async () => {
                       if (!userRating) return;
-                      setReviewSubmitted(true);
-                      addToast('Bedankt voor je beoordeling! 🎵', 'success');
+                      setSubmittingReview(true);
+                      try {
+                        const { error } = await supabase.from('reviews').insert({
+                          resource_type: 'scene',
+                          resource_id: scene.id,
+                          rating: userRating,
+                          review_text: reviewTextRef.current?.value ?? '',
+                          ...(user?.id ? { user_id: user.id } : {}),
+                        });
+                        if (error) throw error;
+                        setReviewSubmitted(true);
+                        addToast('Bedankt voor je beoordeling! 🎵', 'success');
+                      } catch {
+                        addToast('Opslaan mislukt. Probeer het opnieuw.', 'error');
+                      } finally {
+                        setSubmittingReview(false);
+                      }
                     }}
                     size="sm"
                   >
-                    Beoordeling plaatsen
+                    {submittingReview ? 'Opslaan…' : 'Beoordeling plaatsen'}
                   </Button>
                 )}
               </div>

@@ -56,8 +56,7 @@ export default function SignupPage() {
       return;
     }
     setLoading(true);
-    await new Promise(r => setTimeout(r, 800));
-    signup(form);
+    await signup(form);
     setLoading(false);
   };
 

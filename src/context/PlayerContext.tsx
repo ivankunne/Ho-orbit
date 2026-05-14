@@ -4,6 +4,11 @@ import { addToHistory } from '@services/historyService';
 
 const PlayerContext = createContext(null);
 
+// Module-level hook so RadioContext can pause the track audio synchronously
+// without creating a circular import between context providers.
+let _pausePlayerAudio: () => void = () => {};
+export function pausePlayerAudio() { _pausePlayerAudio(); }
+
 export function PlayerProvider({ children }) {
   const [queue, setQueue]           = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -18,8 +23,11 @@ export function PlayerProvider({ children }) {
   const audioRef = useRef(new Audio());
   const isNewTrack = useRef(false);
   const [userId, setUserId] = useState(null);
+  const userIdRef = useRef(null);
   const streamCountedRef = useRef(false);
   const trackIdRef = useRef<string | number | null>(null);
+  // Declared early so the onEnded closure can safely reference it before skipForward is defined
+  const skipForwardRef = useRef<() => void>(() => {});
 
   // Subscriber pattern for progress updates (only MusicPlayer subscribes)
   const progressListeners = useRef(new Set());
@@ -49,8 +57,8 @@ export function PlayerProvider({ children }) {
         audioRef.current.play().catch(() => setIsPlaying(false));
       }
     });
-    // Record in listening history
-    if (userId) addToHistory(userId, track.id);
+    // Record in listening history (use ref so we always have the current userId)
+    if (userIdRef.current) addToHistory(userIdRef.current, track.id);
     trackIdRef.current = track.id;
     streamCountedRef.current = false;
     currentTimeRef.current = 0;
@@ -97,7 +105,7 @@ export function PlayerProvider({ children }) {
         audio.currentTime = 0;
         audio.play().catch(() => {});
       } else if (repeatMode === 'all' || currentIndex < queue.length - 1) {
-        skipForward();
+        skipForwardRef.current();
       } else {
         setIsPlaying(false);
         currentTimeRef.current = 0;
@@ -121,6 +129,15 @@ export function PlayerProvider({ children }) {
       audio.removeEventListener('error', onError);
     };
   }, [repeatMode, currentIndex, queue.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Register the module-level pause function so RadioContext can call it synchronously
+  useEffect(() => {
+    _pausePlayerAudio = () => {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    };
+    return () => { _pausePlayerAudio = () => {}; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const playTrack = useCallback((trackObj, newQueue = null) => {
     const q = newQueue ?? queue;
@@ -161,6 +178,10 @@ export function PlayerProvider({ children }) {
     }
     setIsPlaying(true);
   }, [shuffle, currentIndex, queue.length]);
+
+  // Keep refs in sync so stale closures always call the latest version
+  useEffect(() => { skipForwardRef.current = skipForward; }, [skipForward]);
+  useEffect(() => { userIdRef.current = userId; }, [userId]);
 
   const skipBack = useCallback(() => {
     if (currentTimeRef.current > 3) {

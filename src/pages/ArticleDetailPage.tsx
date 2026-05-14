@@ -68,7 +68,7 @@ export default function ArticleDetailPage() {
           {/* Author row */}
           <div className="flex items-center gap-4 py-4 border-y border-white/8 mb-8">
             <img
-              src={`https://picsum.photos/seed/${article.author.replace(/\s/g, '')}/80/80`}
+              src={`https://picsum.photos/seed/${(article.author ?? 'auteur').replace(/\s/g, '')}/80/80`}
               alt={article.author}
               className="w-10 h-10 rounded-full object-cover"
             />
@@ -134,7 +134,7 @@ export default function ArticleDetailPage() {
             <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">Over de auteur</p>
             <div className="flex items-center gap-3 mb-3">
               <img
-                src={`https://picsum.photos/seed/${article.author.replace(/\s/g, '')}/80/80`}
+                src={`https://picsum.photos/seed/${(article.author ?? 'auteur').replace(/\s/g, '')}/80/80`}
                 alt={article.author}
                 className="w-12 h-12 rounded-full object-cover"
               />

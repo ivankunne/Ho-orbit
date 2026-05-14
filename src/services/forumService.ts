@@ -85,6 +85,8 @@ export async function toggleReplyLike(replyId: number, _threadId: string | numbe
     await supabase.from('forum_replies').update({ likes_count: Math.max(0, ((reply?.likes_count as number) ?? 1) - 1) }).eq('id', replyId);
   } else {
     await supabase.from('forum_reply_likes').insert({ reply_id: replyId, user_id: userId });
+    const { data: reply } = await supabase.from('forum_replies').select('likes_count').eq('id', replyId).single();
+    await supabase.from('forum_replies').update({ likes_count: ((reply?.likes_count as number) ?? 0) + 1 }).eq('id', replyId);
   }
 }
 

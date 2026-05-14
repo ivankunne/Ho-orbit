@@ -102,7 +102,7 @@ export default function UploadPage() {
     setUploadStep('audio');
     try {
       const track = await uploadTrack({
-        title: form.title || trackFile?.name || 'Naamloos',
+        title: form.title || (trackFile?.name ? trackFile.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').trim() : 'Naamloos'),
         genre: form.genre,
         description: form.description,
         tags: selectedTags,
@@ -153,7 +153,7 @@ export default function UploadPage() {
         </div>
         <h2 className="text-2xl font-bold text-white mb-3">Upload ontvangen!</h2>
         <p className="text-slate-400 mb-2">
-          <span className="text-white font-medium">"{form.title || trackFile?.name || 'Je nummer'}"</span> is ingediend voor beoordeling.
+          <span className="text-white font-medium">"{form.title || (trackFile?.name ? trackFile.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').trim() : 'Je nummer')}"</span> is ingediend voor beoordeling.
         </p>
         <p className="text-slate-500 text-sm mb-8">Ons team bekijkt je upload zo snel mogelijk. Je ontvangt een melding zodra het is goedgekeurd.</p>
         <div className="flex justify-center gap-3">

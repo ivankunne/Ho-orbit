@@ -177,7 +177,7 @@ function UploadsSection({ adminId }: { adminId: string }) {
   const counts = {
     pending: tracks.filter(t => t.status === 'pending').length,
     approved: tracks.filter(t => t.status === 'approved').length,
-    rejected: 0,
+    rejected: tracks.filter(t => t.status === 'rejected').length,
     all: tracks.length,
   };
   const visible = tracks
@@ -188,7 +188,7 @@ function UploadsSection({ adminId }: { adminId: string }) {
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex bg-white/[0.04] border border-white/8 rounded-xl p-1 gap-0.5 overflow-x-auto">
-          {([['pending', 'In behandeling', 'text-amber-400'], ['approved', 'Goedgekeurd', 'text-emerald-400'], ['all', 'Alles', 'text-slate-300']] as const).map(([id, label, color]) => (
+          {([['pending', 'In behandeling', 'text-amber-400'], ['approved', 'Goedgekeurd', 'text-emerald-400'], ['rejected', 'Afgewezen', 'text-red-400'], ['all', 'Alles', 'text-slate-300']] as const).map(([id, label, color]) => (
             <button key={id} onClick={() => setTab(id as ReviewTab)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${tab === id ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-slate-300'}`}
             >
@@ -265,8 +265,8 @@ function UploadsSection({ adminId }: { adminId: string }) {
               </div>
               {rejectingId === track.id && (
                 <RejectInput
-                  label="Reden voor verwijdering (optioneel, wordt niet opgeslagen)"
-                  onConfirm={async () => { await rejectUpload(track.id); setRejectingId(null); load(); }}
+                  label="Reden voor afwijzing (optioneel)"
+                  onConfirm={async (r) => { await rejectUpload(track.id, r); setRejectingId(null); load(); }}
                   onCancel={() => setRejectingId(null)}
                 />
               )}

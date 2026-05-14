@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { User, Bell, Lock, Palette, Check, LogOut, Camera, AlertTriangle, Eye, EyeOff, Sun, Moon, Loader, Mail, Phone, Briefcase } from 'lucide-react';
 import UserAvatar from '@components/UserAvatar';
 import { useAuth } from '@context/AuthContext';
-import { changePassword, deleteAccount, updateProfile as persistProfile, updatePreferences, uploadAvatar, uploadBanner } from '@services/userService';
+import { changePassword, deleteAccount, updateEmail, updateProfile as persistProfile, updatePreferences, uploadAvatar, uploadBanner } from '@services/userService';
 import { getTheme, toggleTheme } from '@utils/theme';
 import { Input } from '@components/ui/input';
 import { Textarea } from '@components/ui/textarea';
@@ -206,6 +206,9 @@ function ProfielSection({ user, updateProfile, userId }: { user: any; updateProf
     updateProfile(form);
     if (user?.id && typeof user.id === 'string') {
       await persistProfile(user.id, form);
+      if (form.email && form.email !== user.email) {
+        await updateEmail(form.email);
+      }
     }
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);

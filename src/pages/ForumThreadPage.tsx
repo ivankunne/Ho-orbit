@@ -23,7 +23,7 @@ function formatDate(iso) {
   }
 }
 
-function ReplyCard({ reply, isOP, isOwn, index, onLike, liked, onReport }) {
+function ReplyCard({ reply, isOP, isOwn, index, onLike, liked, initialLiked, onReport }) {
   return (
     <div
       id={`reply-${reply.id}`}
@@ -81,7 +81,7 @@ function ReplyCard({ reply, isOP, isOwn, index, onLike, liked, onReport }) {
             }`}
           >
             <ThumbsUp size={13} fill={liked ? 'currentColor' : 'none'} />
-            {(reply.likes || 0) + (liked ? 1 : 0)}
+            {(reply.likes || 0) + (liked && !initialLiked ? 1 : !liked && initialLiked ? -1 : 0)}
           </button>
           <button
             onClick={onReport}
@@ -104,6 +104,7 @@ export default function ForumThreadPage() {
   const [replies, setReplies]   = useState([]);
   const [replyText, setReplyText] = useState('');
   const [likedReplies, setLikedReplies] = useState(new Set());
+  const [initialLikedReplies, setInitialLikedReplies] = useState(new Set());
   const [loading, setLoading]   = useState(true);
   const [category, setCategory] = useState(null);
 
@@ -113,6 +114,12 @@ export default function ForumThreadPage() {
         const [t, r] = await Promise.all([getThread(threadId), getReplies(threadId)]);
         setThread(t);
         setReplies(r);
+        // Initialize liked state from DB data so existing likes aren't double-counted
+        if (user) {
+          const alreadyLiked = new Set(r.filter(reply => reply.likedBy?.includes(user.id)).map(reply => reply.id));
+          setLikedReplies(alreadyLiked);
+          setInitialLikedReplies(alreadyLiked);
+        }
         if (t?.categoryId) {
           supabase.from('forum_categories').select('id, name').eq('id', t.categoryId).single()
             .then(({ data }) => setCategory(data));
@@ -126,11 +133,22 @@ export default function ForumThreadPage() {
   }, [threadId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleLike(replyId) {
+    if (!user) return;
     setLikedReplies(prev => {
       const next = new Set(prev);
       next.has(replyId) ? next.delete(replyId) : next.add(replyId);
       return next;
     });
+    try {
+      await toggleReplyLike(replyId, threadId, user.id);
+    } catch {
+      // rollback optimistic update on failure
+      setLikedReplies(prev => {
+        const next = new Set(prev);
+        next.has(replyId) ? next.delete(replyId) : next.add(replyId);
+        return next;
+      });
+    }
   }
 
   async function handleSubmit(e) {
@@ -243,6 +261,7 @@ export default function ForumThreadPage() {
               index={i}
               onLike={handleLike}
               liked={likedReplies.has(reply.id)}
+              initialLiked={initialLikedReplies.has(reply.id)}
               onReport={() => addToast('Melding verzonden. We bekijken het zo snel mogelijk.', 'success')}
             />
           ))

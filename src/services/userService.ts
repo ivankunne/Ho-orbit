@@ -31,9 +31,9 @@ export async function updatePreferences(userId: string, preferences: Record<stri
 export async function uploadAvatar(userId: string, file: File): Promise<string> {
   const ext = file.name.split('.').pop() ?? 'jpg';
   const path = `avatars/${userId}_${Date.now()}.${ext}`;
-  const { error } = await supabase.storage.from('audio').upload(path, file, { contentType: file.type });
+  const { error } = await supabase.storage.from('avatars').upload(path, file, { contentType: file.type });
   if (error) throw error;
-  const { data } = supabase.storage.from('audio').getPublicUrl(path);
+  const { data } = supabase.storage.from('avatars').getPublicUrl(path);
   await supabase.from('profiles').update({ avatar_url: data.publicUrl }).eq('id', userId);
   return data.publicUrl;
 }
@@ -41,11 +41,16 @@ export async function uploadAvatar(userId: string, file: File): Promise<string> 
 export async function uploadBanner(userId: string, file: File): Promise<string> {
   const ext = file.name.split('.').pop() ?? 'jpg';
   const path = `banners/${userId}_${Date.now()}.${ext}`;
-  const { error } = await supabase.storage.from('audio').upload(path, file, { contentType: file.type });
+  const { error } = await supabase.storage.from('avatars').upload(path, file, { contentType: file.type });
   if (error) throw error;
-  const { data } = supabase.storage.from('audio').getPublicUrl(path);
+  const { data } = supabase.storage.from('avatars').getPublicUrl(path);
   await supabase.from('profiles').update({ banner_url: data.publicUrl }).eq('id', userId);
   return data.publicUrl;
+}
+
+export async function updateEmail(newEmail: string) {
+  const { error } = await supabase.auth.updateUser({ email: newEmail });
+  return error ? { ok: false, error: error.message } : { ok: true };
 }
 
 export async function changePassword(_userId: string, { currentPassword, newPassword }: { currentPassword: string; newPassword: string }) {
@@ -59,7 +64,15 @@ export async function deleteAccount(userId: string, { username, confirmUsername 
   if (confirmUsername !== username) return { ok: false, error: 'Gebruikersnaam komt niet overeen.' };
   // Delete profile record; DB cascade removes related data
   await supabase.from('profiles').delete().eq('id', userId);
-  // Sign the user out — auth account removal requires a server-side admin call
+  // Attempt to delete the Supabase Auth user via a server-side RPC.
+  // The function must exist in the DB: CREATE FUNCTION delete_auth_user() RETURNS void AS $$
+  //   DELETE FROM auth.users WHERE id = auth.uid(); $$ LANGUAGE sql SECURITY DEFINER;
+  try {
+    await supabase.rpc('delete_auth_user');
+  } catch {
+    // RPC not available — user is signed out below; profile row already deleted
+    // so re-login will show missing profile (handled by AuthContext onboarding flow)
+  }
   await supabase.auth.signOut();
   return { ok: true };
 }

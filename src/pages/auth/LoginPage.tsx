@@ -14,9 +14,7 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    // Kleine vertraging voor realisme
-    await new Promise(r => setTimeout(r, 600));
-    login(form.username, form.password);
+    await login(form.username, form.password);
     setLoading(false);
   };
 

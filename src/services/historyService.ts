@@ -19,12 +19,10 @@ export async function getHistory(userId: string) {
 
 export async function addToHistory(userId: string, trackId: number | string) {
   if (!isUUID(userId) || !trackId) return;
-  await supabase
-    .from('play_history')
-    .delete()
-    .eq('user_id', userId)
-    .eq('track_id', trackId);
-  await supabase.from('play_history').insert({ user_id: userId, track_id: trackId });
+  await supabase.from('play_history').upsert(
+    { user_id: userId, track_id: trackId, played_at: new Date().toISOString() },
+    { onConflict: 'user_id,track_id' }
+  );
 }
 
 export async function clearHistory(userId: string) {

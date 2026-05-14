@@ -46,7 +46,7 @@ export default function TutorialsPage() {
 
   const filtered = useMemo(() =>
     tutorials.filter(t => {
-      const tagMatch = activeTag === 'Alles' || t.tags.some(tag => tag.toLowerCase().includes(activeTag.toLowerCase()));
+      const tagMatch = activeTag === 'Alles' || (t.tags ?? []).some(tag => tag.toLowerCase().includes(activeTag.toLowerCase()));
       const diffMatch = activeDifficulty === 'Alles' || t.difficulty === activeDifficulty;
       return tagMatch && diffMatch;
     }),
@@ -249,7 +249,7 @@ export default function TutorialsPage() {
                   <span className="flex items-center gap-1"><Clock size={11} /> {tutorial.duration}</span>
                 </div>
                 <div className="flex flex-wrap gap-1 mt-3">
-                  {tutorial.tags.map(tag => (
+                  {(tutorial.tags ?? []).map(tag => (
                     <span key={tag} className="text-xs bg-white/6 text-slate-400 px-2 py-0.5 rounded-full">{tag}</span>
                   ))}
                 </div>

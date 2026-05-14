@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@components/Toast';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
@@ -6,6 +6,7 @@ import {
   Building2, ChevronRight, Quote, Award, Globe, Clock
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@context/AuthContext';
 
 function StarRating({ rating, size = 16 }) {
   return (
@@ -32,10 +33,13 @@ export default function VenueDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const addToast = useToast();
+  const { user } = useAuth();
   const [activeGalleryIdx, setActiveGalleryIdx] = useState(null);
   const [userRating, setUserRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const reviewTextRef = useRef<HTMLTextAreaElement>(null);
   const [venue, setVenue] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -100,7 +104,7 @@ export default function VenueDetailPage() {
               </div>
               <div className="flex items-center gap-1 text-slate-300 text-sm">
                 <Users size={14} className="text-violet-400" />
-                {venue.capacity.toLocaleString('nl-NL')} personen
+                {venue.capacity != null ? venue.capacity.toLocaleString('nl-NL') : '?'} personen
               </div>
               <div className="flex items-center gap-1 text-slate-300 text-sm">
                 <Calendar size={14} className="text-violet-400" />
@@ -210,6 +214,7 @@ export default function VenueDetailPage() {
                   )}
                 </div>
                 <textarea
+                  ref={reviewTextRef}
                   placeholder={`Vertel iets over je ervaring bij ${venue.name}...`}
                   rows={3}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-slate-300 placeholder-slate-500 focus:outline-none focus:border-violet-500/50 resize-none mb-3"
@@ -220,15 +225,30 @@ export default function VenueDetailPage() {
                   </div>
                 ) : (
                   <button
-                    disabled={!userRating}
-                    onClick={() => {
+                    disabled={!userRating || submittingReview}
+                    onClick={async () => {
                       if (!userRating) return;
-                      setReviewSubmitted(true);
-                      addToast(`Bedankt voor je recensie van ${venue.name}! 🎶`, 'success');
+                      setSubmittingReview(true);
+                      try {
+                        const { error } = await supabase.from('reviews').insert({
+                          resource_type: 'venue',
+                          resource_id: venue.id,
+                          rating: userRating,
+                          review_text: reviewTextRef.current?.value ?? '',
+                          ...(user?.id ? { user_id: user.id } : {}),
+                        });
+                        if (error) throw error;
+                        setReviewSubmitted(true);
+                        addToast(`Bedankt voor je recensie van ${venue.name}! 🎶`, 'success');
+                      } catch {
+                        addToast('Opslaan mislukt. Probeer het opnieuw.', 'error');
+                      } finally {
+                        setSubmittingReview(false);
+                      }
                     }}
                     className="bg-violet-600 hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors"
                   >
-                    Beoordeling plaatsen
+                    {submittingReview ? 'Opslaan…' : 'Beoordeling plaatsen'}
                   </button>
                 )}
               </div>
@@ -254,7 +274,7 @@ export default function VenueDetailPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Users size={14} className="text-slate-500 shrink-0" />
-                  <span className="text-slate-300">Capaciteit: {venue.capacity.toLocaleString('nl-NL')} pers.</span>
+                  <span className="text-slate-300">Capaciteit: {venue.capacity != null ? venue.capacity.toLocaleString('nl-NL') : '?'} pers.</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar size={14} className="text-slate-500 shrink-0" />
@@ -295,7 +315,7 @@ export default function VenueDetailPage() {
                 <Music size={16} className="text-violet-400" /> Genres
               </h3>
               <div className="flex flex-wrap gap-2">
-                {venue.genres.map(g => (
+                {(venue.genres ?? []).map(g => (
                   <span
                     key={g}
                     className="text-xs px-2.5 py-1 rounded-full border"
@@ -313,7 +333,7 @@ export default function VenueDetailPage() {
                 <Award size={16} className="text-violet-400" /> Kenmerken
               </h3>
               <ul className="space-y-2">
-                {venue.highlights.map(h => (
+                {(venue.highlights ?? []).map(h => (
                   <li key={h} className="flex items-start gap-2 text-sm text-slate-300">
                     <ChevronRight size={13} className="text-violet-500 mt-0.5 shrink-0" />
                     {h}

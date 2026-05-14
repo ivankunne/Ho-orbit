@@ -5,7 +5,21 @@ import { addNotification } from '@services/notificationService';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isUUID = (id: string | null) => !!id && UUID_RE.test(id);
 
-const AppStateContext = createContext(null);
+interface AppStateContextValue {
+  likedTracks: (number | string)[];
+  followedArtists: number[];
+  rsvpEvents: number[];
+  tutorialProgress: Record<number, number>;
+  currentUserId: string | null;
+  setCurrentUserId: (id: string | null) => void;
+  toggleLike: (trackId: number) => Promise<void>;
+  toggleFollow: (artistId: number) => Promise<void>;
+  toggleRsvp: (eventId: number) => Promise<void>;
+  setTutorialWatched: (id: number) => Promise<void>;
+  clearTutorialProgress: (id: number) => Promise<void>;
+}
+
+const AppStateContext = createContext<AppStateContextValue | null>(null);
 
 export function AppStateProvider({ children }) {
   const [likedTracks,      setLikedTracks]      = useState<(number | string)[]>([]);
@@ -147,4 +161,8 @@ export function AppStateProvider({ children }) {
   );
 }
 
-export const useAppState = () => useContext(AppStateContext);
+export function useAppState(): AppStateContextValue {
+  const ctx = useContext(AppStateContext);
+  if (!ctx) throw new Error('useAppState must be used inside AppStateProvider');
+  return ctx;
+}

@@ -29,13 +29,15 @@ export async function addNotification(
 
 export async function markAsRead(userId: string, notificationId: number) {
   if (!isUUID(userId)) return [];
-  await supabase.from('notifications').update({ read: true }).eq('id', notificationId).eq('user_id', userId);
+  const { error } = await supabase.from('notifications').update({ read: true }).eq('id', notificationId).eq('user_id', userId);
+  if (error) console.warn('[notifications] markAsRead failed:', error.message);
   return getNotifications(userId);
 }
 
 export async function markAllAsRead(userId: string) {
   if (!isUUID(userId)) return [];
-  await supabase.from('notifications').update({ read: true }).eq('user_id', userId).eq('read', false);
+  const { error } = await supabase.from('notifications').update({ read: true }).eq('user_id', userId).eq('read', false);
+  if (error) console.warn('[notifications] markAllAsRead failed:', error.message);
   return getNotifications(userId);
 }
 
