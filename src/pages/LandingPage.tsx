@@ -119,7 +119,7 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen md:h-screen md:overflow-hidden flex flex-col relative bg-[#0c0916]">
+    <div className="min-h-screen md:h-screen md:overflow-hidden relative bg-[#0c0916]">
       {/* Animated gradient blobs */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div
@@ -145,17 +145,17 @@ export default function LandingPage() {
         }}
       />
 
-      {/* Logo */}
+      {/* Logo — overlaid top-left, doesn't affect grid height */}
       <div
-        className={`relative z-10 shrink-0 flex items-center gap-2 px-5 py-4 transition-all duration-700 ${
+        className={`absolute top-4 left-5 z-20 transition-all duration-700 ${
           mounted ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3'
         }`}
       >
-        <img src="/H-orbit-logo.png" alt="h-orbit" className="h-8 w-auto" />
+        <img src="/H-orbit-logo.png" alt="h-orbit" className="h-7 w-auto" />
       </div>
 
       {/* Bento grid */}
-      <div className="relative z-10 flex-1 min-h-0 grid gap-2 px-3 pb-3 grid-cols-2 md:px-5 md:pb-5 md:gap-3 landing-grid">
+      <div className="relative z-10 h-full grid gap-2 p-3 grid-cols-2 md:p-5 md:gap-3 landing-grid" style={{ minHeight: '100dvh' }}>
         {/* Radio tile — area i */}
         {(() => {
           const color = '#ef4444';
