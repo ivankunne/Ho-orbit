@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { upsertArtistFromProfile } from '@utils/artistHelpers';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isUUID = (id: string | null | undefined) => !!id && UUID_RE.test(id);
@@ -142,13 +143,12 @@ export async function uploadTrack({
     .single();
   if (error || !data) throw new Error(error?.message || 'Opslaan in database mislukt');
 
-  // Promote uploader to Artiest role so they appear on the artists page
+  // Upsert into artists table and promote role
   if (isUUID(userId)) {
-    await supabase
-      .from('profiles')
-      .update({ role: 'Artiest' })
-      .eq('id', userId)
-      .neq('role', 'Artiest'); // no-op if already set
+    await Promise.all([
+      upsertArtistFromProfile(userId, genre, artistName),
+      supabase.from('profiles').update({ role: 'Artiest' }).eq('id', userId).neq('role', 'Artiest'),
+    ]);
   }
 
   return mapTrack(data);
@@ -184,13 +184,13 @@ export async function approveUpload(trackId: string, adminId: string): Promise<v
     .single();
   if (error) throw error;
 
-  // Promote uploader to Artiest so they appear on the artists page
+  // Upsert into artists table and promote role at approval time
   if (track?.uploaded_by && isUUID(track.uploaded_by)) {
-    await supabase
-      .from('profiles')
-      .update({ role: 'Artiest' })
-      .eq('id', track.uploaded_by)
-      .neq('role', 'Artiest');
+    const { data: fullTrack } = await supabase.from('tracks').select('genre, artist_name').eq('id', trackId).single();
+    await Promise.all([
+      upsertArtistFromProfile(track.uploaded_by, fullTrack?.genre || 'Overig', fullTrack?.artist_name || 'Artiest'),
+      supabase.from('profiles').update({ role: 'Artiest' }).eq('id', track.uploaded_by).neq('role', 'Artiest'),
+    ]);
   }
 }
 
