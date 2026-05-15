@@ -2,11 +2,10 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   TrendingUp, ChevronRight, Flame, Sparkles, Play, Pause,
-  MapPin, Newspaper, Map, Users, Music2, Compass,
+  MapPin, Newspaper, Users, Music2, Compass,
   Handshake, Star, UserPlus,
   Building2, Search, Megaphone,
 } from 'lucide-react';
-import SceneMap from '@components/SceneMap';
 import { getGenreColor } from '@data/genreColors';
 import { useAuth } from '@context/AuthContext';
 import { usePlayer } from '@context/PlayerContext';
@@ -495,23 +494,6 @@ export default function HomePage() {
               )}
             </div>
           </div>
-        </section>
-
-        {/* ── Scènekaart ── */}
-        <section className="pb-10">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Map size={18} className="text-violet-400" />
-              <h2 className="text-xl font-bold text-white">Scènekaart</h2>
-            </div>
-            <Link to="/dutch-scene" className="flex items-center gap-1 text-sm text-violet-400 hover:text-violet-300 transition-colors">
-              Alle scenes <ChevronRight size={15} />
-            </Link>
-          </div>
-          <p className="text-slate-400 text-sm mb-5 max-w-2xl">
-            Zoom in op een stad om venues te ontdekken. Klik op een marker voor meer info.
-          </p>
-          <SceneMap />
         </section>
 
         {/* ── Cities & Their Sounds ── */}
