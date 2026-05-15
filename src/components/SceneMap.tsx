@@ -24,7 +24,6 @@ interface SceneLocation {
   lng: number;
 }
 
-// Type → colour mapping
 const TYPE_COLORS: Record<string, string> = {
   'Pop/Heavy':        '#7c3aed',
   'Cultuur':          '#3b82f6',
@@ -39,7 +38,7 @@ const TYPE_COLORS: Record<string, string> = {
   'Commercieel':      '#f97316',
 };
 
-const LEGEND_TYPES = [
+const LEGEND_TYPES: [string, string][] = [
   ['Pop/Heavy',        'Poppodium / Studio'],
   ['Cultuur',          'Cultuurcentrum'],
   ['Erfgoed',          'Erfgoed / Kerk'],
@@ -53,79 +52,31 @@ function getColor(type: string) {
   return TYPE_COLORS[type] ?? '#7c3aed';
 }
 
-// City scenes — shown at zoom < 10
-const cityScenes = [
-  { id: 'amsterdam',  name: 'Amsterdam',  lat: 52.3676, lng: 4.9041,  count: 3,  color: '#7c3aed' },
-  { id: 'rotterdam',  name: 'Rotterdam',  lat: 51.9225, lng: 4.4792,  count: 3,  color: '#3b82f6' },
-  { id: 'denhaag',    name: 'Den Haag',   lat: 52.0705, lng: 4.3007,  count: 2,  color: '#a855f7' },
-  { id: 'utrecht',    name: 'Utrecht',    lat: 52.0907, lng: 5.1214,  count: 4,  color: '#22c55e' },
-  { id: 'nijmegen',   name: 'Nijmegen',   lat: 51.8426, lng: 5.8546,  count: 2,  color: '#ef4444' },
-  { id: 'tilburg',    name: 'Tilburg',    lat: 51.5555, lng: 5.0913,  count: 1,  color: '#f59e0b' },
-  { id: 'groningen',  name: 'Groningen',  lat: 53.2194, lng: 6.5665,  count: 4,  color: '#06b6d4' },
-  { id: 'eindhoven',  name: 'Eindhoven',  lat: 51.4416, lng: 5.4697,  count: 2,  color: '#ec4899' },
-  { id: 'enschede',   name: 'Enschede',   lat: 52.2215, lng: 6.8937,  count: 3,  color: '#14b8a6' },
-  { id: 'leeuwarden', name: 'Leeuwarden', lat: 53.2012, lng: 5.7999,  count: 2,  color: '#f97316' },
-  { id: 'maastricht', name: 'Maastricht', lat: 50.8514, lng: 5.6909,  count: 2,  color: '#a855f7' },
-  { id: 'zwolle',     name: 'Zwolle',     lat: 52.5168, lng: 6.0830,  count: 2,  color: '#7c3aed' },
-  { id: 'arnhem',     name: 'Arnhem',     lat: 51.9851, lng: 5.8987,  count: 1,  color: '#22c55e' },
-  { id: 'breda',      name: 'Breda',      lat: 51.5719, lng: 4.7683,  count: 2,  color: '#3b82f6' },
-];
-
-function createCityIcon(scene: typeof cityScenes[0], isSelected: boolean) {
-  const size = Math.max(38, 28 + scene.count * 3);
-  return L.divIcon({
-    className: '',
-    html: `
-      <div style="
-        width:${size}px;height:${size}px;
-        background:${scene.color};border-radius:50%;
-        display:flex;align-items:center;justify-content:center;
-        border:3px solid ${isSelected ? '#fff' : 'rgba(255,255,255,0.3)'};
-        box-shadow:0 0 0 ${isSelected ? '4px' : '0px'} ${scene.color}60,0 4px 15px rgba(0,0,0,0.5);
-        cursor:pointer;font-family:Space Grotesk,sans-serif;
-      ">
-        <div style="text-align:center;">
-          <div style="font-size:13px;font-weight:700;color:white;line-height:1;">${scene.count}</div>
-          <div style="font-size:7px;color:rgba(255,255,255,0.8);font-weight:500;line-height:1;margin-top:1px;">spots</div>
-        </div>
-      </div>`,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-    popupAnchor: [0, -(size / 2) - 5],
-  });
-}
-
-function createLocationIcon(loc: SceneLocation) {
-  const color = getColor(loc.type);
+function createLocationIcon(type: string) {
+  const color = getColor(type);
   return L.divIcon({
     className: '',
     html: `<div style="
-      width:28px;height:28px;
+      width:22px;height:22px;
       background:${color};
       border-radius:50% 50% 50% 0;
       transform:rotate(-45deg);
-      border:2px solid rgba(255,255,255,0.4);
-      box-shadow:0 3px 10px rgba(0,0,0,0.5);
+      border:2px solid rgba(255,255,255,0.5);
+      box-shadow:0 2px 8px rgba(0,0,0,0.6);
     "></div>`,
-    iconSize: [28, 28],
-    iconAnchor: [14, 28],
-    popupAnchor: [0, -28],
+    iconSize: [22, 22],
+    iconAnchor: [11, 22],
+    popupAnchor: [0, -22],
   });
 }
 
-function MapController({ onZoomChange, onMapReady }: { onZoomChange: (z: number) => void; onMapReady: (m: any) => void }) {
-  const map = useMapEvents({
-    zoomend: () => onZoomChange(map.getZoom()),
-    moveend: () => onZoomChange(map.getZoom()),
-  });
-  useEffect(() => { onMapReady(map); }, [map]);
+function ZoomTracker({ onZoom }: { onZoom: (z: number) => void }) {
+  const map = useMapEvents({ zoomend: () => onZoom(map.getZoom()) });
   return null;
 }
 
 export default function SceneMap() {
   const [zoom, setZoom] = useState(7);
-  const [selectedCity, setSelectedCity] = useState<string | null>(null);
-  const [mapInstance, setMapInstance] = useState<any>(null);
   const [locations, setLocations] = useState<SceneLocation[]>([]);
 
   useEffect(() => {
@@ -133,44 +84,32 @@ export default function SceneMap() {
       .from('scene_locations')
       .select('*')
       .not('lat', 'is', null)
-      .then(({ data }) => setLocations((data ?? []) as SceneLocation[]));
+      .limit(500)
+      .then(({ data, error }) => {
+        if (!error) setLocations((data ?? []) as SceneLocation[]);
+      });
   }, []);
-
-  const showVenues = zoom >= 10;
-  const showCities = zoom < 10;
 
   return (
     <div className="relative rounded-2xl overflow-hidden border border-white/10 scene-map-wrapper" style={{ height: '540px' }}>
       {/* Hint */}
       <div className="absolute top-3 left-3 z-10 bg-[#231d3a]/90 backdrop-blur-sm border border-white/10 text-xs text-slate-400 px-3 py-2 rounded-lg pointer-events-none">
-        {showVenues
-          ? `🎵 ${locations.length > 0 ? `${locations.length} locaties` : 'Klik op een marker'} — klik voor details`
-          : '🔍 Zoom in op een stad om alle locaties te zien'}
+        {locations.length > 0
+          ? `🎵 ${locations.length} locaties — klik een marker voor details`
+          : '🗺️ Kaart laden...'}
       </div>
 
       {/* Legend */}
-      <div className="absolute bottom-3 right-3 z-10 bg-[#231d3a]/90 backdrop-blur-sm border border-white/10 rounded-xl p-3 max-h-60 overflow-y-auto">
+      <div className="absolute bottom-3 right-3 z-10 bg-[#231d3a]/90 backdrop-blur-sm border border-white/10 rounded-xl p-3">
         <p className="text-xs text-slate-400 font-semibold mb-2 uppercase tracking-wider">Legenda</p>
-        {showCities ? (
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-violet-600 flex items-center justify-center">
-                <span className="text-white text-[8px] font-bold">N</span>
-              </div>
-              <span className="text-xs text-slate-300">Aantal locaties</span>
+        <div className="space-y-1.5">
+          {LEGEND_TYPES.map(([key, label]) => (
+            <div key={key} className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full shrink-0" style={{ background: getColor(key) }} />
+              <span className="text-xs text-slate-300">{label}</span>
             </div>
-            <p className="text-xs text-slate-500 mt-1">Groter = meer locaties</p>
-          </div>
-        ) : (
-          <div className="space-y-1.5">
-            {LEGEND_TYPES.map(([key, label]) => (
-              <div key={key} className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full shrink-0" style={{ background: getColor(key) }} />
-                <span className="text-xs text-slate-300">{label}</span>
-              </div>
-            ))}
-          </div>
-        )}
+          ))}
+        </div>
       </div>
 
       <MapContainer
@@ -183,7 +122,7 @@ export default function SceneMap() {
         scrollWheelZoom={true}
       >
         <ZoomControl position="topright" />
-        <MapController onZoomChange={setZoom} onMapReady={setMapInstance} />
+        <ZoomTracker onZoom={setZoom} />
 
         <TileLayer
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
@@ -192,27 +131,11 @@ export default function SceneMap() {
           maxZoom={19}
         />
 
-        {/* City bubbles */}
-        {showCities && cityScenes.map(scene => (
-          <Marker
-            key={scene.id}
-            position={[scene.lat, scene.lng]}
-            icon={createCityIcon(scene, selectedCity === scene.id)}
-            eventHandlers={{
-              click: () => {
-                setSelectedCity(scene.id);
-                mapInstance?.flyTo([scene.lat, scene.lng], 12, { duration: 1.2 });
-              },
-            }}
-          />
-        ))}
-
-        {/* Individual location markers from DB */}
-        {showVenues && locations.map(loc => (
+        {locations.map(loc => (
           <Marker
             key={loc.id}
             position={[loc.lat, loc.lng]}
-            icon={createLocationIcon(loc)}
+            icon={createLocationIcon(loc.type)}
           >
             <Popup closeButton={false}>
               <div style={{
@@ -284,7 +207,7 @@ export default function SceneMap() {
         .scene-map-wrapper .leaflet-top,
         .scene-map-wrapper .leaflet-bottom,
         .scene-map-wrapper .leaflet-control { z-index: auto !important; }
-        .scene-map-wrapper .leaflet-map-pane  { z-index: 0 !important; }
+        .scene-map-wrapper .leaflet-map-pane     { z-index: 0 !important; }
         .scene-map-wrapper .leaflet-tile-pane    { z-index: 1 !important; }
         .scene-map-wrapper .leaflet-overlay-pane { z-index: 2 !important; }
         .scene-map-wrapper .leaflet-shadow-pane  { z-index: 3 !important; }
