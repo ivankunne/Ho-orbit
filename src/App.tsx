@@ -170,7 +170,7 @@ function ProtectedApp() {
         />
       )}
       {!isLanding && <Navbar externalShowSearch={showSearch} onExternalSearchClose={() => setShowSearch(false)} />}
-      <main className={isLanding ? '' : 'pb-28 lg:pb-20'}>
+      <main className={isLanding ? '' : 'pb-28 lg:pb-20 flex flex-col'}>
         <ErrorBoundary>
           <Suspense fallback={<PageLoader />}>
             <Routes>
@@ -218,6 +218,21 @@ function ProtectedApp() {
             </Routes>
           </Suspense>
         </ErrorBoundary>
+        {!isLanding && (
+          <footer className="mt-auto py-6 text-center">
+            <p className="text-xs text-slate-600">
+              Made by{' '}
+              <a
+                href="https://frameflow.no"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-slate-500 hover:text-slate-400 transition-colors"
+              >
+                frameflow.no
+              </a>
+            </p>
+          </footer>
+        )}
       </main>
       {!isLanding && <MusicPlayer />}
       {!isLanding && <MobileBottomNav />}
