@@ -17,7 +17,7 @@ function mapProfile(profile: any, authUser: any) {
     verified: profile?.verified || false,
     isAdmin: profile?.is_admin || false,
     followers: profile?.followers_count || 0,
-    following: profile?.following || 0,
+    following: profile?.following_count || 0,
     joinedDate: profile?.joined_date || '',
     likedTracks: profile?.liked_tracks || [],
     uploadedTracks: profile?.uploaded_tracks || [],
@@ -206,7 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: data.isArtist ? 'Artiest' : 'Luisteraar',
         needs_onboarding: authData.session ? true : false,
         followers_count: 0,
-        following: 0,
+        following_count: 0,
         verified: false,
         is_admin: false,
       });

@@ -80,7 +80,7 @@ export default function ProfilePage() {
             role: data.role || 'Luisteraar',
             verified: data.verified || false,
             followers: data.followers_count || 0,
-            following: 0,
+            following: data.following_count || 0,
             joinedDate: data.joined_date || '',
             social: data.social || {},
             bookingInfo: data.booking_info || {},
