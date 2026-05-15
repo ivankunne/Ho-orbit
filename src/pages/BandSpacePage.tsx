@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Users, Plus, Music, MapPin, Lock, Globe,
-  ChevronRight, Loader2, X
+  ChevronRight, Loader2, X, Clock,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@context/AuthContext';
@@ -64,25 +64,32 @@ export default function BandSpacePage() {
 
     const [myRes, publicRes] = await Promise.all([
       user?.id
-        ? supabase.from('band_members').select('band_id').eq('user_id', user.id)
+        ? supabase.from('band_members').select('band_id, status').eq('user_id', user.id)
         : Promise.resolve({ data: [] }),
       supabase.from('bands').select('*').eq('is_public', true).order('created_at', { ascending: false }).limit(50),
     ]);
 
-    const myBandIds: string[] = (myRes.data ?? []).map((r: any) => r.band_id);
+    const myRows: { band_id: string; status: string }[] = myRes.data ?? [];
+    const activeBandIds = myRows.filter(r => r.status === 'active').map(r => r.band_id);
+    const pendingBandIds = myRows.filter(r => r.status === 'pending').map(r => r.band_id);
+    const allMyBandIds = myRows.map(r => r.band_id);
 
-    if (myBandIds.length > 0) {
-      const { data: myBandData } = await supabase
-        .from('bands').select('*').in('id', myBandIds);
-      setMyBands((myBandData ?? []).map((b: any) => ({ ...b, is_member: true })));
+    if (activeBandIds.length > 0) {
+      const { data: myBandData } = await supabase.from('bands').select('*').in('id', activeBandIds);
+      setMyBands((myBandData ?? []).map((b: any) => ({ ...b, is_member: true, is_pending: false })));
     } else {
       setMyBands([]);
     }
 
+    const publicAll = publicRes.data ?? [];
     setPublicBands(
-      (publicRes.data ?? [])
-        .filter((b: any) => !myBandIds.includes(b.id))
-        .map((b: any) => ({ ...b, is_member: false }))
+      publicAll
+        .filter((b: any) => !activeBandIds.includes(b.id))
+        .map((b: any) => ({
+          ...b,
+          is_member: false,
+          is_pending: pendingBandIds.includes(b.id),
+        }))
     );
 
     setLoading(false);
@@ -110,8 +117,10 @@ export default function BandSpacePage() {
       return;
     }
 
-    // Add creator as admin member
-    await supabase.from('band_members').insert({ band_id: band.id, user_id: user.id, role: 'admin' });
+    // Creator is automatically an active admin — no approval needed
+    await supabase.from('band_members').insert({
+      band_id: band.id, user_id: user.id, role: 'admin', status: 'active',
+    });
 
     setCreating(false);
     setShowCreate(false);
@@ -120,12 +129,15 @@ export default function BandSpacePage() {
     navigate(`/bandspace/${band.id}`);
   }
 
-  async function handleJoin(band: Band) {
-    if (!user) { addToast('Log in om bands te volgen', 'error'); return; }
-    const { error } = await supabase.from('band_members').insert({ band_id: band.id, user_id: user.id, role: 'member' });
-    if (error) { addToast('Kon niet deelnemen', 'error'); return; }
-    addToast(`Je hebt ${band.name} vervoegd!`, 'success');
-    navigate(`/bandspace/${band.id}`);
+  async function handleRequestJoin(band: Band) {
+    if (!user) { addToast('Log in om je aan te sluiten', 'error'); return; }
+    const { error } = await supabase.from('band_members').insert({
+      band_id: band.id, user_id: user.id, role: 'member', status: 'pending',
+    });
+    if (error) { addToast('Aanvraag mislukt', 'error'); return; }
+    // Update local state so the card reflects pending immediately
+    setPublicBands(prev => prev.map(b => b.id === band.id ? { ...b, is_pending: true } : b));
+    addToast(`Aanvraag verstuurd voor ${band.name}`, 'success');
   }
 
   return (
@@ -160,7 +172,7 @@ export default function BandSpacePage() {
               <h2 className="text-lg font-semibold text-white mb-4">Mijn bands</h2>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {myBands.map(band => (
-                  <BandCard key={band.id} band={band} onJoin={handleJoin} isMember />
+                  <BandCard key={band.id} band={band} onRequestJoin={handleRequestJoin} isMember isPending={false} />
                 ))}
               </div>
             </section>
@@ -180,7 +192,7 @@ export default function BandSpacePage() {
             ) : (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {publicBands.map(band => (
-                  <BandCard key={band.id} band={band} onJoin={handleJoin} isMember={false} />
+                  <BandCard key={band.id} band={band} onRequestJoin={handleRequestJoin} isMember={false} isPending={band.is_pending ?? false} />
                 ))}
               </div>
             )}
@@ -295,7 +307,14 @@ export default function BandSpacePage() {
   );
 }
 
-function BandCard({ band, onJoin, isMember }: { band: Band; onJoin: (b: Band) => void; isMember: boolean }) {
+function BandCard({
+  band, onRequestJoin, isMember, isPending,
+}: {
+  band: Band;
+  onRequestJoin: (b: Band) => void;
+  isMember: boolean;
+  isPending: boolean;
+}) {
   return (
     <div className="bg-white/3 hover:bg-white/5 border border-white/8 rounded-2xl p-5 transition-all group">
       <div className="flex items-start gap-4 mb-3">
@@ -326,12 +345,19 @@ function BandCard({ band, onJoin, isMember }: { band: Band; onJoin: (b: Band) =>
         >
           Naar werkruimte <ChevronRight size={16} />
         </Link>
+      ) : isPending ? (
+        <Link
+          to={`/bandspace/${band.id}`}
+          className="flex items-center gap-2 w-full text-sm text-amber-400 py-2 justify-center"
+        >
+          <Clock size={13} /> Aanvraag in behandeling
+        </Link>
       ) : (
         <button
-          onClick={() => onJoin(band)}
+          onClick={() => onRequestJoin(band)}
           className="w-full text-sm font-medium text-slate-300 hover:text-white bg-white/5 hover:bg-violet-600/20 border border-white/10 hover:border-violet-500/30 py-2 rounded-lg transition-all"
         >
-          Deelnemen
+          Aanvraag versturen
         </button>
       )}
     </div>
