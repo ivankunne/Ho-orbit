@@ -171,7 +171,7 @@ export async function getAllUploads(): Promise<UploadedTrack[]> {
 }
 
 export async function approveUpload(trackId: string, adminId: string): Promise<void> {
-  const { error } = await supabase
+  const { error, data: track } = await supabase
     .from('tracks')
     .update({
       upload_status: 'approved',
@@ -179,8 +179,19 @@ export async function approveUpload(trackId: string, adminId: string): Promise<v
       ...(isUUID(adminId) ? { reviewed_by: adminId } : {}),
       rejection_reason: null,
     })
-    .eq('id', trackId);
+    .eq('id', trackId)
+    .select('uploaded_by')
+    .single();
   if (error) throw error;
+
+  // Promote uploader to Artiest so they appear on the artists page
+  if (track?.uploaded_by && isUUID(track.uploaded_by)) {
+    await supabase
+      .from('profiles')
+      .update({ role: 'Artiest' })
+      .eq('id', track.uploaded_by)
+      .neq('role', 'Artiest');
+  }
 }
 
 export async function rejectUpload(trackId: string, reason?: string): Promise<void> {

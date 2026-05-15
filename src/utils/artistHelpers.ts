@@ -38,32 +38,44 @@ export function mapProfileToArtist(p: any) {
 }
 
 export async function fetchArtistProfiles(limit = 50): Promise<any[]> {
-  // Primary: profiles of users who have uploaded approved tracks
-  const { data: trackRows } = await supabase
-    .from('tracks')
-    .select('uploaded_by')
-    .eq('upload_status', 'approved')
-    .not('uploaded_by', 'is', null);
-
-  const ids = [...new Set((trackRows ?? []).map((r: any) => r.uploaded_by).filter(Boolean))];
-
-  if (ids.length > 0) {
-    const { data } = await supabase
+  // Collect IDs from two sources in parallel, then merge
+  const [trackResult, roleResult] = await Promise.all([
+    supabase
+      .from('tracks')
+      .select('uploaded_by')
+      .eq('upload_status', 'approved')
+      .not('uploaded_by', 'is', null),
+    supabase
       .from('profiles')
       .select('*')
-      .in('id', ids)
+      .eq('role', 'Artiest')
       .order('followers', { ascending: false })
-      .limit(limit);
-    if (data && data.length > 0) return data.map(mapProfileToArtist);
+      .limit(limit),
+  ]);
+
+  const uploadIds = [...new Set(
+    (trackResult.data ?? []).map((r: any) => r.uploaded_by).filter(Boolean)
+  )];
+
+  // Start with role-based profiles
+  const seen = new Set<string>();
+  const combined: any[] = [];
+  for (const p of roleResult.data ?? []) {
+    if (!seen.has(p.id)) { seen.add(p.id); combined.push(p); }
   }
 
-  // Fallback: any profile with role 'Artiest'
-  const { data: fallback } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('role', 'Artiest')
-    .order('followers', { ascending: false })
-    .limit(limit);
+  // Merge in profiles that have approved tracks but might lack the role
+  if (uploadIds.length > 0) {
+    const { data: uploadProfiles } = await supabase
+      .from('profiles')
+      .select('*')
+      .in('id', uploadIds)
+      .order('followers', { ascending: false })
+      .limit(limit);
+    for (const p of uploadProfiles ?? []) {
+      if (!seen.has(p.id)) { seen.add(p.id); combined.push(p); }
+    }
+  }
 
-  return (fallback ?? []).map(mapProfileToArtist);
+  return combined.map(mapProfileToArtist);
 }
