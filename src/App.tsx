@@ -13,6 +13,7 @@ import ErrorBoundary from '@components/ErrorBoundary';
 import { useKeyboardShortcuts } from '@hooks/useKeyboardShortcuts';
 import KeyboardShortcutsModal from '@components/KeyboardShortcutsModal';
 import Navbar from '@components/Layout/Navbar';
+import Footer from '@components/Layout/Footer';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -65,6 +66,9 @@ const BandSpacePage = lazy(() => import('@pages/BandSpacePage'));
 const BandSpaceDetailPage = lazy(() => import('@pages/BandSpaceDetailPage'));
 const NetworkingPage = lazy(() => import('@pages/NetworkingPage'));
 const MasterclassPage = lazy(() => import('@pages/MasterclassPage'));
+const PrivacyPage     = lazy(() => import('@pages/legal/PrivacyPage'));
+const TermsPage       = lazy(() => import('@pages/legal/TermsPage'));
+const CookiesPage     = lazy(() => import('@pages/legal/CookiesPage'));
 
 function PageLoader() {
   return (
@@ -210,29 +214,18 @@ function ProtectedApp() {
               <Route path="/berichten/:id" element={<ProtectedRoute><ConversationPage /></ProtectedRoute>} />
               <Route path="/bandspace" element={<ProtectedRoute><BandSpacePage /></ProtectedRoute>} />
               <Route path="/bandspace/:id" element={<ProtectedRoute><BandSpaceDetailPage /></ProtectedRoute>} />
-              <Route path="/netwerken" element={<NetworkingPage />} />
+              <Route path="/netwerken"   element={<NetworkingPage />} />
               <Route path="/masterclass" element={<MasterclassPage />} />
+              <Route path="/privacy"     element={<PrivacyPage />} />
+              <Route path="/voorwaarden" element={<TermsPage />} />
+              <Route path="/cookies"     element={<CookiesPage />} />
               <Route path="/admin" element={user?.isAdmin ? <AdminPage /> : <Navigate to="/" replace />} />
 
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>
         </ErrorBoundary>
-        {!isLanding && (
-          <footer className="mt-auto py-6 text-center">
-            <p className="text-xs text-slate-600">
-              Made by{' '}
-              <a
-                href="https://frameflow.no"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-slate-500 hover:text-slate-400 transition-colors"
-              >
-                frameflow.no
-              </a>
-            </p>
-          </footer>
-        )}
+        {!isLanding && <Footer />}
       </main>
       {!isLanding && <MusicPlayer />}
       {!isLanding && <MobileBottomNav />}

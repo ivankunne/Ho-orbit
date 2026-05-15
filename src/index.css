@@ -106,6 +106,14 @@ body::before {
   background: #8b5cf6;
 }
 
+/* Legal pages prose */
+.prose-legal ul { list-style: disc; padding-left: 1.25rem; }
+.prose-legal ul li { margin-bottom: 0.35rem; }
+.prose-legal table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+.prose-legal th, .prose-legal td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.prose-legal th { color: #cbd5e1; font-weight: 600; background: rgba(255,255,255,0.04); }
+.prose-legal td { color: #94a3b8; }
+
 /* Landing page bento grid */
 @media (min-width: 768px) {
   .landing-grid {
