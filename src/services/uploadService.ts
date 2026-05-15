@@ -16,6 +16,7 @@ export interface UploadedTrack {
   explicit: boolean;
   isPrivate: boolean;
   cover: string;
+  stream_url: string;
   streamUrl: string;
   plays: number;
   duration: string;
@@ -49,15 +50,27 @@ async function getAudioDuration(file: File): Promise<string> {
   return new Promise(resolve => {
     const audio = new Audio();
     const url = URL.createObjectURL(file);
-    audio.onloadedmetadata = () => {
+
+    const finish = () => {
       URL.revokeObjectURL(url);
-      const total = Math.round(audio.duration || 0);
-      const m = Math.floor(total / 60);
-      const s = total % 60;
-      resolve(`${m}:${s.toString().padStart(2, '0')}`);
+      const total = Math.round(audio.duration);
+      if (!isFinite(total) || total <= 0) { resolve('0:00'); return; }
+      resolve(`${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`);
     };
+
+    audio.onloadedmetadata = () => {
+      if (!isFinite(audio.duration)) {
+        // VBR file without accurate header — seek to end to force the browser to
+        // scan the file and report the real duration via the 'seeked' event.
+        audio.currentTime = 1e101;
+      } else {
+        finish();
+      }
+    };
+    audio.onseeked = finish;
     audio.onerror = () => { URL.revokeObjectURL(url); resolve('0:00'); };
     audio.src = url;
+    audio.load();
   });
 }
 
@@ -196,6 +209,7 @@ function mapTrack(d: Record<string, unknown>): UploadedTrack {
     explicit: (d.explicit as boolean) ?? false,
     isPrivate: (d.is_private as boolean) ?? false,
     cover: (d.cover_url as string) ?? '',
+    stream_url: (d.stream_url as string) ?? '',
     streamUrl: (d.stream_url as string) ?? '',
     plays: (d.plays as number) ?? 0,
     duration: (d.duration as string) ?? '',

@@ -54,7 +54,9 @@ export function PlayerProvider({ children }) {
       // play() handles loading by itself — never call load() first,
       // it causes an AbortError that silently kills the play request
       if (isPlaying) {
-        audioRef.current.play().catch(() => setIsPlaying(false));
+        audioRef.current.play().catch(err => {
+          if (err.name !== 'AbortError') setIsPlaying(false);
+        });
       }
     });
     // Record in listening history (use ref so we always have the current userId)
@@ -73,7 +75,9 @@ export function PlayerProvider({ children }) {
     // Skip while a track switch is in progress — the load effect handles it
     if (!track || isNewTrack.current) return;
     if (isPlaying) {
-      audioRef.current.play().catch(() => setIsPlaying(false));
+      audioRef.current.play().catch(err => {
+        if (err.name !== 'AbortError') setIsPlaying(false);
+      });
     } else {
       audioRef.current.pause();
     }
