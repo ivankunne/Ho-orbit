@@ -145,14 +145,6 @@ export default function LandingPage() {
         }}
       />
 
-      {/* Logo — overlaid top-left, doesn't affect grid height */}
-      <div
-        className={`absolute top-4 left-5 z-20 transition-all duration-700 ${
-          mounted ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3'
-        }`}
-      >
-        <img src="/H-orbit-logo.png" alt="h-orbit" className="h-7 w-auto" />
-      </div>
 
       {/* Bento grid */}
       <div className="relative z-10 h-full grid gap-2 p-3 grid-cols-2 md:p-5 md:gap-3 landing-grid" style={{ minHeight: '100dvh' }}>
