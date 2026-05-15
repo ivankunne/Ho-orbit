@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   Music, Users, Calendar, FileText, BookOpen,
   Globe, MessageSquare, Upload, ChevronRight, Radio,
+  Handshake, GraduationCap, Music2,
 } from 'lucide-react';
 import { useRadio } from '@context/RadioContext';
 
@@ -77,6 +78,33 @@ const tiles = [
     path: '/upload',
     Icon: Upload,
     color: '#f97316',
+    featured: false,
+  },
+  {
+    area: 'j',
+    label: 'Band Space',
+    sub: 'Jouw band, jouw werkruimte',
+    path: '/bandspace',
+    Icon: Music2,
+    color: '#6366f1',
+    featured: false,
+  },
+  {
+    area: 'k',
+    label: 'Netwerken',
+    sub: 'Samenwerken & uitwisselen',
+    path: '/netwerken',
+    Icon: Handshake,
+    color: '#14b8a6',
+    featured: false,
+  },
+  {
+    area: 'l',
+    label: 'Masterclass',
+    sub: 'Leer van de besten',
+    path: '/masterclass',
+    Icon: GraduationCap,
+    color: '#22c55e',
     featured: false,
   },
 ] as const;

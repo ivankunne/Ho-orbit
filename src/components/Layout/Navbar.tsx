@@ -33,13 +33,21 @@ const navItems = [
   { label: 'Artiesten', path: '/artists', icon: Users },
   { label: 'Evenementen', path: '/events', icon: Calendar },
   { label: 'Magazine', path: '/magazine', icon: FileText },
-  { label: 'Tutorials', path: '/tutorials', icon: BookOpen },
-  { label: 'Hubspots', path: '/dutch-scene', icon: Globe },
-  { label: 'Forums', path: '/forums', icon: MessageSquare },
   { label: 'Radio', path: '/radio', icon: Radio },
-  { label: 'Netwerken', path: '/netwerken', icon: Handshake },
-  { label: 'Masterclass', path: '/masterclass', icon: GraduationCap },
-  { label: 'Band Space', path: '/bandspace', icon: Music2 },
+  { label: 'Community', path: '/dutch-scene', icon: Globe },
+  { label: 'Leren', path: '/tutorials', icon: BookOpen },
+];
+
+const communityDropdown = [
+  { label: 'Nederlandse Scene', sub: 'Venues & bewegingen', path: '/dutch-scene', icon: Globe },
+  { label: 'Forums', sub: 'Discussie & community', path: '/forums', icon: MessageSquare },
+  { label: 'Netwerken', sub: 'Samenwerken & uitwisselen', path: '/netwerken', icon: Handshake },
+  { label: 'Band Space', sub: 'Werkruimte voor je band', path: '/bandspace', icon: Music2 },
+];
+
+const lerenDropdown = [
+  { label: 'Tutorials', sub: 'Groei als muzikant', path: '/tutorials', icon: BookOpen },
+  { label: 'Masterclass', sub: 'Van de groten leren', path: '/masterclass', icon: GraduationCap },
 ];
 
 const magazineDropdown = [
@@ -105,6 +113,12 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
   const [magazineOpen, setMagazineOpen] = useState(false);
   const [mobileMagazineOpen, setMobileMagazineOpen] = useState(false);
   const magazineTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [communityOpen, setCommunityOpen] = useState(false);
+  const [mobileCommunityOpen, setMobileCommunityOpen] = useState(false);
+  const communityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [lerenOpen, setLerenOpen] = useState(false);
+  const [mobileLerenOpen, setMobileLerenOpen] = useState(false);
+  const lerenTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (externalShowSearch) setShowSearch(true);
@@ -133,10 +147,17 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
     magazineTimer.current = setTimeout(() => setMagazineOpen(false), 120);
   };
 
+  const openCommunity = () => { if (communityTimer.current) clearTimeout(communityTimer.current); setCommunityOpen(true); };
+  const closeCommunity = () => { communityTimer.current = setTimeout(() => setCommunityOpen(false), 120); };
+  const openLeren = () => { if (lerenTimer.current) clearTimeout(lerenTimer.current); setLerenOpen(true); };
+  const closeLeren = () => { lerenTimer.current = setTimeout(() => setLerenOpen(false), 120); };
+
   const isMagazineActive =
     location.pathname === '/magazine' ||
     location.pathname === '/hub' ||
     location.pathname.startsWith('/magazine/');
+  const isCommunityActive = ['/dutch-scene', '/forums', '/netwerken', '/bandspace'].some(p => location.pathname.startsWith(p));
+  const isLerenActive = ['/tutorials', '/masterclass'].some(p => location.pathname.startsWith(p));
 
   return (
     <nav className="sticky top-0 z-50 bg-[#1a1528]/95 backdrop-blur-md border-b border-white/5">
@@ -249,6 +270,72 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
                       </span>
                     )}
                   </Link>
+                );
+              }
+
+              if (item.label === 'Community') {
+                return (
+                  <div key="community" className="relative" onMouseEnter={openCommunity} onMouseLeave={closeCommunity}>
+                    <button className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${isCommunityActive ? 'bg-violet-600/15 text-violet-400' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
+                      Community
+                      <ChevronDown size={12} className={`transition-transform duration-200 ${communityOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {communityOpen && (
+                      <div className="absolute top-full left-0 mt-2 w-60 bg-[#1e1833] border border-white/10 rounded-xl shadow-2xl shadow-black/50 overflow-hidden z-50">
+                        <div className="absolute -top-1.5 left-5 w-3 h-3 bg-[#1e1833] border-l border-t border-white/10 rotate-45" />
+                        <div className="p-1.5 pt-3">
+                          {communityDropdown.map(drop => {
+                            const Icon = drop.icon;
+                            return (
+                              <Link key={drop.path} to={drop.path} onClick={() => setCommunityOpen(false)}
+                                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors group">
+                                <div className="w-8 h-8 rounded-lg bg-white/5 group-hover:bg-white/10 flex items-center justify-center shrink-0 transition-colors">
+                                  <Icon size={14} className="text-slate-400 group-hover:text-white" />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-slate-200 leading-tight">{drop.label}</p>
+                                  <p className="text-xs text-slate-500 mt-0.5 leading-tight">{drop.sub}</p>
+                                </div>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              if (item.label === 'Leren') {
+                return (
+                  <div key="leren" className="relative" onMouseEnter={openLeren} onMouseLeave={closeLeren}>
+                    <button className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${isLerenActive ? 'bg-violet-600/15 text-violet-400' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
+                      Leren
+                      <ChevronDown size={12} className={`transition-transform duration-200 ${lerenOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {lerenOpen && (
+                      <div className="absolute top-full left-0 mt-2 w-52 bg-[#1e1833] border border-white/10 rounded-xl shadow-2xl shadow-black/50 overflow-hidden z-50">
+                        <div className="absolute -top-1.5 left-5 w-3 h-3 bg-[#1e1833] border-l border-t border-white/10 rotate-45" />
+                        <div className="p-1.5 pt-3">
+                          {lerenDropdown.map(drop => {
+                            const Icon = drop.icon;
+                            return (
+                              <Link key={drop.path} to={drop.path} onClick={() => setLerenOpen(false)}
+                                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors group">
+                                <div className="w-8 h-8 rounded-lg bg-white/5 group-hover:bg-white/10 flex items-center justify-center shrink-0 transition-colors">
+                                  <Icon size={14} className="text-slate-400 group-hover:text-white" />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-slate-200 leading-tight">{drop.label}</p>
+                                  <p className="text-xs text-slate-500 mt-0.5 leading-tight">{drop.sub}</p>
+                                </div>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 );
               }
 
@@ -515,6 +602,66 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
                                 {drop.label}
                               </Link>
                             </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              if (item.label === 'Community') {
+                return (
+                  <div key="community">
+                    <button
+                      onClick={() => setMobileCommunityOpen(v => !v)}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isCommunityActive ? 'bg-violet-600/15 text-violet-400' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                    >
+                      <Globe size={16} />
+                      <span className="flex-1 text-left">Community</span>
+                      <ChevronDown size={14} className={`transition-transform duration-200 ${mobileCommunityOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {mobileCommunityOpen && (
+                      <div className="ml-3 mt-1 pl-3 border-l border-white/8 space-y-0.5">
+                        {communityDropdown.map(drop => {
+                          const DropIcon = drop.icon;
+                          return (
+                            <Link key={drop.path} to={drop.path}
+                              onClick={() => { setMobileMenuOpen(false); setMobileCommunityOpen(false); }}
+                              className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-colors">
+                              <DropIcon size={14} className="shrink-0" />
+                              {drop.label}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              if (item.label === 'Leren') {
+                return (
+                  <div key="leren">
+                    <button
+                      onClick={() => setMobileLerenOpen(v => !v)}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isLerenActive ? 'bg-violet-600/15 text-violet-400' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                    >
+                      <BookOpen size={16} />
+                      <span className="flex-1 text-left">Leren</span>
+                      <ChevronDown size={14} className={`transition-transform duration-200 ${mobileLerenOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {mobileLerenOpen && (
+                      <div className="ml-3 mt-1 pl-3 border-l border-white/8 space-y-0.5">
+                        {lerenDropdown.map(drop => {
+                          const DropIcon = drop.icon;
+                          return (
+                            <Link key={drop.path} to={drop.path}
+                              onClick={() => { setMobileMenuOpen(false); setMobileLerenOpen(false); }}
+                              className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-colors">
+                              <DropIcon size={14} className="shrink-0" />
+                              {drop.label}
+                            </Link>
                           );
                         })}
                       </div>

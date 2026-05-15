@@ -110,10 +110,10 @@ body::before {
 @media (min-width: 768px) {
   .landing-grid {
     grid-template-areas:
-      "a a b c"
-      "a a d e"
-      "f i g h";
-    grid-template-columns: 1fr 1fr 1fr 1fr;
+      "a a b c j"
+      "a a d e k"
+      "f i g h l";
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
     grid-template-rows: 1fr 1fr 1fr;
   }
   .landing-tile-a { grid-area: a; }
@@ -125,4 +125,7 @@ body::before {
   .landing-tile-g { grid-area: g; }
   .landing-tile-h { grid-area: h; }
   .landing-tile-i { grid-area: i; }
+  .landing-tile-j { grid-area: j; }
+  .landing-tile-k { grid-area: k; }
+  .landing-tile-l { grid-area: l; }
 }
