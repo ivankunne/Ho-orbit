@@ -61,6 +61,10 @@ const AdminPage = lazy(() => import('@pages/AdminPage'));
 const RadioPage = lazy(() => import('@pages/RadioPage'));
 const MessagesPage = lazy(() => import('@pages/MessagesPage'));
 const ConversationPage = lazy(() => import('@pages/ConversationPage'));
+const BandSpacePage = lazy(() => import('@pages/BandSpacePage'));
+const BandSpaceDetailPage = lazy(() => import('@pages/BandSpaceDetailPage'));
+const NetworkingPage = lazy(() => import('@pages/NetworkingPage'));
+const MasterclassPage = lazy(() => import('@pages/MasterclassPage'));
 
 function PageLoader() {
   return (
@@ -204,6 +208,10 @@ function ProtectedApp() {
               <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
               <Route path="/berichten" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
               <Route path="/berichten/:id" element={<ProtectedRoute><ConversationPage /></ProtectedRoute>} />
+              <Route path="/bandspace" element={<ProtectedRoute><BandSpacePage /></ProtectedRoute>} />
+              <Route path="/bandspace/:id" element={<ProtectedRoute><BandSpaceDetailPage /></ProtectedRoute>} />
+              <Route path="/netwerken" element={<NetworkingPage />} />
+              <Route path="/masterclass" element={<MasterclassPage />} />
               <Route path="/admin" element={user?.isAdmin ? <AdminPage /> : <Navigate to="/" replace />} />
 
               <Route path="*" element={<NotFoundPage />} />

@@ -5,6 +5,7 @@ import {
   Upload, Home, Users, BookOpen, FileText, Globe, MessageSquare,
   Calendar, User, Settings, LogOut, Library, Sun, Moon, Zap,
   Mic2, Star, MapPin, Disc3, ExternalLink, ShieldCheck, Radio,
+  Music2, Handshake, GraduationCap,
 } from 'lucide-react';
 import { useState as useThemeState } from 'react';
 import { getTheme, toggleTheme } from '@utils/theme';
@@ -36,6 +37,9 @@ const navItems = [
   { label: 'Hubspots', path: '/dutch-scene', icon: Globe },
   { label: 'Forums', path: '/forums', icon: MessageSquare },
   { label: 'Radio', path: '/radio', icon: Radio },
+  { label: 'Netwerken', path: '/netwerken', icon: Handshake },
+  { label: 'Masterclass', path: '/masterclass', icon: GraduationCap },
+  { label: 'Band Space', path: '/bandspace', icon: Music2 },
 ];
 
 const magazineDropdown = [

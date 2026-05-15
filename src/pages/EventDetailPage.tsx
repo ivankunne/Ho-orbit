@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Calendar, MapPin, Users, Clock, ChevronLeft, ExternalLink, Share2, Timer } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, ChevronLeft, ExternalLink, Share2, Timer, Megaphone, Plus, Ticket, X, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAppState } from '@context/AppStateContext';
+import { useAuth } from '@context/AuthContext';
 import { useToast } from '@components/Toast';
 import CommentSection from '@components/CommentSection';
 import { shareContent, buildShareUrl } from '@utils/share';
+import UserAvatar from '@components/UserAvatar';
 
 function safeExternalUrl(url) {
   if (!url) return null;
@@ -34,14 +36,29 @@ function useCountdown(dateStr) {
 }
 
 
+function timeAgo(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const days = Math.floor(diff / 86400000);
+  if (days < 1) return 'vandaag';
+  if (days === 1) return 'gisteren';
+  return `${days} dagen geleden`;
+}
+
 export default function EventDetailPage() {
   const { id } = useParams();
   const { rsvpEvents, toggleRsvp } = useAppState();
+  const { user } = useAuth();
   const addToast = useToast();
 
   const [event, setEvent] = useState(null);
   const [artist, setArtist] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [openCalls, setOpenCalls] = useState<any[]>([]);
+  const [showOpenCallForm, setShowOpenCallForm] = useState(false);
+  const [ocTitle, setOcTitle] = useState('');
+  const [ocDesc, setOcDesc] = useState('');
+  const [ocContact, setOcContact] = useState('');
+  const [ocSubmitting, setOcSubmitting] = useState(false);
 
   useEffect(() => {
     supabase.from('events').select('*, artist:artists(*)').eq('id', id).single()
@@ -50,7 +67,36 @@ export default function EventDetailPage() {
         setArtist(data?.artist ?? null);
         setLoading(false);
       });
+    supabase.from('networking_posts')
+      .select('*, poster:profiles(username,display_name,avatar_url)')
+      .eq('type', 'open_call')
+      .eq('event_id', id)
+      .eq('status', 'open')
+      .order('created_at', { ascending: false })
+      .then(({ data }) => setOpenCalls(data ?? []));
   }, [id]);
+
+  async function handleOpenCallSubmit() {
+    if (!user || !ocTitle.trim()) return;
+    setOcSubmitting(true);
+    const { data, error } = await supabase.from('networking_posts').insert({
+      user_id: user.id,
+      type: 'open_call',
+      title: ocTitle.trim(),
+      description: ocDesc.trim() || null,
+      contact_info: ocContact.trim() || null,
+      event_id: Number(id),
+    }).select('*, poster:profiles(username,display_name,avatar_url)').single();
+    if (!error && data) {
+      setOpenCalls(prev => [data, ...prev]);
+      addToast('Open call geplaatst!', 'success');
+      setShowOpenCallForm(false);
+      setOcTitle(''); setOcDesc(''); setOcContact('');
+    } else {
+      addToast('Plaatsen mislukt', 'error');
+    }
+    setOcSubmitting(false);
+  }
 
   const countdown = useCountdown(event?.date || '');
 
@@ -184,6 +230,17 @@ export default function EventDetailPage() {
                 </div>
               </div>
             )}
+            {/* Primary: Get my ticket */}
+            {safeExternalUrl(event.ticket_link) && (
+              <a
+                href={safeExternalUrl(event.ticket_link)!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white transition-all shadow-lg shadow-violet-900/40 text-base mb-3"
+              >
+                <Ticket size={18} /> Haal mijn ticket
+              </a>
+            )}
             <button
               onClick={() => {
                 toggleRsvp(event.id);
@@ -192,19 +249,11 @@ export default function EventDetailPage() {
               className={`w-full py-3 rounded-xl font-semibold transition-colors mb-3 ${
                 rsvpd
                   ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                  : 'bg-violet-600 hover:bg-violet-500 text-white'
+                  : 'bg-white/8 hover:bg-white/12 text-white border border-white/10'
               }`}
             >
               {rsvpd ? '✓ Aangemeld!' : 'Gratis aanmelden'}
             </button>
-            <a
-              href={safeExternalUrl(event.ticket_link) ?? '#'}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold bg-white/8 hover:bg-white/12 text-white transition-colors text-sm"
-            >
-              <ExternalLink size={15} /> Tickets kopen
-            </a>
             <button
               onClick={async () => {
                 const result = await shareContent({
@@ -226,6 +275,117 @@ export default function EventDetailPage() {
             <span className="text-sm font-medium text-violet-400">{event.genre}</span>
           </div>
         </div>
+      </div>
+
+      {/* Open calls */}
+      <div className="mt-10">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Megaphone size={18} className="text-sky-400" />
+            <h2 className="text-base font-semibold text-white">Open Calls</h2>
+            {openCalls.length > 0 && (
+              <span className="text-xs bg-sky-400/10 text-sky-400 border border-sky-400/20 px-2 py-0.5 rounded-full">
+                {openCalls.length}
+              </span>
+            )}
+          </div>
+          {user && (
+            <button
+              onClick={() => setShowOpenCallForm(v => !v)}
+              className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white bg-white/5 hover:bg-white/8 border border-white/10 px-3 py-1.5 rounded-lg transition-all"
+            >
+              <Plus size={14} /> Open call plaatsen
+            </button>
+          )}
+        </div>
+
+        {showOpenCallForm && (
+          <div className="bg-white/3 border border-sky-400/20 rounded-2xl p-5 mb-5">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm font-medium text-white">Nieuwe open call voor dit evenement</p>
+              <button onClick={() => setShowOpenCallForm(false)} className="text-slate-400 hover:text-white">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="space-y-3">
+              <input
+                type="text"
+                value={ocTitle}
+                onChange={e => setOcTitle(e.target.value)}
+                placeholder="Bijv. Zoek support act — elektronisch, 30 min set"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-400 transition-colors"
+              />
+              <textarea
+                value={ocDesc}
+                onChange={e => setOcDesc(e.target.value)}
+                placeholder="Meer details (optioneel)…"
+                rows={2}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-400 transition-colors resize-none"
+              />
+              <input
+                type="text"
+                value={ocContact}
+                onChange={e => setOcContact(e.target.value)}
+                placeholder="Contact: Instagram, e-mail of link (optioneel)"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-400 transition-colors"
+              />
+            </div>
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={() => setShowOpenCallForm(false)}
+                className="px-4 py-2 rounded-xl border border-white/10 text-sm text-slate-300 hover:text-white transition-colors"
+              >
+                Annuleren
+              </button>
+              <button
+                onClick={handleOpenCallSubmit}
+                disabled={ocSubmitting || !ocTitle.trim()}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-white text-sm font-semibold transition-colors disabled:opacity-50"
+              >
+                {ocSubmitting && <Loader2 size={14} className="animate-spin" />}
+                Plaatsen
+              </button>
+            </div>
+          </div>
+        )}
+
+        {openCalls.length === 0 ? (
+          <div className="bg-white/2 border border-white/6 rounded-2xl px-5 py-8 text-center">
+            <Megaphone size={28} className="mx-auto mb-2 text-slate-600" />
+            <p className="text-sm text-slate-500">Nog geen open calls voor dit evenement.</p>
+            {user && !showOpenCallForm && (
+              <button
+                onClick={() => setShowOpenCallForm(true)}
+                className="mt-3 text-sky-400 text-sm hover:underline"
+              >
+                Zoek je een support act, DJ of samenwerking? Plaats een open call.
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {openCalls.map((oc: any) => (
+              <div key={oc.id} className="bg-white/3 border border-white/8 rounded-xl p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-sm font-medium text-white">{oc.title}</p>
+                  <span className="text-[11px] text-slate-500 shrink-0">{timeAgo(oc.created_at)}</span>
+                </div>
+                {oc.description && <p className="text-sm text-slate-400 mt-1.5 leading-relaxed">{oc.description}</p>}
+                {oc.contact_info && (
+                  <p className="text-xs text-sky-400 mt-2">{oc.contact_info}</p>
+                )}
+                {oc.poster && (
+                  <div className="flex items-center gap-2 mt-3 pt-2.5 border-t border-white/6">
+                    <UserAvatar src={oc.poster.avatar_url} name={oc.poster.display_name || oc.poster.username} size={20} />
+                    <Link to={`/profiel/${oc.poster.username}`} className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
+                      {oc.poster.display_name || oc.poster.username}
+                    </Link>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="mt-8">

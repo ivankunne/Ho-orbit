@@ -4,7 +4,7 @@ import {
   TrendingUp, ChevronRight, Flame, Sparkles, Play, Pause,
   MapPin, Newspaper, Map, Users, Music2, Compass,
   Handshake, Star, UserPlus,
-  Building2,
+  Building2, Search, Megaphone,
 } from 'lucide-react';
 import SceneMap from '@components/SceneMap';
 import { getGenreColor } from '@data/genreColors';
@@ -37,6 +37,7 @@ export default function HomePage() {
   const [tracks, setTracks] = useState<any[]>([]);
   const [cities, setCities] = useState<any[]>([]);
   const [newsArticles, setNewsArticles] = useState<any[]>([]);
+  const [localPosts, setLocalPosts] = useState<any[]>([]);
 
   const { user } = useAuth();
   const { playTrack } = usePlayer();
@@ -50,6 +51,12 @@ export default function HomePage() {
     supabase.from('tracks').select('*').or('is_user_upload.is.null,is_user_upload.eq.false,upload_status.eq.approved').order('plays', { ascending: false }).limit(100).then(({ data }) => setTracks((data ?? []).map(t => ({ ...t, artist: t.artist || t.artist_name || '' }))));
     supabase.from('dutch_cities').select('*').limit(6).then(({ data }) => setCities(data ?? []));
     supabase.from('articles').select('*').order('published_at', { ascending: false }).limit(3).then(({ data }) => setNewsArticles(data ?? []));
+    supabase.from('networking_posts')
+      .select('*, poster:profiles(username,display_name,avatar_url)')
+      .eq('status', 'open')
+      .order('created_at', { ascending: false })
+      .limit(6)
+      .then(({ data }) => setLocalPosts(data ?? []));
   }, []);
 
   function matchArtistsForGenre(genreId: string) {
@@ -552,6 +559,63 @@ export default function HomePage() {
             </div>
           </section>
         )}
+
+        {/* ── Support your locals ── */}
+        <section className="pb-12">
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2">
+              <Handshake size={18} className="text-violet-400" />
+              <h2 className="text-xl font-bold text-white">Support your locals</h2>
+            </div>
+            <Link to="/netwerken" className="flex items-center gap-1 text-sm text-violet-400 hover:text-violet-300 transition-colors">
+              Alles bekijken <ChevronRight size={15} />
+            </Link>
+          </div>
+          {localPosts.length === 0 ? (
+            <div className="bg-white/2 border border-white/6 rounded-2xl px-6 py-10 text-center">
+              <Handshake size={32} className="mx-auto mb-3 text-slate-600" />
+              <p className="text-slate-400 font-medium mb-1">Geen posts gevonden</p>
+              <Link to="/netwerken" className="text-violet-400 text-sm hover:underline">
+                Ga naar Netwerken & Uitwisselen →
+              </Link>
+            </div>
+          ) : (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {localPosts.map((post: any) => {
+                const TYPE_COLOR: Record<string, string> = {
+                  wanted:        'text-amber-400 bg-amber-400/10 border-amber-400/20',
+                  jump_on_track: 'text-violet-400 bg-violet-400/10 border-violet-400/20',
+                  open_call:     'text-sky-400 bg-sky-400/10 border-sky-400/20',
+                };
+                const TYPE_LABEL: Record<string, string> = {
+                  wanted: 'Wanted', jump_on_track: 'Jump on a Track', open_call: 'Open Call',
+                };
+                const TypeIcon = post.type === 'wanted' ? Search : post.type === 'jump_on_track' ? Music2 : Megaphone;
+                return (
+                  <Link
+                    key={post.id}
+                    to="/netwerken"
+                    className="block bg-white/3 hover:bg-white/5 border border-white/8 rounded-2xl p-4 transition-all"
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${TYPE_COLOR[post.type] ?? 'text-slate-400 bg-white/5 border-white/10'}`}>
+                        <TypeIcon size={10} />
+                        {TYPE_LABEL[post.type] ?? post.type}
+                      </span>
+                    </div>
+                    <p className="text-sm font-semibold text-white mb-1 line-clamp-2">{post.title}</p>
+                    {post.description && (
+                      <p className="text-xs text-slate-400 line-clamp-2 mb-3">{post.description}</p>
+                    )}
+                    {post.poster && (
+                      <p className="text-xs text-slate-500">{post.poster.display_name || post.poster.username}</p>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </section>
 
         {/* ── Dutch Scene News ── */}
         {newsArticles.length > 0 && (
