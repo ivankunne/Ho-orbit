@@ -220,8 +220,11 @@ function MasterclassCard({ mc }: { mc: Masterclass }) {
 function PlayOverlay({ free }: { free: boolean }) {
   return (
     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-      <div className="w-12 h-12 bg-violet-600 rounded-full flex items-center justify-center">
-        <Play size={20} className="text-white ml-0.5" fill="white" />
+      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${free ? 'bg-violet-600' : 'bg-amber-500'}`}>
+        {free
+          ? <Play size={20} className="text-white ml-0.5" fill="white" />
+          : <Lock size={18} className="text-white" />
+        }
       </div>
     </div>
   );

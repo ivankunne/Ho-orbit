@@ -70,7 +70,7 @@ export default function EventDetailPage() {
     supabase.from('networking_posts')
       .select('*, poster:profiles(username,display_name,avatar_url)')
       .eq('type', 'open_call')
-      .eq('event_id', id)
+      .eq('event_id', Number(id))
       .eq('status', 'open')
       .order('created_at', { ascending: false })
       .then(({ data }) => setOpenCalls(data ?? []));
@@ -185,7 +185,7 @@ export default function EventDetailPage() {
             <div className="mb-6">
               <h2 className="text-base font-semibold text-white mb-3">Optredende artiest</h2>
               <Link
-                to={`/artists/${artist.id}`}
+                to={`/artists/${artist.slug || artist.id}`}
                 className="flex items-center gap-4 p-4 bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl transition-colors"
               >
                 <img src={artist.image_url} alt={artist.name} className="w-14 h-14 rounded-full object-cover" />

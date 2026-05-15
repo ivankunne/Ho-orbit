@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
-  ChevronLeft, Music, Mic2, Calendar, Globe, Newspaper,
-  Video, Send, Loader2, Users, Settings, LogOut, UserPlus,
+  ChevronLeft, Music, Mic2, Globe, Newspaper,
+  Video, Send, Loader2, Users, LogOut, UserPlus,
   Lock, CheckCircle2, X
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -143,6 +143,10 @@ export default function BandSpaceDetailPage() {
     const { error } = await supabase.from('band_members').insert({ band_id: id, user_id: user.id, role: 'member' });
     if (error) { addToast('Deelnemen mislukt', 'error'); setJoining(false); return; }
     setIsMember(true);
+    // Add self to member list so the panel reflects it immediately
+    const { data: myProfile } = await supabase
+      .from('profiles').select('id,username,display_name,avatar_url').eq('id', user.id).single();
+    setMembers(prev => [...prev, { id: crypto.randomUUID(), band_id: id, user_id: user.id, role: 'member', profile: myProfile }]);
     addToast(`Je hebt ${band.name} vervoegd!`, 'success');
     setJoining(false);
     loadMessages();
