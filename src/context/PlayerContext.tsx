@@ -101,8 +101,18 @@ export function PlayerProvider({ children }) {
       }
     };
     const onLoaded = () => {
-      durationRef.current = audio.duration || 0;
-      notifyProgress();
+      if (audio.duration && isFinite(audio.duration)) {
+        durationRef.current = audio.duration;
+        notifyProgress();
+      }
+    };
+    // durationchange fires whenever the browser refines its duration estimate,
+    // which corrects VBR files that give a wrong value at loadedmetadata time.
+    const onDurationChange = () => {
+      if (audio.duration && isFinite(audio.duration)) {
+        durationRef.current = audio.duration;
+        notifyProgress();
+      }
     };
     const onEnded = () => {
       if (repeatMode === 'one') {
@@ -123,12 +133,14 @@ export function PlayerProvider({ children }) {
 
     audio.addEventListener('timeupdate', onTimeUpdate);
     audio.addEventListener('loadedmetadata', onLoaded);
+    audio.addEventListener('durationchange', onDurationChange);
     audio.addEventListener('ended', onEnded);
     audio.addEventListener('error', onError);
 
     return () => {
       audio.removeEventListener('timeupdate', onTimeUpdate);
       audio.removeEventListener('loadedmetadata', onLoaded);
+      audio.removeEventListener('durationchange', onDurationChange);
       audio.removeEventListener('ended', onEnded);
       audio.removeEventListener('error', onError);
     };

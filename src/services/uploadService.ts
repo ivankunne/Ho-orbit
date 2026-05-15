@@ -50,8 +50,11 @@ async function getAudioDuration(file: File): Promise<string> {
   return new Promise(resolve => {
     const audio = new Audio();
     const url = URL.createObjectURL(file);
+    let done = false;
 
     const finish = () => {
+      if (done) return;
+      done = true;
       URL.revokeObjectURL(url);
       const total = Math.round(audio.duration);
       if (!isFinite(total) || total <= 0) { resolve('0:00'); return; }
@@ -59,13 +62,10 @@ async function getAudioDuration(file: File): Promise<string> {
     };
 
     audio.onloadedmetadata = () => {
-      if (!isFinite(audio.duration)) {
-        // VBR file without accurate header — seek to end to force the browser to
-        // scan the file and report the real duration via the 'seeked' event.
-        audio.currentTime = 1e101;
-      } else {
-        finish();
-      }
+      // Always seek to the end of the local blob so the browser scans the full
+      // file and reports the true duration — VBR files give a wrong finite
+      // estimate at loadedmetadata time that only resolves after a full scan.
+      audio.currentTime = 1e101;
     };
     audio.onseeked = finish;
     audio.onerror = () => { URL.revokeObjectURL(url); resolve('0:00'); };
