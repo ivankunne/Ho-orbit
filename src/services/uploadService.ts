@@ -141,6 +141,16 @@ export async function uploadTrack({
     .select()
     .single();
   if (error || !data) throw new Error(error?.message || 'Opslaan in database mislukt');
+
+  // Promote uploader to Artiest role so they appear on the artists page
+  if (isUUID(userId)) {
+    await supabase
+      .from('profiles')
+      .update({ role: 'Artiest' })
+      .eq('id', userId)
+      .neq('role', 'Artiest'); // no-op if already set
+  }
+
   return mapTrack(data);
 }
 

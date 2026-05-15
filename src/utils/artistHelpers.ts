@@ -38,11 +38,11 @@ export function mapProfileToArtist(p: any) {
 }
 
 export async function fetchArtistProfiles(limit = 50): Promise<any[]> {
-  // Primary: profiles of users who have uploaded approved tracks
+  // Primary: profiles of users who have uploaded tracks (any non-rejected status)
   const { data: trackRows } = await supabase
     .from('tracks')
     .select('uploaded_by')
-    .eq('upload_status', 'approved')
+    .in('upload_status', ['approved', 'pending'])
     .not('uploaded_by', 'is', null);
 
   const ids = [...new Set((trackRows ?? []).map((r: any) => r.uploaded_by).filter(Boolean))];
