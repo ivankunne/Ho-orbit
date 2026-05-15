@@ -27,8 +27,8 @@ export function mapProfileToArtist(p: any) {
     location: p.location || 'Nederland',
     bio: p.bio || '',
     verified: p.verified || false,
-    followers_count: p.followers_count || p.followers || 0,
-    monthly_listeners: p.followers_count || p.followers || 0,
+    followers_count: p.followers || 0,
+    monthly_listeners: p.followers || 0,
     social: p.social || {},
     tags: genreIds.map(id => GENRE_MAP[id] || id),
     featured: false,
@@ -38,44 +38,37 @@ export function mapProfileToArtist(p: any) {
 }
 
 export async function fetchArtistProfiles(limit = 50): Promise<any[]> {
-  // Collect IDs from two sources in parallel, then merge
-  const [trackResult, roleResult] = await Promise.all([
-    supabase
-      .from('tracks')
-      .select('uploaded_by')
-      .eq('upload_status', 'approved')
-      .not('uploaded_by', 'is', null),
-    supabase
-      .from('profiles')
-      .select('*')
-      .eq('role', 'Artiest')
-      .order('followers_count', { ascending: false })
-      .limit(limit),
-  ]);
+  // Get uploaded_by IDs from all approved tracks
+  const { data: trackRows } = await supabase
+    .from('tracks')
+    .select('uploaded_by')
+    .eq('upload_status', 'approved')
+    .not('uploaded_by', 'is', null);
 
   const uploadIds = [...new Set(
-    (trackResult.data ?? []).map((r: any) => r.uploaded_by).filter(Boolean)
+    (trackRows ?? []).map((r: any) => r.uploaded_by).filter(Boolean)
   )];
 
-  // Start with role-based profiles
-  const seen = new Set<string>();
-  const combined: any[] = [];
-  for (const p of roleResult.data ?? []) {
-    if (!seen.has(p.id)) { seen.add(p.id); combined.push(p); }
-  }
-
-  // Merge in profiles that have approved tracks but might lack the role
+  // If there are uploaders with approved tracks, fetch their profiles directly —
+  // no dependency on the role column at all
   if (uploadIds.length > 0) {
-    const { data: uploadProfiles } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .in('id', uploadIds)
-      .order('followers_count', { ascending: false })
+      .order('followers', { ascending: false })
       .limit(limit);
-    for (const p of uploadProfiles ?? []) {
-      if (!seen.has(p.id)) { seen.add(p.id); combined.push(p); }
-    }
+
+    if (!error && data && data.length > 0) return data.map(mapProfileToArtist);
   }
 
-  return combined.map(mapProfileToArtist);
+  // Fallback: profiles explicitly marked as Artiest (e.g. manually set)
+  const { data: fallback } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('role', 'Artiest')
+    .order('followers', { ascending: false })
+    .limit(limit);
+
+  return (fallback ?? []).map(mapProfileToArtist);
 }
