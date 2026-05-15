@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   Play, Heart, Share2, MapPin, Users, Music, BadgeCheck,
-  Globe, Calendar, ChevronLeft, ExternalLink
+  Calendar, ChevronLeft, ExternalLink, MessageSquare, Loader2
 } from 'lucide-react';
 import { getGenreColor } from '@data/genreColors';
 import { useAppState } from '@context/AppStateContext';
 import { usePlayer } from '@context/PlayerContext';
+import { useAuth } from '@context/AuthContext';
 import { useToast } from '@components/Toast';
 import { shareContent, buildShareUrl } from '@utils/share';
 import { getWaveform } from '@components/Waveform';
@@ -14,17 +15,21 @@ import { formatPlays } from '@utils/format';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@components/ui/tabs';
 import { supabase } from '@/lib/supabase';
 import { mapProfileToArtist } from '@utils/artistHelpers';
+import { getOrCreateConversation } from '@services/chatService';
 
 export default function ArtistDetailPage() {
-  const { id } = useParams();
+  const { slug } = useParams();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('nummers');
   const [activeTrack, setActiveTrack] = useState(0);
   const [artist, setArtist] = useState<any>(null);
   const [artistEvents, setArtistEvents] = useState<any[]>([]);
   const [uploadedTracks, setUploadedTracks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [startingChat, setStartingChat] = useState(false);
 
   const { followedArtists, toggleFollow, likedTracks, toggleLike } = useAppState();
+  const { user } = useAuth();
   const addToast = useToast();
   const { playTrack, track: currentTrack } = usePlayer();
 
@@ -33,16 +38,20 @@ export default function ArtistDetailPage() {
 
     async function load() {
       let artistData: any = null;
-      let isProfileArtist = false;
 
-      const { data } = await supabase.from('artists').select('*').eq('id', id).single();
-      if (data) {
-        artistData = data;
+      // Look up by slug first, fall back to numeric id for old links
+      const bySlug = await supabase.from('artists').select('*').eq('slug', slug).single();
+      if (bySlug.data) {
+        artistData = bySlug.data;
       } else {
-        const { data: profileData } = await supabase.from('profiles').select('*').eq('id', id).single();
-        if (profileData) {
-          artistData = mapProfileToArtist(profileData);
-          isProfileArtist = true;
+        // Try numeric id (backward compat)
+        const byId = await supabase.from('artists').select('*').eq('id', slug).single();
+        if (byId.data) {
+          artistData = byId.data;
+        } else {
+          // Fall back to profiles by username
+          const { data: profileData } = await supabase.from('profiles').select('*').eq('username', slug).single();
+          if (profileData) artistData = mapProfileToArtist(profileData);
         }
       }
 
@@ -54,9 +63,10 @@ export default function ArtistDetailPage() {
         supabase.from('events').select('*').eq('artist_id', artistData.id)
           .then(({ data: evts }) => { if (active) setArtistEvents(evts ?? []); });
 
+        // Fetch approved tracks: prefer profile_id link, fall back to name match
         const tracksQuery = supabase.from('tracks').select('*').eq('upload_status', 'approved');
-        (isProfileArtist
-          ? tracksQuery.eq('uploaded_by', id)
+        (artistData.profile_id
+          ? tracksQuery.eq('uploaded_by', artistData.profile_id)
           : tracksQuery.ilike('artist_name', artistData.name)
         ).order('created_at', { ascending: false })
           .then(({ data: uTracks }) => { if (active) setUploadedTracks(uTracks ?? []); });
@@ -65,7 +75,7 @@ export default function ArtistDetailPage() {
 
     load();
     return () => { active = false; };
-  }, [id]);
+  }, [slug]);
 
   if (loading) return null;
 
@@ -79,6 +89,15 @@ export default function ArtistDetailPage() {
   }
 
   const following = followedArtists.includes(artist.id);
+  const canMessage = !!user && !!artist.profile_id && artist.profile_id !== user.id;
+
+  async function handleMessage() {
+    if (!user || !artist.profile_id) return;
+    setStartingChat(true);
+    const convId = await getOrCreateConversation(user.id, artist.profile_id);
+    setStartingChat(false);
+    if (convId) navigate(`/berichten/${convId}`);
+  }
 
   // Build full track objects for the player from artist.tracks (JSONB array)
   const artistTracks: any[] = Array.isArray(artist.tracks) ? artist.tracks : [];
@@ -181,12 +200,25 @@ export default function ArtistDetailPage() {
             >
               {following ? 'Volgend' : 'Volgen'}
             </button>
+            {canMessage && (
+              <button
+                onClick={handleMessage}
+                disabled={startingChat}
+                className="flex items-center gap-2 bg-white/8 hover:bg-violet-600/20 border border-white/20 hover:border-violet-500/50 text-slate-300 hover:text-white font-medium px-4 py-2 rounded-xl transition-all disabled:opacity-50"
+              >
+                {startingChat
+                  ? <Loader2 size={16} className="animate-spin" />
+                  : <MessageSquare size={16} />
+                }
+                <span className="hidden sm:inline">Stuur bericht</span>
+              </button>
+            )}
             <button
               onClick={async () => {
                 const result = await shareContent({
                   title: artist.name,
                   text: `Ontdek ${artist.name} op h-orbit`,
-                  url: buildShareUrl(`/artists/${artist.id}`),
+                  url: buildShareUrl(`/artists/${artist.slug || artist.id}`),
                 });
                 if (result === 'copied') addToast('Link gekopieerd naar klembord!', 'success');
                 else if (result === 'shared') addToast('Gedeeld!', 'success');

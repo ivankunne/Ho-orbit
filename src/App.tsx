@@ -181,7 +181,7 @@ function ProtectedApp() {
               <Route path="/radio" element={<RadioPage />} />
               <Route path="/muziek" element={<HomePage />} />
               <Route path="/artists" element={<ArtistsPage />} />
-              <Route path="/artists/:id" element={<ArtistDetailPage />} />
+              <Route path="/artists/:slug" element={<ArtistDetailPage />} />
               <Route path="/events" element={<EventsPage />} />
               <Route path="/events/:id" element={<EventDetailPage />} />
               <Route path="/magazine" element={<MagazinePage />} />

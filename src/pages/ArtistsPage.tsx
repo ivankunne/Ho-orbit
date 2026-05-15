@@ -100,7 +100,7 @@ export default function ArtistsPage() {
                       <p className="text-xs text-slate-400">Volgers</p>
                     </div>
                     <Link
-                      to={`/artists/${featuredArtist.id}`}
+                      to={`/artists/${featuredArtist.slug || featuredArtist.id}`}
                       className="ml-4 flex items-center gap-1.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
                     >
                       Bekijk profiel <ChevronRight size={15} />
@@ -181,7 +181,7 @@ export default function ArtistsPage() {
           return (
             <Link
               key={artist.id}
-              to={`/artists/${artist.id}`}
+              to={`/artists/${artist.slug || artist.id}`}
               className="group bg-white/3 hover:bg-white/6 border border-white/5 rounded-2xl overflow-hidden transition-all hover:-translate-y-0.5"
             >
               <div className="relative h-48 overflow-hidden">

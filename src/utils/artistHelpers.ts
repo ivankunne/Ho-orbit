@@ -1,5 +1,14 @@
 import { supabase } from '@/lib/supabase';
 
+export function toSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')  // strip diacritics
+    .replace(/[^a-z0-9]+/g, '-')      // non-alphanumeric → dash
+    .replace(/^-+|-+$/g, '');         // trim leading/trailing dashes
+}
+
 export const GENRE_MAP: Record<string, string> = {
   nederpop: 'Nederpop',
   hiphop: 'Hip-Hop',
@@ -15,10 +24,12 @@ export const GENRE_MAP: Record<string, string> = {
 
 function mapArtistRow(a: any) {
   const seed = String(a.id);
+  const name = a.name || 'Artiest';
   return {
     id: a.id,
+    slug: a.slug || toSlug(name),
     profile_id: a.profile_id ?? null,
-    name: a.name || 'Artiest',
+    name,
     username: a.username || null,
     image_url: a.image_url || `https://picsum.photos/seed/${seed}/200/200`,
     cover_url: a.cover_url || `https://picsum.photos/seed/${seed}_cover/800/300`,
@@ -90,12 +101,14 @@ export async function upsertArtistFromProfile(
     .eq('id', userId)
     .single();
 
+  const name = profile?.display_name || artistName || 'Artiest';
   const { error } = await supabase
     .from('artists')
     .upsert(
       {
         profile_id: userId,
-        name: profile?.display_name || artistName || 'Artiest',
+        name,
+        slug: toSlug(name),
         genre: genre || 'Overig',
         location: profile?.location || 'Nederland',
         followers_count: profile?.followers_count || 0,
