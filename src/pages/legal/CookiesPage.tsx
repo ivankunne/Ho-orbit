@@ -79,7 +79,7 @@ export default function CookiesPage() {
             Voor meer informatie over hoe wij omgaan met uw gegevens verwijzen wij u naar ons{' '}
             <a href="/privacy" className="text-violet-400 hover:underline">Privacybeleid</a>.
             Voor vragen over cookies kunt u contact opnemen via{' '}
-            <a href="mailto:privacy@h-orbit.nl" className="text-violet-400 hover:underline">privacy@h-orbit.nl</a>.
+            <a href="mailto:info@h-orbit.nl" className="text-violet-400 hover:underline">info@h-orbit.nl</a>.
           </p>
         </Section>
 

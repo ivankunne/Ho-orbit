@@ -9,7 +9,7 @@ export default function PrivacyPage() {
         <Section title="1. Wie zijn wij?">
           <p>
             H-orbit is een Nederlands muziekplatform voor de ontdekking en deling van muziek, evenementen en community-activiteiten. Voor vragen over uw persoonsgegevens kunt u contact opnemen via{' '}
-            <a href="mailto:privacy@h-orbit.nl" className="text-violet-400 hover:underline">privacy@h-orbit.nl</a>.
+            <a href="mailto:info@h-orbit.nl" className="text-violet-400 hover:underline">info@h-orbit.nl</a>.
           </p>
         </Section>
 
@@ -84,7 +84,7 @@ export default function PrivacyPage() {
             <li><strong>Recht van bezwaar</strong> (art. 21 AVG) — U kunt bezwaar maken tegen verwerking op basis van gerechtvaardigd belang.</li>
           </ul>
           <p>
-            Dien uw verzoek in via <a href="mailto:privacy@h-orbit.nl" className="text-violet-400 hover:underline">privacy@h-orbit.nl</a>. Wij reageren binnen <strong>30 dagen</strong>. Wij kunnen u vragen uw identiteit te bevestigen voordat wij uw verzoek verwerken.
+            Dien uw verzoek in via <a href="mailto:info@h-orbit.nl" className="text-violet-400 hover:underline">info@h-orbit.nl</a>. Wij reageren binnen <strong>30 dagen</strong>. Wij kunnen u vragen uw identiteit te bevestigen voordat wij uw verzoek verwerken.
           </p>
         </Section>
 

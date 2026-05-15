@@ -54,7 +54,7 @@ export default function TermsPage() {
         <Section title="6. Auteursrecht en DMCA/Notice & Takedown">
           <p>
             H-orbit respecteert intellectuele-eigendomsrechten. Als u van mening bent dat via H-orbit inbreuk wordt gemaakt op uw auteursrechten, kunt u een melding sturen naar{' '}
-            <a href="mailto:copyright@h-orbit.nl" className="text-violet-400 hover:underline">copyright@h-orbit.nl</a>{' '}
+            <a href="mailto:info@h-orbit.nl" className="text-violet-400 hover:underline">info@h-orbit.nl</a>{' '}
             met daarin: uw contactgegevens, een beschrijving van het beschermde werk, de locatie van de inbreuk, en een verklaring dat de melding te goeder trouw wordt gedaan. Wij handelen meldingen af conform de geldende wetgeving.
           </p>
         </Section>
