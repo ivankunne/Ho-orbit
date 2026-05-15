@@ -14,6 +14,18 @@ import UserAvatar from '@components/UserAvatar';
 import { useRadio } from '@context/RadioContext';
 import SearchOverlay from '../SearchOverlay';
 import NotificationsPanel, { useNotificationCount } from '../NotificationsPanel';
+import { getUnreadMessageCount } from '@services/chatService';
+
+function useUnreadMessageCount(userId: string | undefined): number {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (!userId) { setCount(0); return; }
+    getUnreadMessageCount(userId).then(setCount);
+    const interval = setInterval(() => getUnreadMessageCount(userId).then(setCount), 30000);
+    return () => clearInterval(interval);
+  }, [userId]);
+  return count;
+}
 
 const navItems = [
   { label: 'Muziek', path: '/muziek', icon: Home },
@@ -95,6 +107,7 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
   }, [externalShowSearch]);
 
   const unreadCount = useNotificationCount(user?.id);
+  const unreadMessages = useUnreadMessageCount(user?.id);
   const [theme, setThemeState] = useThemeState(() => getTheme());
 
   const handleToggleTheme = () => {
@@ -359,6 +372,19 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
                           <Library size={15} className="text-slate-500" /> Mijn bibliotheek
                         </Link>
                         <Link
+                          to="/berichten"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-3 w-full px-3 py-2 text-sm text-slate-300 hover:bg-white/5 rounded-lg transition-colors"
+                        >
+                          <MessageSquare size={15} className="text-slate-500" />
+                          <span className="flex-1">Berichten</span>
+                          {unreadMessages > 0 && (
+                            <span className="min-w-[18px] h-[18px] bg-violet-600 rounded-full text-[10px] font-bold text-white flex items-center justify-center px-1">
+                              {unreadMessages > 9 ? '9+' : unreadMessages}
+                            </span>
+                          )}
+                        </Link>
+                        <Link
                           to="/upload"
                           onClick={() => setUserMenuOpen(false)}
                           className="flex items-center gap-3 w-full px-3 py-2 text-sm text-slate-300 hover:bg-white/5 rounded-lg transition-colors"
@@ -530,6 +556,19 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
                 >
                   <Library size={16} /> Mijn bibliotheek
+                </Link>
+                <Link
+                  to="/berichten"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                >
+                  <MessageSquare size={16} />
+                  <span className="flex-1">Berichten</span>
+                  {unreadMessages > 0 && (
+                    <span className="min-w-[18px] h-[18px] bg-violet-600 rounded-full text-[10px] font-bold text-white flex items-center justify-center px-1">
+                      {unreadMessages > 9 ? '9+' : unreadMessages}
+                    </span>
+                  )}
                 </Link>
                 <Link
                   to="/upload"

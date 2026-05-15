@@ -59,6 +59,8 @@ const LandingPage = lazy(() => import('@pages/LandingPage'));
 const HubPage = lazy(() => import('@pages/HubPage'));
 const AdminPage = lazy(() => import('@pages/AdminPage'));
 const RadioPage = lazy(() => import('@pages/RadioPage'));
+const MessagesPage = lazy(() => import('@pages/MessagesPage'));
+const ConversationPage = lazy(() => import('@pages/ConversationPage'));
 
 function PageLoader() {
   return (
@@ -200,6 +202,8 @@ function ProtectedApp() {
               <Route path="/profiel" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
               <Route path="/profiel/:username" element={<ProfilePage />} />
               <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
+              <Route path="/berichten" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
+              <Route path="/berichten/:id" element={<ProtectedRoute><ConversationPage /></ProtectedRoute>} />
               <Route path="/admin" element={user?.isAdmin ? <AdminPage /> : <Navigate to="/" replace />} />
 
               <Route path="*" element={<NotFoundPage />} />

@@ -3,7 +3,7 @@ import { Check, ChevronRight, Music, Headphones, Radio, Mic2, Newspaper, MapPin 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@components/ui/dialog';
 
 const GENRES = [
-  { id: 'nederpop',   label: 'Nederpop',       emoji: '🎤' },
+  { id: 'pop',        label: 'Pop',             emoji: '🎤' },
   { id: 'hiphop',     label: 'Hip-Hop',         emoji: '🎧' },
   { id: 'jazz',       label: 'Jazz',            emoji: '🎷' },
   { id: 'elektronisch', label: 'Elektronisch',  emoji: '🎛️' },

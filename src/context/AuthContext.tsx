@@ -41,6 +41,23 @@ function translateError(msg: string): string {
   return msg;
 }
 
+function profileCacheKey(userId: string) { return `ho_profile_${userId}`; }
+
+function saveProfileCache(userId: string, data: any) {
+  try { localStorage.setItem(profileCacheKey(userId), JSON.stringify(data)); } catch {}
+}
+
+function loadProfileCache(userId: string): any | null {
+  try {
+    const s = localStorage.getItem(profileCacheKey(userId));
+    return s ? JSON.parse(s) : null;
+  } catch { return null; }
+}
+
+function clearProfileCache(userId: string) {
+  try { localStorage.removeItem(profileCacheKey(userId)); } catch {}
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -54,31 +71,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (active) { setUser(null); setLoading(false); }
         return;
       }
+      const uid = session.user.id;
       try {
         const result = await Promise.race([
-          supabase.from('profiles').select('*').eq('id', session.user.id).single(),
+          supabase.from('profiles').select('*').eq('id', uid).single(),
           new Promise<never>((_, r) => setTimeout(() => r(new Error('timeout')), 4_000)),
         ]);
         if (active) {
           if (result.error) {
-            // DB error — use auth metadata, retry profile in background
-            setUser(mapProfile(null, session.user));
+            // DB error — use cache or auth metadata, retry profile in background
+            const cached = loadProfileCache(uid);
+            setUser(mapProfile(cached, session.user));
             setLoading(false);
-            supabase.from('profiles').select('*').eq('id', session.user.id).single()
-              .then(({ data }) => { if (active && data) setUser(mapProfile(data, session.user)); })
+            supabase.from('profiles').select('*').eq('id', uid).single()
+              .then(({ data }) => {
+                if (active && data) {
+                  saveProfileCache(uid, data);
+                  setUser(mapProfile(data, session.user));
+                }
+              })
               .catch(() => {});
           } else {
+            saveProfileCache(uid, result.data);
             setUser(mapProfile(result.data, session.user));
             setLoading(false);
           }
         }
       } catch {
-        // Timeout — use auth metadata immediately, retry profile in background
+        // Timeout — use cache immediately so avatar/role don't flash, retry in background
         if (active) {
-          setUser(mapProfile(null, session.user));
+          const cached = loadProfileCache(uid);
+          setUser(mapProfile(cached, session.user));
           setLoading(false);
-          supabase.from('profiles').select('*').eq('id', session.user.id).single()
-            .then(({ data }) => { if (active && data) setUser(mapProfile(data, session.user)); })
+          supabase.from('profiles').select('*').eq('id', uid).single()
+            .then(({ data }) => {
+              if (active && data) {
+                saveProfileCache(uid, data);
+                setUser(mapProfile(data, session.user));
+              }
+            })
             .catch(() => {});
         }
       }
@@ -207,6 +238,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
+    if (user?.id) clearProfileCache(user.id);
     await supabase.auth.signOut();
     setUser(null);
   };
@@ -218,7 +250,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       'needsOnboarding', 'role', 'discoverPrefs',
     ];
     const safe = Object.fromEntries(Object.entries(updates).filter(([k]) => EDITABLE.includes(k)));
-    setUser((prev: any) => ({ ...prev, ...safe }));
+    setUser((prev: any) => {
+      const next = { ...prev, ...safe };
+      // Keep cache in sync so avatar/role survive hard refreshes
+      if (prev?.id) {
+        const cached = loadProfileCache(prev.id);
+        if (cached) {
+          const fieldMap: Record<string, string> = {
+            avatar: 'avatar_url', banner: 'banner_url', displayName: 'display_name',
+            bio: 'bio', location: 'location', role: 'role',
+            preferredGenres: 'preferred_genres', social: 'social',
+            bookingInfo: 'booking_info', needsOnboarding: 'needs_onboarding',
+          };
+          for (const [k, v] of Object.entries(safe)) {
+            if (fieldMap[k]) cached[fieldMap[k]] = v;
+          }
+          saveProfileCache(prev.id, cached);
+        }
+      }
+      return next;
+    });
   };
 
   return (

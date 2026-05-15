@@ -139,10 +139,14 @@ export default function EventsPage() {
   const { rsvpEvents, toggleRsvp } = useAppState();
   const addToast = useToast();
 
-  useEffect(() => {
-    supabase.from('events').select('*').then(({ data }) => {
+  function fetchEvents() {
+    supabase.from('events').select('*').order('date', { ascending: true }).then(({ data }) => {
       if (data) setEvents(data);
     });
+  }
+
+  useEffect(() => {
+    fetchEvents();
   }, []);
 
   useEffect(() => {
@@ -224,7 +228,7 @@ export default function EventsPage() {
       )}
 
       {view === 'calendar' && <CalendarView events={events} rsvpEvents={rsvpEvents} onRsvp={handleRsvp} />}
-      {view === 'create' && <CreateEventForm />}
+      {view === 'create' && <CreateEventForm onCreated={() => { fetchEvents(); setView('list'); }} />}
     </div>
   );
 }
@@ -328,7 +332,7 @@ function CalendarView({ events, rsvpEvents, onRsvp }) {
   );
 }
 
-function CreateEventForm() {
+function CreateEventForm({ onCreated }: { onCreated?: () => void }) {
   const { user } = useAuth();
   const addToast = useToast();
   const [form, setForm] = useState({
@@ -356,13 +360,14 @@ function CreateEventForm() {
         description: form.description || null,
         price: form.price || null,
         ticket_link: form.ticketLink || null,
-        status: 'pending',
+        status: 'approved',
         featured: false,
         attendees_count: 0,
         ...(user?.id ? { submitted_by: user.id } : {}),
       });
       if (error) throw error;
       setSubmitted(true);
+      if (onCreated) onCreated();
     } catch (err: any) {
       addToast(err?.message ?? 'Opslaan mislukt. Probeer het opnieuw.', 'error');
     } finally {
@@ -375,7 +380,7 @@ function CreateEventForm() {
       <div className="text-center py-16">
         <div className="text-5xl mb-4">🎉</div>
         <h2 className="text-xl font-bold text-white mb-2">Evenement aangemaakt!</h2>
-        <p className="text-slate-400 mb-6">Je evenement is ingediend en wordt beoordeeld.</p>
+        <p className="text-slate-400 mb-6">Je evenement is toegevoegd aan de lijst.</p>
         <button onClick={() => setSubmitted(false)} className="bg-violet-600 hover:bg-violet-500 text-white font-semibold px-6 py-3 rounded-xl transition-colors">
           Nog een evenement aanmaken
         </button>

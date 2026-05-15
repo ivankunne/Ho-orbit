@@ -11,6 +11,7 @@ export async function updateProfile(userId: string, updates: Record<string, unkn
     bookingInfo: 'booking_info',
     preferredGenres: 'preferred_genres',
     notifications: 'notification_prefs',
+    role: 'role',
   };
   const dbUpdates: Record<string, unknown> = {};
   for (const [key, val] of Object.entries(updates)) {
@@ -31,7 +32,7 @@ export async function updatePreferences(userId: string, preferences: Record<stri
 export async function uploadAvatar(userId: string, file: File): Promise<string> {
   const ext = file.name.split('.').pop() ?? 'jpg';
   const path = `avatars/${userId}_${Date.now()}.${ext}`;
-  const { error } = await supabase.storage.from('audio').upload(path, file, { contentType: file.type });
+  const { error } = await supabase.storage.from('audio').upload(path, file, { contentType: file.type, upsert: true });
   if (error) throw error;
   const { data } = supabase.storage.from('audio').getPublicUrl(path);
   await supabase.from('profiles').update({ avatar_url: data.publicUrl }).eq('id', userId);
@@ -41,7 +42,7 @@ export async function uploadAvatar(userId: string, file: File): Promise<string> 
 export async function uploadBanner(userId: string, file: File): Promise<string> {
   const ext = file.name.split('.').pop() ?? 'jpg';
   const path = `banners/${userId}_${Date.now()}.${ext}`;
-  const { error } = await supabase.storage.from('audio').upload(path, file, { contentType: file.type });
+  const { error } = await supabase.storage.from('audio').upload(path, file, { contentType: file.type, upsert: true });
   if (error) throw error;
   const { data } = supabase.storage.from('audio').getPublicUrl(path);
   await supabase.from('profiles').update({ banner_url: data.publicUrl }).eq('id', userId);

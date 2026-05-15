@@ -47,31 +47,19 @@ function withTimeout<T>(promise: Promise<T>, ms: number, msg: string): Promise<T
 }
 
 async function getAudioDuration(file: File): Promise<string> {
-  return new Promise(resolve => {
-    const audio = new Audio();
-    const url = URL.createObjectURL(file);
-    let done = false;
-
-    const finish = () => {
-      if (done) return;
-      done = true;
-      URL.revokeObjectURL(url);
-      const total = Math.round(audio.duration);
-      if (!isFinite(total) || total <= 0) { resolve('0:00'); return; }
-      resolve(`${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`);
-    };
-
-    audio.onloadedmetadata = () => {
-      // Always seek to the end of the local blob so the browser scans the full
-      // file and reports the true duration — VBR files give a wrong finite
-      // estimate at loadedmetadata time that only resolves after a full scan.
-      audio.currentTime = 1e101;
-    };
-    audio.onseeked = finish;
-    audio.onerror = () => { URL.revokeObjectURL(url); resolve('0:00'); };
-    audio.src = url;
-    audio.load();
-  });
+  try {
+    // decodeAudioData reads exact sample count — immune to VBR estimation errors
+    // that the HTML Audio element's loadedmetadata commonly gets wrong.
+    const arrayBuffer = await file.arrayBuffer();
+    const ctx = new AudioContext();
+    const buffer = await ctx.decodeAudioData(arrayBuffer);
+    ctx.close();
+    const total = Math.round(buffer.duration);
+    if (total <= 0) return '0:00';
+    return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+  } catch {
+    return '0:00';
+  }
 }
 
 async function uploadAudioFile(file: File, trackTitle: string): Promise<string> {

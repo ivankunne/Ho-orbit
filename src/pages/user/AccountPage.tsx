@@ -34,7 +34,7 @@ const SOCIAL_PLATFORMS = [
 ];
 
 const ALL_GENRES = [
-  { id: 'nederpop', label: 'Nederpop' },
+  { id: 'pop', label: 'Pop' },
   { id: 'hiphop', label: 'Hip-Hop' },
   { id: 'elektronisch', label: 'Elektronisch' },
   { id: 'jazz', label: 'Jazz' },
@@ -159,12 +159,21 @@ export default function AccountPage() {
 }
 
 /* ─── Profiel ─────────────────────────────────────────────── */
+const ALL_ROLES = [
+  { value: 'Luisteraar', label: 'Luisteraar' },
+  { value: 'Artiest', label: 'Artiest' },
+  { value: 'Producer', label: 'Producer' },
+  { value: 'Journalist', label: 'Journalist' },
+  { value: 'Organisator', label: 'Organisator' },
+];
+
 function ProfielSection({ user, updateProfile, userId }: { user: any; updateProfile: (u: any) => void; userId: string | null }) {
   const [form, setForm] = useState({
     displayName: user?.displayName || '',
     bio: user?.bio || '',
     location: user?.location || '',
     email: user?.email || '',
+    role: user?.role || 'Luisteraar',
     preferredGenres: user?.preferredGenres || [],
     social: user?.social ?? {},
     bookingInfo: user?.bookingInfo ?? {},
@@ -267,6 +276,20 @@ function ProfielSection({ user, updateProfile, userId }: { user: any; updateProf
             onChange={e => set('location', e.target.value)}
             placeholder="bijv. Amsterdam, Nederland"
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-300 mb-2">Rol</label>
+          <Select value={form.role} onValueChange={v => set('role', v)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ALL_ROLES.map(r => (
+                <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div>

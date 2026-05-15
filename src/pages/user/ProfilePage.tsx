@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { MapPin, Users, Music, Calendar, Heart, BadgeCheck, Settings, Share2, TrendingUp, Play, BarChart2, Clock, ExternalLink, Mail, Phone, Briefcase } from 'lucide-react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { MapPin, Users, Music, Calendar, Heart, BadgeCheck, Settings, Share2, TrendingUp, Play, BarChart2, Clock, ExternalLink, Mail, Phone, Briefcase, MessageSquare } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
 import UserAvatar from '@components/UserAvatar';
 import { useAppState } from '@context/AppStateContext';
 import { supabase } from '@/lib/supabase';
 import { mapProfileToArtist } from '@utils/artistHelpers';
 import { getUploadedTracks, type UploadedTrack } from '@services/uploadService';
+import { getOrCreateConversation } from '@services/chatService';
 
 
 const PLATFORM_CONFIG: Record<string, { label: string; badge: string; color: string; buildUrl: (v: string) => string }> = {
@@ -43,6 +44,16 @@ export default function ProfilePage() {
   const [profileLoading, setProfileLoading] = useState(false);
 
   const isOwnProfile = !username || username === currentUser?.username;
+  const navigate = useNavigate();
+  const [startingChat, setStartingChat] = useState(false);
+
+  async function handleStartChat() {
+    if (!currentUser?.id || !otherProfile?.id) return;
+    setStartingChat(true);
+    const convId = await getOrCreateConversation(currentUser.id, otherProfile.id);
+    setStartingChat(false);
+    if (convId) navigate(`/berichten/${convId}`);
+  }
 
   // Derive follow state from the persisted followedArtists list
   const isFollowingOther = otherProfile ? followedArtists.includes(otherProfile.id) : false;
@@ -173,6 +184,16 @@ export default function ProfilePage() {
                 >
                   {isFollowingOther ? 'Volgend' : 'Volgen'}
                 </button>
+                {currentUser && (
+                  <button
+                    onClick={handleStartChat}
+                    disabled={startingChat}
+                    className="flex items-center gap-1.5 p-2 px-3 rounded-xl border border-white/20 text-slate-300 hover:text-white hover:border-violet-500/50 hover:bg-violet-600/10 transition-colors text-sm disabled:opacity-50"
+                  >
+                    <MessageSquare size={15} />
+                    <span className="hidden sm:inline">Bericht</span>
+                  </button>
+                )}
                 <button className="p-2 rounded-xl border border-white/20 text-slate-400 hover:text-white transition-colors">
                   <Share2 size={16} />
                 </button>

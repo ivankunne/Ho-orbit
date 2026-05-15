@@ -4,7 +4,7 @@ import { useAuth } from '@context/AuthContext';
 import { supabase } from '@lib/supabase';
 
 const GENRES = [
-  { id: 'nederpop',   label: 'Nederpop',      color: 'bg-pink-500/15 border-pink-500/30 text-pink-300' },
+  { id: 'pop',        label: 'Pop',            color: 'bg-pink-500/15 border-pink-500/30 text-pink-300' },
   { id: 'hiphop',     label: 'Hip-Hop',        color: 'bg-purple-500/15 border-purple-500/30 text-purple-300' },
   { id: 'elektronisch', label: 'Elektronisch', color: 'bg-blue-500/15 border-blue-500/30 text-blue-300' },
   { id: 'jazz',       label: 'Jazz',            color: 'bg-yellow-500/15 border-yellow-500/30 text-yellow-300' },
@@ -75,6 +75,7 @@ export default function OnboardingPage() {
         preferred_genres: selectedGenres,
         location: location || null,
         discover_prefs: selectedDiscover,
+        role: ROLES.find(r => r.id === selectedRole)?.label || user.role,
       }).eq('id', user.id).then(() => {});
     }
   }
