@@ -1,8 +1,8 @@
--- Atomic increment for profiles.followers
+-- Atomic increment for profiles.followers_count
 CREATE OR REPLACE FUNCTION increment_profile_followers(profile_uuid UUID, delta INTEGER)
 RETURNS void LANGUAGE sql SECURITY DEFINER AS $$
   UPDATE profiles
-  SET followers = GREATEST(0, COALESCE(followers, 0) + delta)
+  SET followers_count = GREATEST(0, COALESCE(followers_count, 0) + delta)
   WHERE id = profile_uuid;
 $$;
 
