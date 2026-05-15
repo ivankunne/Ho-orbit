@@ -27,8 +27,8 @@ export function mapProfileToArtist(p: any) {
     location: p.location || 'Nederland',
     bio: p.bio || '',
     verified: p.verified || false,
-    followers_count: p.followers || 0,
-    monthly_listeners: p.followers || 0,
+    followers_count: p.followers_count || p.followers || 0,
+    monthly_listeners: p.followers_count || p.followers || 0,
     social: p.social || {},
     tags: genreIds.map(id => GENRE_MAP[id] || id),
     featured: false,
@@ -49,7 +49,7 @@ export async function fetchArtistProfiles(limit = 50): Promise<any[]> {
       .from('profiles')
       .select('*')
       .eq('role', 'Artiest')
-      .order('followers', { ascending: false })
+      .order('followers_count', { ascending: false })
       .limit(limit),
   ]);
 
@@ -70,7 +70,7 @@ export async function fetchArtistProfiles(limit = 50): Promise<any[]> {
       .from('profiles')
       .select('*')
       .in('id', uploadIds)
-      .order('followers', { ascending: false })
+      .order('followers_count', { ascending: false })
       .limit(limit);
     for (const p of uploadProfiles ?? []) {
       if (!seen.has(p.id)) { seen.add(p.id); combined.push(p); }
