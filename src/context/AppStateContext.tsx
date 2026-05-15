@@ -76,31 +76,71 @@ export function AppStateProvider({ children }) {
     }
   }, [currentUserId, likedTracks]);
 
-  const toggleFollow = useCallback(async (artistId: number) => {
+  const toggleFollow = useCallback(async (artistId: number | string) => {
     if (!currentUserId) return;
-    const isFollowing = !followedArtists.includes(artistId);
+    const isFollowing = !followedArtists.includes(artistId as number);
+    const delta = isFollowing ? 1 : -1;
+
+    // Optimistic UI update
     setFollowedArtists((prev) =>
-      isFollowing ? [...prev, artistId] : prev.filter((id) => id !== artistId)
+      isFollowing ? [...prev, artistId as number] : prev.filter((id) => id !== artistId)
     );
+
     try {
       if (isFollowing) {
         const { error } = await supabase.from('user_following_artists').upsert({ user_id: currentUserId, artist_id: artistId });
         if (error) throw error;
-        const { data: profile } = await supabase.from('profiles').select('display_name, username').eq('id', artistId).single();
-        const artistName = profile?.display_name || profile?.username;
-        if (artistName) {
-          addNotification(currentUserId, {
-            type: 'follow', title: 'Artiest gevolgd',
-            body: `Je volgt nu ${artistName}`, link: `/artists/${artistId}`,
-          });
-        }
       } else {
         const { error } = await supabase.from('user_following_artists').delete().eq('user_id', currentUserId).eq('artist_id', artistId);
         if (error) throw error;
       }
+
+      // Update current user's following count
+      await supabase.rpc('increment_profile_following', { profile_uuid: currentUserId, delta });
+
+      // Update the followed entity's follower count
+      if (isUUID(String(artistId))) {
+        // Profile-based follow (UUID from ProfilePage)
+        await supabase.rpc('increment_profile_followers', { profile_uuid: String(artistId), delta });
+
+        if (isFollowing) {
+          const { data: profile } = await supabase.from('profiles').select('display_name, username').eq('id', artistId).single();
+          const artistName = profile?.display_name || profile?.username;
+          if (artistName) {
+            addNotification(currentUserId, {
+              type: 'follow', title: 'Gevolgd',
+              body: `Je volgt nu ${artistName}`, link: `/profiel/${profile?.username}`,
+            });
+          }
+        }
+      } else {
+        // Artist table follow (numeric ID from ArtistDetailPage)
+        const { data: artistRow } = await supabase
+          .from('artists').select('followers_count, profile_id, name, slug').eq('id', artistId).single();
+
+        if (artistRow) {
+          await supabase
+            .from('artists')
+            .update({ followers_count: Math.max(0, (artistRow.followers_count || 0) + delta) })
+            .eq('id', artistId);
+
+          if (artistRow.profile_id) {
+            await supabase.rpc('increment_profile_followers', { profile_uuid: artistRow.profile_id, delta });
+          }
+
+          if (isFollowing) {
+            addNotification(currentUserId, {
+              type: 'follow', title: 'Artiest gevolgd',
+              body: `Je volgt nu ${artistRow.name}`,
+              link: `/artists/${artistRow.slug || artistId}`,
+            });
+          }
+        }
+      }
     } catch {
+      // Revert optimistic update on error
       setFollowedArtists((prev) =>
-        isFollowing ? prev.filter((id) => id !== artistId) : [...prev, artistId]
+        isFollowing ? prev.filter((id) => id !== artistId) : [...prev, artistId as number]
       );
     }
   }, [currentUserId, followedArtists]);

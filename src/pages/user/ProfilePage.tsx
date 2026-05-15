@@ -221,9 +221,6 @@ export default function ProfilePage() {
             <Music size={11} className="text-violet-400" />
             {profileUser.role}
           </div>
-          {profileUser.joinedDate && (
-            <span className="text-xs text-slate-500">Lid sinds {profileUser.joinedDate}</span>
-          )}
         </div>
 
         {/* Tabs */}
@@ -488,9 +485,6 @@ export default function ProfilePage() {
                     <MapPin size={14} className="text-slate-500" /> {profileUser.location}
                   </div>
                 )}
-                <div className="flex items-center gap-2 text-sm text-slate-300">
-                  <Calendar size={14} className="text-slate-500" /> Lid sinds {profileUser.joinedDate}
-                </div>
                 <div className="flex items-center gap-2 text-sm text-slate-300">
                   <Music size={14} className="text-slate-500" /> {profileUser.role}
                 </div>
