@@ -91,6 +91,9 @@ export default function ArtistDetailPage() {
   const following = followedArtists.includes(artist.id);
   const canMessage = !!user && !!artist.profile_id && artist.profile_id !== user.id;
 
+  const totalPlays = [...(Array.isArray(artist.tracks) ? artist.tracks : []), ...uploadedTracks]
+    .reduce((sum: number, t: any) => sum + (t.plays || 0), 0);
+
   async function handleMessage() {
     if (!user || !artist.profile_id) return;
     setStartingChat(true);
@@ -177,7 +180,7 @@ export default function ArtistDetailPage() {
               <span className={`font-medium text-sm px-2.5 py-0.5 rounded-full ${genreColor.bg} ${genreColor.text}`}>{artist.genre}</span>
               <span className="flex items-center gap-1"><MapPin size={12} />{artist.location}</span>
               <span className="flex items-center gap-1"><Users size={12} />{formatPlays(artist.followers_count)} volgers</span>
-              <span className="flex items-center gap-1"><Music size={12} />{formatPlays(artist.monthly_listeners)} maandelijkse luisteraars</span>
+              <span className="flex items-center gap-1"><Music size={12} />{formatPlays(totalPlays)} maandelijkse luisteraars</span>
             </div>
           </div>
           <div className="flex items-center gap-2 sm:mb-1">
@@ -189,7 +192,12 @@ export default function ArtistDetailPage() {
             </button>
             <button
               onClick={() => {
+                const willFollow = !following;
                 toggleFollow(artist.id);
+                setArtist((prev: any) => ({
+                  ...prev,
+                  followers_count: Math.max(0, (prev.followers_count || 0) + (willFollow ? 1 : -1)),
+                }));
                 addToast(following ? `Je volgt ${artist.name} niet meer` : `Je volgt nu ${artist.name}`, following ? 'info' : 'success');
               }}
               className={`font-semibold px-4 py-2 rounded-xl transition-colors border ${
