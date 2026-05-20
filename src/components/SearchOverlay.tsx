@@ -30,6 +30,7 @@ export default function SearchOverlay({ onClose }) {
   const [query, setQuery]     = useState('');
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState(false);
   const [focusIndex, setFocusIndex] = useState(-1);
   const [trendingArtists, setTrendingArtists] = useState([]);
 
@@ -62,13 +63,17 @@ export default function SearchOverlay({ onClose }) {
   // Debounced search
   useEffect(() => {
     clearTimeout(debounce.current);
-    if (!query.trim()) { setResults(null); setLoading(false); return; }
+    if (!query.trim()) { setResults(null); setLoading(false); setSearchError(false); return; }
     setLoading(true);
+    setSearchError(false);
     debounce.current = setTimeout(async () => {
       try {
         const res = await search(query);
         setResults(res);
         setFocusIndex(-1);
+      } catch {
+        setSearchError(true);
+        setResults(null);
       } finally {
         setLoading(false);
       }
@@ -180,8 +185,16 @@ export default function SearchOverlay({ onClose }) {
             </div>
           )}
 
+          {/* Search error */}
+          {query && !loading && searchError && (
+            <div className="py-10 text-center">
+              <p className="text-slate-400 text-sm">Zoeken mislukt. Controleer je verbinding.</p>
+              <p className="text-slate-600 text-xs mt-1">Probeer het opnieuw</p>
+            </div>
+          )}
+
           {/* No results */}
-          {query && !loading && !hasResults && (
+          {query && !loading && !searchError && !hasResults && (
             <div className="py-10 text-center">
               <p className="text-slate-400 text-sm">Geen resultaten voor <span className="text-white font-medium">"{query}"</span></p>
               <p className="text-slate-600 text-xs mt-1">Probeer een andere zoekterm</p>
@@ -189,7 +202,7 @@ export default function SearchOverlay({ onClose }) {
           )}
 
           {/* Results */}
-          {query && hasResults && (
+          {query && !searchError && hasResults && (
             <div className="space-y-4">
               {results.artists.length > 0 && (
                 <div>

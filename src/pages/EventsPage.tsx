@@ -239,13 +239,16 @@ function CalendarView({ events, rsvpEvents, onRsvp }) {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const navigate = useNavigate();
 
   function prevMonth() {
+    setSelectedDay(null);
     if (month === 0) { setMonth(11); setYear(y => y - 1); }
     else setMonth(m => m - 1);
   }
   function nextMonth() {
+    setSelectedDay(null);
     if (month === 11) { setMonth(0); setYear(y => y + 1); }
     else setMonth(m => m + 1);
   }
@@ -294,22 +297,28 @@ function CalendarView({ events, rsvpEvents, onRsvp }) {
         {cells.map((day, i) => {
           if (!day) return <div key={`empty-${i}`} />;
           const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+          const isSelected = day === selectedDay;
           const dayEvents = eventsByDay[day] || [];
           return (
             <div
               key={day}
-              className={`min-h-[72px] rounded-xl p-1.5 border transition-colors ${
-                isToday ? 'border-violet-500/50 bg-violet-600/5' : 'border-white/5 bg-white/2'
-              } ${dayEvents.length ? 'cursor-pointer hover:bg-white/5' : ''}`}
+              onClick={() => setSelectedDay(isSelected ? null : day)}
+              className={`min-h-[72px] rounded-xl p-1.5 border transition-colors cursor-pointer ${
+                isSelected
+                  ? 'border-violet-500/60 bg-violet-600/10'
+                  : isToday
+                  ? 'border-violet-500/50 bg-violet-600/5 hover:bg-violet-600/10'
+                  : 'border-white/5 bg-white/2 hover:bg-white/5'
+              }`}
             >
-              <span className={`text-xs font-semibold block mb-1 ${isToday ? 'text-violet-400' : 'text-slate-400'}`}>
+              <span className={`text-xs font-semibold block mb-1 ${isToday || isSelected ? 'text-violet-400' : 'text-slate-400'}`}>
                 {day}
               </span>
               <div className="space-y-0.5">
                 {dayEvents.slice(0, 2).map(ev => (
                   <div
                     key={ev.id}
-                    onClick={() => navigate(`/events/${ev.id}`)}
+                    onClick={e => { e.stopPropagation(); navigate(`/events/${ev.id}`); }}
                     title={ev.name}
                     className={`text-[9px] font-medium px-1 py-0.5 rounded truncate leading-tight ${
                       rsvpEvents.includes(ev.id)
@@ -328,6 +337,45 @@ function CalendarView({ events, rsvpEvents, onRsvp }) {
           );
         })}
       </div>
+
+      {/* Selected day detail panel */}
+      {selectedDay !== null && (
+        <div className="mt-4 p-4 bg-white/3 border border-white/8 rounded-xl">
+          {(() => {
+            const dayEvents = eventsByDay[selectedDay] || [];
+            const dateLabel = new Date(year, month, selectedDay).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
+            return (
+              <>
+                <p className="text-sm font-semibold text-white mb-3 capitalize">{dateLabel}</p>
+                {dayEvents.length === 0 ? (
+                  <p className="text-sm text-slate-500">Geen evenementen op deze dag.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {dayEvents.map(ev => (
+                      <div
+                        key={ev.id}
+                        onClick={() => navigate(`/events/${ev.id}`)}
+                        className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 cursor-pointer transition-colors"
+                      >
+                        <div className="w-8 h-8 bg-violet-600/15 rounded-lg flex items-center justify-center shrink-0">
+                          <Calendar size={14} className="text-violet-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-white truncate">{ev.name}</p>
+                          <p className="text-xs text-slate-400">{ev.time} · {ev.venue}, {ev.city}</p>
+                        </div>
+                        {rsvpEvents.includes(ev.id) && (
+                          <span className="text-xs bg-green-500/15 text-green-400 px-2 py-0.5 rounded-full shrink-0">✓</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            );
+          })()}
+        </div>
+      )}
     </div>
   );
 }

@@ -164,7 +164,7 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
       <div className="max-w-7xl mx-auto px-4 lg:px-6">
         <div className="flex items-center h-16 gap-4">
           {/* Logo */}
-          <Link to="/muziek" className="flex items-center shrink-0">
+          <Link to="/" className="flex items-center shrink-0">
             <img src="/H-orbit-logo.png" alt="h-orbit" className="h-9 w-auto" />
           </Link>
 

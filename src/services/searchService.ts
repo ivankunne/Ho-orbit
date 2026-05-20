@@ -19,7 +19,6 @@ export async function search(query: string) {
       .from('tracks')
       .select('id, title, artist_name, genre, cover_url, artist_id')
       .or(`title.ilike.%${q}%,artist_name.ilike.%${q}%,genre.ilike.%${q}%`)
-      .or('is_user_upload.is.null,is_user_upload.eq.false,upload_status.eq.approved')
       .limit(5),
 
     supabase
