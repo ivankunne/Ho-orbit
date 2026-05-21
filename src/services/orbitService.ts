@@ -6,12 +6,10 @@ export interface ChannelPreview {
   lastContent: string | null;
   lastAt: string | null;
   lastSender: string | null;
-  /** True when the latest message is from someone else and was sent after the user last opened this channel. */
   hasUnread: boolean;
 }
 
 // ── Per-channel "last opened" tracking via localStorage ──────────────────────
-// Avoids a DB round-trip; unread state is device-local (acceptable for MVP).
 
 function readKey(bandId: string, channel: ChannelKey) {
   return `orbit_read_${bandId}_${channel}`;
@@ -25,8 +23,8 @@ export function markChannelRead(bandId: string, channel: ChannelKey): void {
   try { localStorage.setItem(readKey(bandId, channel), new Date().toISOString()); } catch {}
 }
 
-// ── Channel previews (last message per channel) ───────────────────────────────
-// Fires 5 lightweight queries in parallel (limit 1 each).
+// ── Channel previews ──────────────────────────────────────────────────────────
+
 export async function getChannelPreviews(
   bandId: string,
   currentUserId: string,
@@ -54,7 +52,6 @@ export async function getChannelPreviews(
       lastContent: msg?.content ?? null,
       lastAt: msg?.created_at ?? null,
       lastSender: msg ? (msg.sender?.display_name || msg.sender?.username || null) : null,
-      // Unread: last message is from someone else and was sent after we last opened this channel.
       hasUnread: !!(
         msg &&
         msg.sender_id !== currentUserId &&
@@ -66,8 +63,8 @@ export async function getChannelPreviews(
   return previews;
 }
 
-// ── Media upload to Supabase Storage ─────────────────────────────────────────
-// Requires the 'band-media' bucket to exist (see orbit_workspace_migration.sql).
+// ── Media upload ──────────────────────────────────────────────────────────────
+
 export async function uploadBandMedia(
   file: File,
   bandId: string,
@@ -92,7 +89,8 @@ export async function uploadBandMedia(
   return { url: publicUrl, type };
 }
 
-// ── Pin / unpin a message (admin-gated in the UI) ─────────────────────────────
+// ── Pin / unpin ───────────────────────────────────────────────────────────────
+
 export async function setPinned(
   messageId: string,
   isPinned: boolean,
@@ -103,4 +101,151 @@ export async function setPinned(
     .update({ is_pinned: isPinned, pinned_by: isPinned ? pinnedBy : null })
     .eq('id', messageId);
   return !error;
+}
+
+// ── Band Calendar ─────────────────────────────────────────────────────────────
+
+export type EventType = 'rehearsal' | 'gig' | 'deadline' | 'other';
+
+export interface BandEvent {
+  id: string;
+  band_id: string;
+  title: string;
+  description: string | null;
+  event_date: string;
+  event_time: string | null;
+  type: EventType;
+  channel: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export async function getBandEvents(
+  bandId: string,
+  year: number,
+  month: number,
+): Promise<BandEvent[]> {
+  const start = `${year}-${String(month).padStart(2, '0')}-01`;
+  const end = `${year}-${String(month).padStart(2, '0')}-31`;
+
+  const { data } = await supabase
+    .from('band_events')
+    .select('*')
+    .eq('band_id', bandId)
+    .gte('event_date', start)
+    .lte('event_date', end)
+    .order('event_date', { ascending: true })
+    .order('event_time', { ascending: true });
+
+  return data ?? [];
+}
+
+export async function createBandEvent(
+  event: Omit<BandEvent, 'id' | 'created_at'>,
+): Promise<BandEvent | null> {
+  const { data, error } = await supabase
+    .from('band_events')
+    .insert(event)
+    .select()
+    .single();
+
+  if (error) return null;
+  return data;
+}
+
+export async function deleteBandEvent(eventId: string): Promise<boolean> {
+  const { error } = await supabase.from('band_events').delete().eq('id', eventId);
+  return !error;
+}
+
+// ── Shared Notes ──────────────────────────────────────────────────────────────
+
+export interface BandNote {
+  content: string;
+  updated_by: string | null;
+  updated_at: string;
+  updater?: { display_name: string | null; username: string | null } | null;
+}
+
+export async function getBandNote(
+  bandId: string,
+  channel: ChannelKey,
+): Promise<BandNote | null> {
+  const { data } = await supabase
+    .from('band_notes')
+    .select('content, updated_by, updated_at, updater:profiles(display_name, username)')
+    .eq('band_id', bandId)
+    .eq('channel', channel)
+    .maybeSingle();
+
+  if (!data) return null;
+  return data as BandNote;
+}
+
+export async function saveBandNote(
+  bandId: string,
+  channel: ChannelKey,
+  content: string,
+  userId: string,
+): Promise<boolean> {
+  const { error } = await supabase
+    .from('band_notes')
+    .upsert(
+      { band_id: bandId, channel, content, updated_by: userId, updated_at: new Date().toISOString() },
+      { onConflict: 'band_id,channel' },
+    );
+  return !error;
+}
+
+// ── @mention Notifications ────────────────────────────────────────────────────
+
+export async function getMentionCounts(
+  bandId: string,
+  userId: string,
+): Promise<Partial<Record<ChannelKey, number>>> {
+  const { data } = await supabase
+    .from('band_notifications')
+    .select('channel')
+    .eq('band_id', bandId)
+    .eq('recipient_id', userId)
+    .is('read_at', null);
+
+  const counts: Partial<Record<ChannelKey, number>> = {};
+  (data ?? []).forEach((row: any) => {
+    counts[row.channel as ChannelKey] = (counts[row.channel as ChannelKey] ?? 0) + 1;
+  });
+  return counts;
+}
+
+export async function markMentionsRead(
+  bandId: string,
+  channel: ChannelKey,
+  userId: string,
+): Promise<void> {
+  await supabase
+    .from('band_notifications')
+    .update({ read_at: new Date().toISOString() })
+    .eq('band_id', bandId)
+    .eq('channel', channel)
+    .eq('recipient_id', userId)
+    .is('read_at', null);
+}
+
+export async function createMentionNotifications(
+  messageId: string,
+  bandId: string,
+  channel: string,
+  senderId: string,
+  recipientIds: string[],
+): Promise<void> {
+  if (recipientIds.length === 0) return;
+  await supabase.from('band_notifications').insert(
+    recipientIds.map(recipientId => ({
+      band_id: bandId,
+      message_id: messageId,
+      channel,
+      sender_id: senderId,
+      recipient_id: recipientId,
+    })),
+  );
 }
