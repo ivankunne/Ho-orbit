@@ -44,7 +44,6 @@ export async function getChannelPreviews(
   );
 
   const previews: Partial<Record<ChannelKey, ChannelPreview>> = {};
-
   KEYS.forEach((ch, i) => {
     const msg = results[i].data?.[0] as any;
     const lastRead = getLastRead(bandId, ch);
@@ -52,14 +51,9 @@ export async function getChannelPreviews(
       lastContent: msg?.content ?? null,
       lastAt: msg?.created_at ?? null,
       lastSender: msg ? (msg.sender?.display_name || msg.sender?.username || null) : null,
-      hasUnread: !!(
-        msg &&
-        msg.sender_id !== currentUserId &&
-        (!lastRead || msg.created_at > lastRead)
-      ),
+      hasUnread: !!(msg && msg.sender_id !== currentUserId && (!lastRead || msg.created_at > lastRead)),
     };
   });
-
   return previews;
 }
 
@@ -79,27 +73,61 @@ export async function uploadBandMedia(
   if (error) return null;
 
   const { data: { publicUrl } } = supabase.storage.from('band-media').getPublicUrl(path);
-
   const type: 'image' | 'video' | 'file' = file.type.startsWith('image/')
-    ? 'image'
-    : file.type.startsWith('video/')
-    ? 'video'
-    : 'file';
-
+    ? 'image' : file.type.startsWith('video/') ? 'video' : 'file';
   return { url: publicUrl, type };
 }
 
 // ── Pin / unpin ───────────────────────────────────────────────────────────────
 
 export async function setPinned(
-  messageId: string,
-  isPinned: boolean,
-  pinnedBy: string | null,
+  messageId: string, isPinned: boolean, pinnedBy: string | null,
 ): Promise<boolean> {
   const { error } = await supabase
     .from('band_messages')
     .update({ is_pinned: isPinned, pinned_by: isPinned ? pinnedBy : null })
     .eq('id', messageId);
+  return !error;
+}
+
+// ── Band Posts (Home feed) ────────────────────────────────────────────────────
+
+export interface BandPost {
+  id: string;
+  band_id: string;
+  author_id: string;
+  title: string | null;
+  content: string;
+  image_url: string | null;
+  created_at: string;
+  author?: { display_name: string | null; username: string | null; avatar_url: string | null } | null;
+}
+
+export async function getBandPosts(bandId: string): Promise<BandPost[]> {
+  const { data } = await supabase
+    .from('band_posts')
+    .select('*, author:profiles(display_name, username, avatar_url)')
+    .eq('band_id', bandId)
+    .order('created_at', { ascending: false })
+    .limit(30);
+  return (data ?? []) as BandPost[];
+}
+
+export async function createBandPost(
+  bandId: string, authorId: string, content: string,
+  title?: string, imageUrl?: string,
+): Promise<BandPost | null> {
+  const { data, error } = await supabase
+    .from('band_posts')
+    .insert({ band_id: bandId, author_id: authorId, content, title: title || null, image_url: imageUrl || null })
+    .select('*, author:profiles(display_name, username, avatar_url)')
+    .single();
+  if (error) return null;
+  return data as BandPost;
+}
+
+export async function deleteBandPost(postId: string): Promise<boolean> {
+  const { error } = await supabase.from('band_posts').delete().eq('id', postId);
   return !error;
 }
 
@@ -121,34 +149,34 @@ export interface BandEvent {
 }
 
 export async function getBandEvents(
-  bandId: string,
-  year: number,
-  month: number,
+  bandId: string, year: number, month: number,
 ): Promise<BandEvent[]> {
   const start = `${year}-${String(month).padStart(2, '0')}-01`;
-  const end = `${year}-${String(month).padStart(2, '0')}-31`;
-
+  const end   = `${year}-${String(month).padStart(2, '0')}-31`;
   const { data } = await supabase
-    .from('band_events')
-    .select('*')
+    .from('band_events').select('*')
     .eq('band_id', bandId)
-    .gte('event_date', start)
-    .lte('event_date', end)
+    .gte('event_date', start).lte('event_date', end)
     .order('event_date', { ascending: true })
     .order('event_time', { ascending: true });
+  return data ?? [];
+}
 
+export async function getUpcomingEvents(bandId: string, limit = 5): Promise<BandEvent[]> {
+  const today = new Date().toISOString().slice(0, 10);
+  const { data } = await supabase
+    .from('band_events').select('*')
+    .eq('band_id', bandId)
+    .gte('event_date', today)
+    .order('event_date', { ascending: true })
+    .limit(limit);
   return data ?? [];
 }
 
 export async function createBandEvent(
   event: Omit<BandEvent, 'id' | 'created_at'>,
 ): Promise<BandEvent | null> {
-  const { data, error } = await supabase
-    .from('band_events')
-    .insert(event)
-    .select()
-    .single();
-
+  const { data, error } = await supabase.from('band_events').insert(event).select().single();
   if (error) return null;
   return data;
 }
@@ -167,49 +195,35 @@ export interface BandNote {
   updater?: { display_name: string | null; username: string | null } | null;
 }
 
-export async function getBandNote(
-  bandId: string,
-  channel: ChannelKey,
-): Promise<BandNote | null> {
+export async function getBandNote(bandId: string, channel: ChannelKey): Promise<BandNote | null> {
   const { data } = await supabase
     .from('band_notes')
     .select('content, updated_by, updated_at, updater:profiles(display_name, username)')
-    .eq('band_id', bandId)
-    .eq('channel', channel)
+    .eq('band_id', bandId).eq('channel', channel)
     .maybeSingle();
-
   if (!data) return null;
   return data as BandNote;
 }
 
 export async function saveBandNote(
-  bandId: string,
-  channel: ChannelKey,
-  content: string,
-  userId: string,
+  bandId: string, channel: ChannelKey, content: string, userId: string,
 ): Promise<boolean> {
-  const { error } = await supabase
-    .from('band_notes')
-    .upsert(
-      { band_id: bandId, channel, content, updated_by: userId, updated_at: new Date().toISOString() },
-      { onConflict: 'band_id,channel' },
-    );
+  const { error } = await supabase.from('band_notes').upsert(
+    { band_id: bandId, channel, content, updated_by: userId, updated_at: new Date().toISOString() },
+    { onConflict: 'band_id,channel' },
+  );
   return !error;
 }
 
 // ── @mention Notifications ────────────────────────────────────────────────────
 
 export async function getMentionCounts(
-  bandId: string,
-  userId: string,
+  bandId: string, userId: string,
 ): Promise<Partial<Record<ChannelKey, number>>> {
   const { data } = await supabase
     .from('band_notifications')
     .select('channel')
-    .eq('band_id', bandId)
-    .eq('recipient_id', userId)
-    .is('read_at', null);
-
+    .eq('band_id', bandId).eq('recipient_id', userId).is('read_at', null);
   const counts: Partial<Record<ChannelKey, number>> = {};
   (data ?? []).forEach((row: any) => {
     counts[row.channel as ChannelKey] = (counts[row.channel as ChannelKey] ?? 0) + 1;
@@ -218,34 +232,21 @@ export async function getMentionCounts(
 }
 
 export async function markMentionsRead(
-  bandId: string,
-  channel: ChannelKey,
-  userId: string,
+  bandId: string, channel: ChannelKey, userId: string,
 ): Promise<void> {
-  await supabase
-    .from('band_notifications')
+  await supabase.from('band_notifications')
     .update({ read_at: new Date().toISOString() })
-    .eq('band_id', bandId)
-    .eq('channel', channel)
-    .eq('recipient_id', userId)
-    .is('read_at', null);
+    .eq('band_id', bandId).eq('channel', channel).eq('recipient_id', userId).is('read_at', null);
 }
 
 export async function createMentionNotifications(
-  messageId: string,
-  bandId: string,
-  channel: string,
-  senderId: string,
-  recipientIds: string[],
+  messageId: string, bandId: string, channel: string,
+  senderId: string, recipientIds: string[],
 ): Promise<void> {
   if (recipientIds.length === 0) return;
   await supabase.from('band_notifications').insert(
     recipientIds.map(recipientId => ({
-      band_id: bandId,
-      message_id: messageId,
-      channel,
-      sender_id: senderId,
-      recipient_id: recipientId,
+      band_id: bandId, message_id: messageId, channel, sender_id: senderId, recipient_id: recipientId,
     })),
   );
 }
