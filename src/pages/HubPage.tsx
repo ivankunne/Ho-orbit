@@ -9,7 +9,7 @@ import { useToast } from '@components/Toast';
 import { useAuth } from '@context/AuthContext';
 import { useAuthModal } from '@context/AuthModalContext';
 import { supabase } from '@/lib/supabase';
-import SpacesMap from '@components/SpacesMap';
+import SceneMap from '@components/SceneMap';
 import UserAvatar from '@components/UserAvatar';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -702,7 +702,7 @@ function SpacesSection() {
   return (
     <div className="space-y-8">
       <div className="rounded-2xl overflow-hidden border border-white/8">
-        <SpacesMap />
+        <SceneMap />
       </div>
       <SectionContent sectionId="spaces" postBarPlaceholder="Review een ruimte of studio..." postTags={['review']} />
     </div>
