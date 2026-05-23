@@ -32,6 +32,7 @@ const navItems = [
   { label: 'Muziek', path: '/muziek', icon: Home },
   { label: 'Artiesten', path: '/artists', icon: Users },
   { label: 'Evenementen', path: '/events', icon: Calendar },
+  { label: 'Hub', path: '/hub', icon: Zap },
   { label: 'Magazine', path: '/magazine', icon: FileText },
   { label: 'Radio', path: '/radio', icon: Radio },
   { label: 'Community', path: '/dutch-scene', icon: Globe },
@@ -89,14 +90,6 @@ const magazineDropdown = [
     path: '/magazine?cat=Genre Spotlights',
     icon: Disc3,
     accent: false,
-    divider: true,
-  },
-  {
-    label: 'h-orbit Hub',
-    sub: 'Netwerk & samenwerking',
-    path: '/hub',
-    icon: Zap,
-    accent: true,
     divider: false,
   },
 ];
@@ -154,7 +147,6 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
 
   const isMagazineActive =
     location.pathname === '/magazine' ||
-    location.pathname === '/hub' ||
     location.pathname.startsWith('/magazine/');
   const isCommunityActive = ['/dutch-scene', '/forums', '/netwerken', '/bandspace'].some(p => location.pathname.startsWith(p));
   const isLerenActive = ['/tutorials', '/masterclass'].some(p => location.pathname.startsWith(p));
