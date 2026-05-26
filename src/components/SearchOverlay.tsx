@@ -1,22 +1,26 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, X, Music, Calendar, BookOpen, FileText, ArrowRight, TrendingUp, Loader } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import {
+  Search, X, Music, Calendar, BookOpen, FileText, ArrowRight,
+  TrendingUp, Loader, Users, Music2, MessageSquare, User,
+} from 'lucide-react';
 import { fetchArtistProfiles } from '@utils/artistHelpers';
-import { search } from '@services/searchService';
+import { search, type SearchResults } from '@services/searchService';
 import { usePlayer } from '@context/PlayerContext';
 
 const QUICK_LINKS = [
-  { label: 'Artiesten', path: '/artists', icon: Music },
-  { label: 'Evenementen', path: '/events', icon: Calendar },
-  { label: 'Tutorials', path: '/tutorials', icon: BookOpen },
-  { label: 'Magazine', path: '/magazine', icon: FileText },
+  { label: 'Artiesten', path: '/artists',   icon: Music },
+  { label: 'Evenementen', path: '/events',  icon: Calendar },
+  { label: 'Tutorials',  path: '/tutorials', icon: BookOpen },
+  { label: 'Magazine',   path: '/magazine', icon: FileText },
+  { label: 'Band Space', path: '/bandspace', icon: Music2 },
+  { label: 'Forums',     path: '/forums',   icon: MessageSquare },
 ];
 
-function highlight(text, query) {
-  if (!query || !text) return text;
-  const idx = String(text).toLowerCase().indexOf(query.toLowerCase());
-  if (idx === -1) return text;
+function Hl({ text, query }: { text: string | null; query: string }) {
+  if (!query || !text) return <>{text}</>;
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return <>{text}</>;
   return (
     <>
       {text.slice(0, idx)}
@@ -26,20 +30,22 @@ function highlight(text, query) {
   );
 }
 
-export default function SearchOverlay({ onClose }) {
-  const [query, setQuery]     = useState('');
-  const [results, setResults] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [searchError, setSearchError] = useState(false);
-  const [focusIndex, setFocusIndex] = useState(-1);
-  const [trendingArtists, setTrendingArtists] = useState([]);
+type FlatItem = { path: string | null; label: string; action: (() => void) | null };
 
-  const inputRef  = useRef(null);
-  const debounce  = useRef(null);
-  const navigate  = useNavigate();
+export default function SearchOverlay({ onClose }: { onClose: () => void }) {
+  const [query, setQuery]       = useState('');
+  const [results, setResults]   = useState<SearchResults | null>(null);
+  const [loading, setLoading]   = useState(false);
+  const [searchError, setSearchError] = useState(false);
+  const [focusIndex, setFocusIndex]   = useState(-1);
+  const [trendingArtists, setTrendingArtists] = useState<any[]>([]);
+
+  const inputRef = useRef<HTMLInputElement>(null);
+  const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const navigate = useNavigate();
   const { playTrack } = usePlayer();
 
-  function handlePlayTrack(t) {
+  function handlePlayTrack(t: SearchResults['tracks'][0]) {
     playTrack({
       id: t.id,
       title: t.title,
@@ -47,22 +53,21 @@ export default function SearchOverlay({ onClose }) {
       artistId: t.artist_id,
       genre: t.genre,
       cover_url: t.cover_url,
-      stream_url: null,
+      stream_url: t.stream_url,
     });
     onClose();
   }
 
   useEffect(() => {
     inputRef.current?.focus();
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
     fetchArtistProfiles(3).then(setTrendingArtists);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  // Debounced search
   useEffect(() => {
-    clearTimeout(debounce.current);
+    if (debounce.current) clearTimeout(debounce.current);
     if (!query.trim()) { setResults(null); setLoading(false); setSearchError(false); return; }
     setLoading(true);
     setSearchError(false);
@@ -77,22 +82,24 @@ export default function SearchOverlay({ onClose }) {
       } finally {
         setLoading(false);
       }
-    }, 150);
-    return () => clearTimeout(debounce.current);
+    }, 180);
+    return () => { if (debounce.current) clearTimeout(debounce.current); };
   }, [query]);
 
-  // Flatten results for keyboard nav
-  const flatResults = results
+  const flatResults: FlatItem[] = results
     ? [
-        ...results.artists.map(a  => ({ path: `/artists/${a.id}`, label: a.name, action: null })),
+        ...results.artists.map(a  => ({ path: `/artists/${a.slug}`, label: a.name, action: null })),
         ...results.tracks.map(t   => ({ path: null, label: t.title, action: () => handlePlayTrack(t) })),
         ...results.events.map(e   => ({ path: `/events/${e.id}`, label: e.name, action: null })),
         ...results.tutorials.map(t => ({ path: `/tutorials/${t.id}`, label: t.title, action: null })),
         ...results.articles.map(a  => ({ path: `/magazine/${a.id}`, label: a.title, action: null })),
+        ...results.bands.map(b    => ({ path: `/bandspace/${b.id}`, label: b.name, action: null })),
+        ...results.users.map(u    => ({ path: `/profiel/${u.username}`, label: u.display_name || u.username, action: null })),
+        ...results.threads.map(t  => ({ path: `/forums/thread/${t.id}`, label: t.title, action: null })),
       ]
     : [];
 
-  const handleKeyDown = useCallback((e) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (flatResults.length === 0) return;
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -106,19 +113,16 @@ export default function SearchOverlay({ onClose }) {
       if (item.action) { item.action(); }
       else if (item.path) { navigate(item.path); onClose(); }
     }
-  }, [flatResults, focusIndex, navigate, onClose]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [flatResults, focusIndex, navigate, onClose]);
 
-  function go(path) {
-    navigate(path);
-    onClose();
-  }
+  function go(path: string) { navigate(path); onClose(); }
 
-  const hasResults = results && (
-    results.artists.length + results.tracks.length + results.events.length +
-    results.tutorials.length + results.articles.length > 0
-  );
+  const totalResults = results
+    ? results.artists.length + results.tracks.length + results.events.length +
+      results.tutorials.length + results.articles.length + results.bands.length +
+      results.users.length + results.threads.length
+    : 0;
 
-  // Running flat index for focus tracking
   let flatIdx = -1;
   const nextIdx = () => { flatIdx++; return flatIdx; };
 
@@ -127,11 +131,11 @@ export default function SearchOverlay({ onClose }) {
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
       <div
-        className="relative mx-auto mt-16 w-full max-w-2xl bg-[#231d3a] border border-white/10 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden"
+        className="relative mx-auto mt-4 sm:mt-16 w-full max-w-2xl bg-[#231d3a] border border-white/10 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden mx-3 sm:mx-auto"
         style={{ animation: 'slideDown 0.2s cubic-bezier(0.34,1.2,0.64,1) both' }}
       >
         {/* Search input */}
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-white/8">
+        <div className="flex items-center gap-3 px-4 sm:px-5 py-4 border-b border-white/8">
           {loading
             ? <Loader size={18} className="text-violet-400 shrink-0 animate-spin" />
             : <Search size={20} className="text-slate-400 shrink-0" />
@@ -142,167 +146,244 @@ export default function SearchOverlay({ onClose }) {
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Zoek artiesten, evenementen, tutorials..."
+            placeholder="Zoek artiesten, nummers, bands, events..."
             className="flex-1 bg-transparent text-white placeholder-slate-500 text-base focus:outline-none"
           />
           {query && (
-            <button onClick={() => { setQuery(''); setResults(null); }} className="text-slate-500 hover:text-white transition-colors">
+            <button onClick={() => { setQuery(''); setResults(null); }} className="text-slate-500 hover:text-white transition-colors p-1">
               <X size={18} />
             </button>
           )}
           <kbd className="hidden sm:block text-xs text-slate-600 border border-white/10 rounded px-1.5 py-0.5">ESC</kbd>
         </div>
 
-        <div className="max-h-[60vh] overflow-y-auto p-3">
-          {/* Empty query: quick links + trending */}
+        <div className="max-h-[65vh] overflow-y-auto p-3">
+          {/* Empty state: quick links + trending */}
           {!query && (
             <div>
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-2 mb-2">Snel navigeren</p>
-              <div className="grid grid-cols-2 gap-1.5 mb-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 mb-4">
                 {QUICK_LINKS.map(({ label, path, icon: Icon }) => (
-                  <button
-                    key={path}
-                    onClick={() => go(path)}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/3 hover:bg-white/6 border border-white/5 text-left transition-colors"
-                  >
-                    <Icon size={16} className="text-violet-400 shrink-0" />
+                  <button key={path} onClick={() => go(path)}
+                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/3 hover:bg-white/6 border border-white/5 text-left transition-colors">
+                    <Icon size={15} className="text-violet-400 shrink-0" />
                     <span className="text-sm text-slate-300">{label}</span>
-                    <ArrowRight size={14} className="text-slate-600 ml-auto" />
+                    <ArrowRight size={13} className="text-slate-600 ml-auto shrink-0" />
                   </button>
                 ))}
               </div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-2 mb-2">Trending</p>
-              <div className="space-y-1">
-                {trendingArtists.map(a => (
-                  <button key={a.id} onClick={() => go(`/artists/${a.id}`)} className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/5 w-full text-left transition-colors">
-                    <TrendingUp size={14} className="text-slate-600 shrink-0" />
-                    <img src={a.image_url} alt={a.name} className="w-7 h-7 rounded-full object-cover shrink-0" />
-                    <span className="text-sm text-slate-300">{a.name}</span>
-                    <span className="text-xs text-slate-600 ml-auto">{a.genre}</span>
-                  </button>
-                ))}
-              </div>
+              {trendingArtists.length > 0 && (
+                <>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-2 mb-2">Trending</p>
+                  <div className="space-y-1">
+                    {trendingArtists.map(a => (
+                      <button key={a.id} onClick={() => go(`/artists/${a.slug || a.id}`)}
+                        className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/5 w-full text-left transition-colors">
+                        <TrendingUp size={14} className="text-slate-600 shrink-0" />
+                        <img src={a.image_url} alt={a.name} className="w-7 h-7 rounded-full object-cover shrink-0" />
+                        <span className="text-sm text-slate-300">{a.name}</span>
+                        <span className="text-xs text-slate-600 ml-auto">{a.genre}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           )}
 
-          {/* Search error */}
           {query && !loading && searchError && (
             <div className="py-10 text-center">
               <p className="text-slate-400 text-sm">Zoeken mislukt. Controleer je verbinding.</p>
-              <p className="text-slate-600 text-xs mt-1">Probeer het opnieuw</p>
             </div>
           )}
 
-          {/* No results */}
-          {query && !loading && !searchError && !hasResults && (
+          {query && !loading && !searchError && totalResults === 0 && (
             <div className="py-10 text-center">
               <p className="text-slate-400 text-sm">Geen resultaten voor <span className="text-white font-medium">"{query}"</span></p>
               <p className="text-slate-600 text-xs mt-1">Probeer een andere zoekterm</p>
             </div>
           )}
 
-          {/* Results */}
-          {query && !searchError && hasResults && (
+          {query && !searchError && totalResults > 0 && (
             <div className="space-y-4">
-              {results.artists.length > 0 && (
-                <div>
+              {results!.artists.length > 0 && (
+                <section>
                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-2 mb-1.5">Artiesten</p>
-                  {results.artists.map(a => {
+                  {results!.artists.map(a => {
                     const fi = nextIdx();
                     return (
-                      <button key={a.id} onClick={() => go(`/artists/${a.id}`)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 w-full text-left transition-colors group ${fi === focusIndex ? 'bg-white/8' : ''}`}>
-                        <img src={a.image_url} alt={a.name} className="w-9 h-9 rounded-full object-cover shrink-0" />
+                      <button key={a.id} onClick={() => go(`/artists/${a.slug}`)}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 w-full text-left transition-colors group ${fi === focusIndex ? 'bg-white/8' : ''}`}>
+                        {a.image_url
+                          ? <img src={a.image_url} alt={a.name} className="w-9 h-9 rounded-full object-cover shrink-0" />
+                          : <div className="w-9 h-9 rounded-full bg-violet-600/20 flex items-center justify-center shrink-0"><Music size={16} className="text-violet-400" /></div>
+                        }
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-white truncate">{highlight(a.name, query)}</p>
-                          <p className="text-xs text-slate-500 truncate">{a.genre} · {a.location}</p>
+                          <p className="text-sm font-medium text-white truncate"><Hl text={a.name} query={query} /></p>
+                          <p className="text-xs text-slate-500 truncate">{a.genre}{a.location ? ` · ${a.location}` : ''}</p>
                         </div>
                         <ArrowRight size={14} className="text-slate-600 ml-auto opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                       </button>
                     );
                   })}
-                </div>
+                </section>
               )}
 
-              {results.tracks.length > 0 && (
-                <div>
+              {results!.tracks.length > 0 && (
+                <section>
                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-2 mb-1.5">Nummers</p>
-                  {results.tracks.map(t => {
+                  {results!.tracks.map(t => {
                     const fi = nextIdx();
                     return (
-                      <button key={t.id} onClick={() => handlePlayTrack(t)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 w-full text-left transition-colors group ${fi === focusIndex ? 'bg-white/8' : ''}`}>
-                        <img src={t.cover_url} alt={t.title} className="w-9 h-9 rounded-lg object-cover shrink-0" />
+                      <button key={t.id} onClick={() => handlePlayTrack(t)}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 w-full text-left transition-colors group ${fi === focusIndex ? 'bg-white/8' : ''}`}>
+                        {t.cover_url
+                          ? <img src={t.cover_url} alt={t.title} className="w-9 h-9 rounded-lg object-cover shrink-0" />
+                          : <div className="w-9 h-9 rounded-lg bg-violet-600/15 flex items-center justify-center shrink-0"><Music size={16} className="text-violet-400" /></div>
+                        }
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-white truncate">{highlight(t.title, query)}</p>
-                          <p className="text-xs text-slate-500 truncate">{t.artist} · {t.genre}</p>
+                          <p className="text-sm font-medium text-white truncate"><Hl text={t.title} query={query} /></p>
+                          <p className="text-xs text-slate-500 truncate">{t.artist_name}{t.genre ? ` · ${t.genre}` : ''}</p>
                         </div>
                         <ArrowRight size={14} className="text-slate-600 ml-auto opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                       </button>
                     );
                   })}
-                </div>
+                </section>
               )}
 
-              {results.events.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-2 mb-1.5">Evenementen</p>
-                  {results.events.map(e => {
+              {results!.bands.length > 0 && (
+                <section>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-2 mb-1.5">Bands</p>
+                  {results!.bands.map(b => {
                     const fi = nextIdx();
                     return (
-                      <button key={e.id} onClick={() => go(`/events/${e.id}`)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 w-full text-left transition-colors group ${fi === focusIndex ? 'bg-white/8' : ''}`}>
+                      <button key={b.id} onClick={() => go(`/bandspace/${b.id}`)}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 w-full text-left transition-colors group ${fi === focusIndex ? 'bg-white/8' : ''}`}>
+                        {b.image_url
+                          ? <img src={b.image_url} alt={b.name} className="w-9 h-9 rounded-xl object-cover shrink-0" />
+                          : <div className="w-9 h-9 rounded-xl bg-violet-600/15 flex items-center justify-center shrink-0"><Music2 size={16} className="text-violet-400" /></div>
+                        }
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-white truncate"><Hl text={b.name} query={query} /></p>
+                          <p className="text-xs text-slate-500 truncate">{b.genre}{b.location ? ` · ${b.location}` : ''}</p>
+                        </div>
+                        <ArrowRight size={14} className="text-slate-600 ml-auto opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                      </button>
+                    );
+                  })}
+                </section>
+              )}
+
+              {results!.events.length > 0 && (
+                <section>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-2 mb-1.5">Evenementen</p>
+                  {results!.events.map(e => {
+                    const fi = nextIdx();
+                    return (
+                      <button key={e.id} onClick={() => go(`/events/${e.id}`)}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 w-full text-left transition-colors group ${fi === focusIndex ? 'bg-white/8' : ''}`}>
                         <div className="w-9 h-9 bg-violet-600/15 rounded-xl flex items-center justify-center shrink-0">
                           <Calendar size={16} className="text-violet-400" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-white truncate">{highlight(e.name, query)}</p>
-                          <p className="text-xs text-slate-500 truncate">{e.date} · {e.venue}, {e.city}</p>
+                          <p className="text-sm font-medium text-white truncate"><Hl text={e.name} query={query} /></p>
+                          <p className="text-xs text-slate-500 truncate">{e.date}{e.city ? ` · ${e.city}` : ''}{e.venue ? ` · ${e.venue}` : ''}</p>
                         </div>
                         <ArrowRight size={14} className="text-slate-600 ml-auto opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                       </button>
                     );
                   })}
-                </div>
+                </section>
               )}
 
-              {results.tutorials.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-2 mb-1.5">Tutorials</p>
-                  {results.tutorials.map(t => {
+              {results!.users.length > 0 && (
+                <section>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-2 mb-1.5">Gebruikers</p>
+                  {results!.users.map(u => {
                     const fi = nextIdx();
                     return (
-                      <button key={t.id} onClick={() => go(`/tutorials/${t.id}`)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 w-full text-left transition-colors group ${fi === focusIndex ? 'bg-white/8' : ''}`}>
+                      <button key={u.id} onClick={() => go(`/profiel/${u.username}`)}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 w-full text-left transition-colors group ${fi === focusIndex ? 'bg-white/8' : ''}`}>
+                        {u.avatar_url
+                          ? <img src={u.avatar_url} alt={u.display_name || u.username} className="w-9 h-9 rounded-full object-cover shrink-0" />
+                          : <div className="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center shrink-0"><User size={16} className="text-slate-400" /></div>
+                        }
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-white truncate"><Hl text={u.display_name || u.username} query={query} /></p>
+                          <p className="text-xs text-slate-500 truncate">@{u.username}{u.location ? ` · ${u.location}` : ''}</p>
+                        </div>
+                        <ArrowRight size={14} className="text-slate-600 ml-auto opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                      </button>
+                    );
+                  })}
+                </section>
+              )}
+
+              {results!.tutorials.length > 0 && (
+                <section>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-2 mb-1.5">Tutorials</p>
+                  {results!.tutorials.map(t => {
+                    const fi = nextIdx();
+                    return (
+                      <button key={t.id} onClick={() => go(`/tutorials/${t.id}`)}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 w-full text-left transition-colors group ${fi === focusIndex ? 'bg-white/8' : ''}`}>
                         <div className="w-9 h-9 bg-blue-500/15 rounded-xl flex items-center justify-center shrink-0">
                           <BookOpen size={16} className="text-blue-400" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-white truncate">{highlight(t.title, query)}</p>
-                          <p className="text-xs text-slate-500 truncate">{t.difficulty} · {t.instructor}</p>
+                          <p className="text-sm font-medium text-white truncate"><Hl text={t.title} query={query} /></p>
+                          <p className="text-xs text-slate-500 truncate">{t.difficulty}{t.instructor ? ` · ${t.instructor}` : ''}</p>
                         </div>
                         <ArrowRight size={14} className="text-slate-600 ml-auto opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                       </button>
                     );
                   })}
-                </div>
+                </section>
               )}
 
-              {results.articles.length > 0 && (
-                <div>
+              {results!.articles.length > 0 && (
+                <section>
                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-2 mb-1.5">Artikelen</p>
-                  {results.articles.map(a => {
+                  {results!.articles.map(a => {
                     const fi = nextIdx();
                     return (
-                      <button key={a.id} onClick={() => go(`/magazine/${a.id}`)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 w-full text-left transition-colors group ${fi === focusIndex ? 'bg-white/8' : ''}`}>
+                      <button key={a.id} onClick={() => go(`/magazine/${a.id}`)}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 w-full text-left transition-colors group ${fi === focusIndex ? 'bg-white/8' : ''}`}>
                         <div className="w-9 h-9 bg-green-500/15 rounded-xl flex items-center justify-center shrink-0">
                           <FileText size={16} className="text-green-400" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-white truncate">{highlight(a.title, query)}</p>
-                          <p className="text-xs text-slate-500 truncate">{a.category} · {a.author}</p>
+                          <p className="text-sm font-medium text-white truncate"><Hl text={a.title} query={query} /></p>
+                          <p className="text-xs text-slate-500 truncate">{a.category}{a.author ? ` · ${a.author}` : ''}</p>
                         </div>
                         <ArrowRight size={14} className="text-slate-600 ml-auto opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                       </button>
                     );
                   })}
-                </div>
+                </section>
+              )}
+
+              {results!.threads.length > 0 && (
+                <section>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-2 mb-1.5">Forum</p>
+                  {results!.threads.map(t => {
+                    const fi = nextIdx();
+                    return (
+                      <button key={t.id} onClick={() => go(`/forums/thread/${t.id}`)}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 w-full text-left transition-colors group ${fi === focusIndex ? 'bg-white/8' : ''}`}>
+                        <div className="w-9 h-9 bg-amber-500/15 rounded-xl flex items-center justify-center shrink-0">
+                          <MessageSquare size={16} className="text-amber-400" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-white truncate"><Hl text={t.title} query={query} /></p>
+                          <p className="text-xs text-slate-500">Forum discussie</p>
+                        </div>
+                        <ArrowRight size={14} className="text-slate-600 ml-auto opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                      </button>
+                    );
+                  })}
+                </section>
               )}
             </div>
           )}

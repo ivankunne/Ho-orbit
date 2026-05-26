@@ -145,6 +145,7 @@ export interface BandEvent {
   type: EventType;
   channel: string | null;
   created_by: string | null;
+  is_pinned?: boolean;
   created_at: string;
 }
 
@@ -183,6 +184,19 @@ export async function createBandEvent(
 
 export async function deleteBandEvent(eventId: string): Promise<boolean> {
   const { error } = await supabase.from('band_events').delete().eq('id', eventId);
+  return !error;
+}
+
+export async function getPinnedEvents(bandId: string): Promise<BandEvent[]> {
+  const { data } = await supabase
+    .from('band_events').select('*')
+    .eq('band_id', bandId).eq('is_pinned', true)
+    .order('event_date', { ascending: true });
+  return data ?? [];
+}
+
+export async function pinBandEvent(eventId: string, isPinned: boolean): Promise<boolean> {
+  const { error } = await supabase.from('band_events').update({ is_pinned: isPinned }).eq('id', eventId);
   return !error;
 }
 
@@ -237,6 +251,56 @@ export async function markMentionsRead(
   await supabase.from('band_notifications')
     .update({ read_at: new Date().toISOString() })
     .eq('band_id', bandId).eq('channel', channel).eq('recipient_id', userId).is('read_at', null);
+}
+
+// ── Band Todos ────────────────────────────────────────────────────────────────
+// Requires DB table: band_todos(id uuid pk, band_id uuid fk bands, created_by uuid fk profiles,
+//   content text, completed bool default false, completed_by uuid nullable fk profiles,
+//   completed_at timestamptz nullable, created_at timestamptz default now())
+
+export interface BandTodo {
+  id: string;
+  band_id: string;
+  created_by: string;
+  content: string;
+  completed: boolean;
+  completed_by: string | null;
+  completed_at: string | null;
+  created_at: string;
+  creator?: { display_name: string | null; username: string | null } | null;
+}
+
+export async function getBandTodos(bandId: string): Promise<BandTodo[]> {
+  const { data } = await supabase
+    .from('band_todos')
+    .select('*, creator:profiles!created_by(display_name, username)')
+    .eq('band_id', bandId)
+    .order('completed', { ascending: true })
+    .order('created_at', { ascending: true });
+  return (data ?? []) as BandTodo[];
+}
+
+export async function createBandTodo(bandId: string, userId: string, content: string): Promise<BandTodo | null> {
+  const { data, error } = await supabase
+    .from('band_todos')
+    .insert({ band_id: bandId, created_by: userId, content, completed: false })
+    .select('*, creator:profiles!created_by(display_name, username)')
+    .single();
+  if (error) return null;
+  return data as BandTodo;
+}
+
+export async function toggleBandTodo(todoId: string, completed: boolean, userId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('band_todos')
+    .update({ completed, completed_by: completed ? userId : null, completed_at: completed ? new Date().toISOString() : null })
+    .eq('id', todoId);
+  return !error;
+}
+
+export async function deleteBandTodo(todoId: string): Promise<boolean> {
+  const { error } = await supabase.from('band_todos').delete().eq('id', todoId);
+  return !error;
 }
 
 export async function createMentionNotifications(

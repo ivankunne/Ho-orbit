@@ -143,10 +143,10 @@ export default function BandSpacePage() {
   return (
     <div className="max-w-6xl mx-auto px-4 lg:px-6 py-10">
       {/* Header */}
-      <div className="flex items-start justify-between mb-10">
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Band Space</h1>
-          <p className="text-slate-400 max-w-xl">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Band Space</h1>
+          <p className="text-slate-400 max-w-xl text-sm sm:text-base">
             Een privé werkruimte voor jouw band of crew. Vijf Orbit-kanalen per band: repetities, optredens, socials, magazine en media — elk met eigen groepschat.
           </p>
         </div>
@@ -210,8 +210,8 @@ export default function BandSpacePage() {
 
       {/* Create band modal */}
       {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#201c30] border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#201c30] border border-white/10 rounded-t-2xl sm:rounded-2xl p-6 w-full sm:max-w-md shadow-2xl max-h-[90dvh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-white">Nieuwe band aanmaken</h2>
               <button onClick={() => setShowCreate(false)} className="text-slate-400 hover:text-white">

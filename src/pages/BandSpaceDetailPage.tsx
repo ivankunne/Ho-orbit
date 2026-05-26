@@ -6,6 +6,7 @@ import {
   X, Clock, Check, Trash2, Pin, Paperclip, ChevronDown, Menu,
   Image as ImageIcon, FileText as FileIcon, ShieldCheck,
   Calendar, Plus, MessageSquare, PenLine, AtSign, MapPin,
+  CheckSquare, Square, Share2, Copy, ListTodo,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@context/AuthContext';
@@ -13,10 +14,13 @@ import { useToast } from '@components/Toast';
 import UserAvatar from '@components/UserAvatar';
 import {
   type ChannelKey, type ChannelPreview, type BandEvent, type EventType, type BandPost,
+  type BandTodo,
   getChannelPreviews, markChannelRead,
   uploadBandMedia, setPinned,
   getBandPosts, createBandPost, deleteBandPost,
   getBandEvents, getUpcomingEvents, createBandEvent, deleteBandEvent,
+  getPinnedEvents, pinBandEvent,
+  getBandTodos, createBandTodo, toggleBandTodo, deleteBandTodo,
   getBandNote, saveBandNote,
   getMentionCounts, markMentionsRead, createMentionNotifications,
 } from '@services/orbitService';
@@ -83,7 +87,7 @@ function bandGradient(genre: string) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-type ActiveView = 'home' | 'channel' | 'calendar';
+type ActiveView = 'home' | 'channel' | 'calendar' | 'todos';
 
 export default function BandSpaceDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -151,6 +155,19 @@ export default function BandSpaceDetailPage() {
   const [noteSaving, setNoteSaving]           = useState(false);
   const [noteSaved, setNoteSaved]             = useState(false);
   const [noteLastUpdated, setNoteLastUpdated] = useState<any>(null);
+
+  // Todos
+  const [todos, setTodos]               = useState<BandTodo[]>([]);
+  const [todosLoading, setTodosLoading] = useState(false);
+  const [newTodo, setNewTodo]           = useState('');
+  const [addingTodo, setAddingTodo]     = useState(false);
+
+  // Pinned events
+  const [pinnedEvents, setPinnedEvents] = useState<BandEvent[]>([]);
+
+  // Share modal
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [copied, setCopied]                 = useState(false);
 
   // Membership actions
   const [joining, setJoining] = useState(false);
@@ -273,6 +290,19 @@ export default function BandSpaceDetailPage() {
     getBandEvents(id, calendarDate.getFullYear(), calendarDate.getMonth() + 1)
       .then(e => { setBandEvents(e); setEventsLoading(false); });
   }, [activeView, id, isMember, calendarDate]);
+
+  // ── Load todos ───────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!id || !isMember) return;
+    setTodosLoading(true);
+    getBandTodos(id).then(t => { setTodos(t); setTodosLoading(false); });
+  }, [id, isMember]);
+
+  // ── Load pinned events ───────────────────────────────────────────────────
+  useEffect(() => {
+    if (!id || !isMember) return;
+    getPinnedEvents(id).then(setPinnedEvents);
+  }, [id, isMember]);
 
   // ── Load note ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -432,6 +462,60 @@ export default function BandSpaceDetailPage() {
     setUpcomingEvents(prev => prev.filter(e => e.id !== eventId));
   }
 
+  // ── Handlers: todos ──────────────────────────────────────────────────────
+  async function handleCreateTodo() {
+    if (!newTodo.trim() || !user || !id) return;
+    setAddingTodo(true);
+    const todo = await createBandTodo(id, user.id, newTodo.trim());
+    if (todo) { setTodos(prev => [...prev, todo]); setNewTodo(''); }
+    else addToast('Aanmaken mislukt', 'error');
+    setAddingTodo(false);
+  }
+
+  async function handleToggleTodo(todo: BandTodo) {
+    if (!user) return;
+    const updated = !todo.completed;
+    setTodos(prev => prev.map(t => t.id === todo.id ? { ...t, completed: updated } : t));
+    const ok = await toggleBandTodo(todo.id, updated, user.id);
+    if (!ok) setTodos(prev => prev.map(t => t.id === todo.id ? { ...t, completed: todo.completed } : t));
+  }
+
+  async function handleDeleteTodo(todoId: string) {
+    setTodos(prev => prev.filter(t => t.id !== todoId));
+    const ok = await deleteBandTodo(todoId);
+    if (!ok) { addToast('Verwijderen mislukt', 'error'); if (id) getBandTodos(id).then(setTodos); }
+  }
+
+  // ── Handlers: pin event ──────────────────────────────────────────────────
+  async function handlePinEvent(ev: BandEvent) {
+    if (!isAdmin) return;
+    const next = !ev.is_pinned;
+    const ok = await pinBandEvent(ev.id, next);
+    if (!ok) { addToast('Vastpinnen mislukt', 'error'); return; }
+    setBandEvents(prev => prev.map(e => e.id === ev.id ? { ...e, is_pinned: next } : e));
+    if (next) setPinnedEvents(prev => [...prev, { ...ev, is_pinned: true }].sort((a, b) => a.event_date.localeCompare(b.event_date)));
+    else setPinnedEvents(prev => prev.filter(e => e.id !== ev.id));
+    addToast(next ? 'Vastgepind' : 'Pin verwijderd', 'info');
+  }
+
+  // ── Handlers: share ──────────────────────────────────────────────────────
+  function handleShare() {
+    const url = window.location.href.split('?')[0];
+    if (navigator.share) {
+      navigator.share({ title: band?.name, text: `Sluit je aan bij ${band?.name} op h-orbit`, url });
+    } else {
+      handleCopyLink();
+    }
+  }
+
+  function handleCopyLink() {
+    const url = window.location.href.split('?')[0];
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
   // ── Handlers: membership ─────────────────────────────────────────────────
   async function handleRequestJoin() {
     if (!user || !id) return; setJoining(true);
@@ -514,12 +598,12 @@ export default function BandSpaceDetailPage() {
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
-    <div className="flex h-[calc(100vh-80px)] lg:h-[calc(100vh-64px)]">
+    <div className="flex h-[calc(100dvh-80px)] pb-32 lg:pb-20 lg:h-[calc(100dvh-64px)]">
 
       {/* ── Sidebar ──────────────────────────────────────────────────────── */}
       <aside className={`
         shrink-0 flex-col bg-gradient-to-b from-[#1a1630] to-[#171328] border-r border-white/8
-        ${showMobileSidebar ? 'fixed inset-y-0 left-0 z-50 flex shadow-2xl w-72 top-0 pb-20' : 'hidden lg:flex w-64'}
+        ${showMobileSidebar ? 'fixed top-16 bottom-0 left-0 z-50 flex shadow-2xl w-72 pb-28' : 'hidden lg:flex w-64'}
       `}>
         {showMobileSidebar && (
           <button onClick={() => setShowMobileSidebar(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 lg:hidden"><X size={18} /></button>
@@ -550,6 +634,7 @@ export default function BandSpaceDetailPage() {
         <div className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
           <NavItem view="home" icon={LayoutDashboard} label="Home" />
           <NavItem view="calendar" icon={Calendar} label="Kalender" />
+          <NavItem view="todos" icon={ListTodo} label="Taken" />
 
           <div className="pt-3 pb-1">
             <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-wider px-3">Kanalen</p>
@@ -603,6 +688,9 @@ export default function BandSpaceDetailPage() {
             <span className="text-[11px] text-slate-500">{members.length} {members.length === 1 ? 'lid' : 'leden'}</span>
           </div>
           <div className="flex items-center gap-1">
+            <button onClick={() => setShowShareModal(true)} title="Delen" className="p-1.5 text-slate-500 hover:text-violet-400 hover:bg-violet-500/10 rounded-lg transition-colors">
+              <Share2 size={14} />
+            </button>
             <button onClick={() => setShowMembers(v => !v)}
               className={`relative p-1.5 rounded-lg transition-colors ${showMembers ? 'text-violet-400 bg-violet-500/15' : 'text-slate-500 hover:text-white hover:bg-white/8'}`}>
               <Users size={14} />
@@ -617,15 +705,16 @@ export default function BandSpaceDetailPage() {
         </div>
       </aside>
 
-      {/* Mobile header bar (shown instead of sidebar on mobile) */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-30 flex items-center gap-3 px-4 py-3 bg-[#13102] border-b border-white/8" style={{ background: '#131020ee' }}>
+      {/* Mobile header bar (shown instead of sidebar on mobile) — sits below the main navbar (top-16 = 64px) */}
+      <div className="lg:hidden fixed top-16 left-0 right-0 z-40 flex items-center gap-3 px-4 py-3 border-b border-white/8" style={{ background: '#131020f0' }}>
         <Link to="/bandspace" className="text-slate-400 hover:text-white"><ChevronLeft size={18} /></Link>
         <span className="text-sm font-semibold text-white truncate flex-1">{band.name}</span>
+        <button onClick={handleShare} className="p-1.5 text-slate-400 hover:text-violet-400 transition-colors"><Share2 size={16} /></button>
         <button onClick={() => setShowMobileSidebar(true)} className="p-1.5 text-slate-400 hover:text-white"><Menu size={18} /></button>
       </div>
 
       {/* Mobile backdrop */}
-      {showMobileSidebar && <div className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden" onClick={() => setShowMobileSidebar(false)} />}
+      {showMobileSidebar && <div className="fixed top-16 bottom-0 left-0 right-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden" onClick={() => setShowMobileSidebar(false)} />}
 
       {/* ── Main content ──────────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden pt-12 lg:pt-0">
@@ -671,6 +760,56 @@ export default function BandSpaceDetailPage() {
                 </div>
               </div>
             </div>
+
+            {/* ── Orbit Channel Tiles ──────────────────────────────────────── */}
+            {isMember && (
+              <div className="border-b border-white/8 bg-black/15">
+                <div className="max-w-6xl mx-auto px-4 lg:px-8 py-5">
+                  <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-3">Orbit Kanalen</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                    {CHANNELS.map(ch => {
+                      const Icon = ch.icon;
+                      const preview = channelPreviews[ch.key];
+                      const mentions = mentionCounts[ch.key] ?? 0;
+                      return (
+                        <button key={ch.key} onClick={() => switchChannel(ch.key)}
+                          className="flex flex-col items-start gap-2.5 p-3.5 rounded-2xl bg-white/4 hover:bg-white/7 border border-white/8 hover:border-white/15 active:scale-[0.97] transition-all text-left group">
+                          <div className="flex items-center justify-between w-full">
+                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${ch.bg} group-hover:scale-105 transition-transform`}>
+                              <Icon size={16} className={ch.color} />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {mentions > 0 && (
+                                <span className="flex items-center gap-0.5 bg-amber-500/20 border border-amber-500/30 text-amber-400 text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                                  <AtSign size={8} />{mentions}
+                                </span>
+                              )}
+                              {preview?.hasUnread && mentions === 0 && (
+                                <span className={`w-2 h-2 rounded-full ${ch.accent} animate-pulse`} />
+                              )}
+                            </div>
+                          </div>
+                          <div className="w-full min-w-0">
+                            <p className="text-[13px] font-semibold text-white leading-tight">{ch.label}</p>
+                            {preview?.lastContent ? (
+                              <p className="text-[11px] text-slate-500 truncate mt-0.5 leading-snug">
+                                {preview.lastSender && <span className="text-slate-400">{preview.lastSender.split(' ')[0]}: </span>}
+                                {preview.lastContent}
+                              </p>
+                            ) : (
+                              <p className="text-[11px] text-slate-600 mt-0.5">Nog geen berichten</p>
+                            )}
+                            {preview?.lastAt && (
+                              <p className="text-[10px] text-slate-600 mt-1">{shortTime(preview.lastAt)}</p>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Content grid */}
             <div className="max-w-6xl mx-auto px-4 lg:px-8 py-6 lg:py-8">
@@ -741,7 +880,7 @@ export default function BandSpaceDetailPage() {
                             </div>
                             {isAdmin && (
                               <button onClick={() => handleDeletePost(post.id)}
-                                className="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-red-400 transition-all p-1 shrink-0">
+                                className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 text-slate-600 hover:text-red-400 transition-all p-1 shrink-0">
                                 <Trash2 size={14} />
                               </button>
                             )}
@@ -819,25 +958,74 @@ export default function BandSpaceDetailPage() {
                     </div>
                   </div>
 
-                  {/* Quick links to channels */}
-                  <div className="bg-white/3 border border-white/8 rounded-2xl p-4 lg:p-5">
-                    <h3 className="text-sm font-semibold text-white mb-3">Orbit Kanalen</h3>
-                    <div className="space-y-1">
-                      {CHANNELS.map(ch => {
-                        const Icon = ch.icon;
-                        const preview = channelPreviews[ch.key];
-                        return (
-                          <button key={ch.key} onClick={() => switchChannel(ch.key)} disabled={!isMember}
-                            className="w-full flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-white/5 transition-colors text-left disabled:opacity-40 group">
-                            <div className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${ch.bg}`}>
-                              <Icon size={11} className={ch.color} />
+                  {/* Pinned events tile */}
+                  {pinnedEvents.length > 0 && (
+                    <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/20 rounded-2xl p-4 lg:p-5">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Pin size={13} className="text-amber-400" />
+                        <h3 className="text-sm font-semibold text-white">Vastgepinde afspraken</h3>
+                      </div>
+                      <div className="space-y-2.5">
+                        {pinnedEvents.map(ev => {
+                          const t = EVENT_TYPES.find(t => t.value === ev.type)!;
+                          const d = new Date(ev.event_date + 'T00:00:00');
+                          return (
+                            <div key={ev.id} className="flex items-start gap-3">
+                              <div className="text-center shrink-0 w-9">
+                                <p className="text-[10px] text-amber-400/70 uppercase leading-none">{NL_MONTHS[d.getMonth()].slice(0, 3)}</p>
+                                <p className="text-lg font-bold text-white leading-tight">{d.getDate()}</p>
+                              </div>
+                              <div className="flex-1 min-w-0 pt-0.5">
+                                <p className="text-sm font-medium text-white truncate">{ev.title}</p>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <span className={`w-1.5 h-1.5 rounded-full ${t.dot}`} />
+                                  <span className={`text-[11px] ${t.color}`}>{t.label}{ev.event_time ? ` · ${ev.event_time.slice(0, 5)}` : ''}</span>
+                                </div>
+                              </div>
                             </div>
-                            <span className="text-xs text-slate-400 group-hover:text-slate-200 transition-colors flex-1">{ch.label}</span>
-                            {preview?.hasUnread && <span className={`w-1.5 h-1.5 rounded-full ${ch.accent}`} />}
-                          </button>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
+                      <button onClick={() => setActiveView('calendar')} className="text-[11px] text-amber-400/70 hover:text-amber-400 transition-colors mt-3 pt-3 border-t border-amber-500/15 w-full text-left">
+                        Alle afspraken →
+                      </button>
                     </div>
+                  )}
+
+                  {/* Taken (todos) tile */}
+                  <div className="bg-white/3 border border-white/8 rounded-2xl p-4 lg:p-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <ListTodo size={13} className="text-violet-400" />
+                        <h3 className="text-sm font-semibold text-white">Taken</h3>
+                      </div>
+                      <button onClick={() => setActiveView('todos')} className="text-[11px] text-violet-400 hover:text-violet-300 transition-colors">Alles →</button>
+                    </div>
+                    {todosLoading ? (
+                      <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-violet-400/50" /></div>
+                    ) : todos.filter(t => !t.completed).length === 0 ? (
+                      <p className="text-xs text-slate-600 py-1">Geen openstaande taken.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {todos.filter(t => !t.completed).slice(0, 4).map(todo => (
+                          <div key={todo.id} className="flex items-start gap-2.5">
+                            <button onClick={() => handleToggleTodo(todo)} className="mt-0.5 shrink-0 text-slate-500 hover:text-violet-400 transition-colors">
+                              <Square size={13} />
+                            </button>
+                            <p className="text-xs text-slate-300 leading-relaxed">{todo.content}</p>
+                          </div>
+                        ))}
+                        {todos.filter(t => !t.completed).length > 4 && (
+                          <p className="text-[11px] text-slate-600 pt-0.5">+{todos.filter(t => !t.completed).length - 4} meer</p>
+                        )}
+                      </div>
+                    )}
+                    {isMember && (
+                      <button onClick={() => setActiveView('todos')}
+                        className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-violet-400 transition-colors mt-3 pt-3 border-t border-white/8 w-full">
+                        <Plus size={12} /> Taak toevoegen
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -924,7 +1112,15 @@ export default function BandSpaceDetailPage() {
                             <p className={`text-sm ${t.color} mt-0.5`}>{t.label}{ev.event_time ? ` · ${ev.event_time.slice(0, 5)}` : ''}</p>
                             {ev.description && <p className="text-sm text-slate-400 mt-1.5 leading-relaxed">{ev.description}</p>}
                           </div>
-                          {isAdmin && <button onClick={() => handleDeleteEvent(ev.id)} className="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-red-400 transition-all p-1"><Trash2 size={14} /></button>}
+                          {isAdmin && (
+                            <div className="flex items-center gap-0.5 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all">
+                              <button onClick={() => handlePinEvent(ev)} title={ev.is_pinned ? 'Losmaken' : 'Vastpinnen'}
+                                className={`p-1 transition-colors ${ev.is_pinned ? 'text-amber-400' : 'text-slate-600 hover:text-amber-400'}`}>
+                                <Pin size={13} />
+                              </button>
+                              <button onClick={() => handleDeleteEvent(ev.id)} className="p-1 text-slate-600 hover:text-red-400 transition-colors"><Trash2 size={14} /></button>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -935,6 +1131,99 @@ export default function BandSpaceDetailPage() {
                       </button>
                     )}
                   </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── TODOS VIEW ────────────────────────────────────────────────────── */}
+        {activeView === 'todos' && (
+          <div className="flex-1 overflow-y-auto">
+            <div className="max-w-2xl mx-auto px-4 lg:px-8 py-6 lg:py-8">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-bold text-white flex items-center gap-2"><ListTodo size={20} className="text-violet-400" /> Taken</h2>
+                  <p className="text-sm text-slate-500 mt-0.5">{band.name} · gedeelde takenlijst</p>
+                </div>
+                <span className="text-xs text-slate-500 bg-white/5 border border-white/8 rounded-full px-2.5 py-1">
+                  {todos.filter(t => !t.completed).length} open
+                </span>
+              </div>
+
+              {/* Add todo */}
+              {isMember && (
+                <div className="flex gap-2 mb-6">
+                  <input
+                    type="text"
+                    value={newTodo}
+                    onChange={e => setNewTodo(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleCreateTodo(); }}
+                    placeholder="Nieuwe taak toevoegen…"
+                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500/50 transition-colors"
+                  />
+                  <button onClick={handleCreateTodo} disabled={!newTodo.trim() || addingTodo}
+                    className="flex items-center gap-1.5 bg-violet-600 hover:bg-violet-500 text-white font-semibold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-40 shrink-0 text-sm">
+                    {addingTodo ? <Loader2 size={14} className="animate-spin" /> : <Plus size={15} />}
+                  </button>
+                </div>
+              )}
+
+              {/* Todo list */}
+              {todosLoading ? (
+                <div className="flex justify-center py-16"><Loader2 size={22} className="animate-spin text-violet-400/60" /></div>
+              ) : todos.length === 0 ? (
+                <div className="text-center py-16 text-slate-600">
+                  <CheckSquare size={36} className="mx-auto mb-3 opacity-30" />
+                  <p className="text-sm">Geen taken. Voeg de eerste taak toe!</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {/* Open todos */}
+                  {todos.filter(t => !t.completed).map(todo => (
+                    <div key={todo.id} className="flex items-start gap-3 p-3.5 rounded-xl bg-white/3 border border-white/8 hover:bg-white/5 transition-colors group">
+                      <button onClick={() => handleToggleTodo(todo)} className="mt-0.5 shrink-0 text-slate-500 hover:text-violet-400 transition-colors">
+                        <Square size={16} />
+                      </button>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-white leading-relaxed">{todo.content}</p>
+                        <p className="text-[11px] text-slate-600 mt-0.5">{todo.creator?.display_name || todo.creator?.username}</p>
+                      </div>
+                      {(isAdmin || todo.created_by === user?.id) && (
+                        <button onClick={() => handleDeleteTodo(todo.id)}
+                          className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 text-slate-600 hover:text-red-400 transition-all p-0.5 shrink-0">
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Completed todos */}
+                  {todos.filter(t => t.completed).length > 0 && (
+                    <>
+                      <div className="flex items-center gap-2 pt-4 pb-1">
+                        <div className="flex-1 h-px bg-white/8" />
+                        <span className="text-[11px] text-slate-600 font-medium">{todos.filter(t => t.completed).length} voltooid</span>
+                        <div className="flex-1 h-px bg-white/8" />
+                      </div>
+                      {todos.filter(t => t.completed).map(todo => (
+                        <div key={todo.id} className="flex items-start gap-3 p-3.5 rounded-xl bg-white/2 border border-white/5 transition-colors group opacity-60">
+                          <button onClick={() => handleToggleTodo(todo)} className="mt-0.5 shrink-0 text-emerald-500 hover:text-slate-500 transition-colors">
+                            <CheckSquare size={16} />
+                          </button>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-slate-500 line-through leading-relaxed">{todo.content}</p>
+                          </div>
+                          {(isAdmin || todo.created_by === user?.id) && (
+                            <button onClick={() => handleDeleteTodo(todo.id)}
+                              className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 text-slate-600 hover:text-red-400 transition-all p-0.5 shrink-0">
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -1034,7 +1323,7 @@ export default function BandSpaceDetailPage() {
                               <div className="w-9 shrink-0 flex items-end">
                                 {!sameAsPrev && <UserAvatar src={msg.sender?.avatar_url} name={msg.sender?.display_name || msg.sender?.username} size={34} />}
                               </div>
-                              <div className={`flex flex-col max-w-[65%] lg:max-w-[55%] ${isMe ? 'items-end' : 'items-start'}`}>
+                              <div className={`flex flex-col max-w-[82%] lg:max-w-[55%] ${isMe ? 'items-end' : 'items-start'}`}>
                                 {!sameAsPrev && (
                                   <div className={`flex items-center gap-2 mb-1.5 px-1 ${isMe ? 'flex-row-reverse' : ''}`}>
                                     <span className="text-[13px] font-semibold text-slate-300">{msg.sender?.display_name || msg.sender?.username}</span>
@@ -1061,7 +1350,7 @@ export default function BandSpaceDetailPage() {
                                   )}
                                   {isAdmin && (
                                     <button onClick={() => handleTogglePin(msg)} title={msg.is_pinned ? 'Losmaken' : 'Vastpinnen'}
-                                      className={`absolute -top-2.5 ${isMe ? 'left-1' : 'right-1'} opacity-0 group-hover/bubble:opacity-100 transition-opacity bg-[#1e1a30] border border-white/15 rounded-full p-1 shadow-lg`}>
+                                      className={`absolute -top-2.5 ${isMe ? 'left-1' : 'right-1'} opacity-100 lg:opacity-0 lg:group-hover/bubble:opacity-100 transition-opacity bg-[#1e1a30] border border-white/15 rounded-full p-1 shadow-lg`}>
                                       <Pin size={10} className={msg.is_pinned ? 'text-violet-400' : 'text-slate-400'} />
                                     </button>
                                   )}
@@ -1168,7 +1457,7 @@ export default function BandSpaceDetailPage() {
       {showMembers && (
         <>
           <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={() => setShowMembers(false)} />
-          <div className="fixed inset-y-0 right-0 w-80 bg-[#1a162c] border-l border-white/10 z-50 flex flex-col shadow-2xl">
+          <div className="fixed top-0 lg:top-0 bottom-0 right-0 w-full sm:w-80 bg-[#1a162c] border-l border-white/10 z-50 flex flex-col shadow-2xl">
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
               <h3 className="font-semibold text-white">Leden</h3>
               <button onClick={() => setShowMembers(false)} className="text-slate-400 hover:text-white p-1 hover:bg-white/8 rounded-lg transition-colors"><X size={16} /></button>
@@ -1223,8 +1512,8 @@ export default function BandSpaceDetailPage() {
 
       {/* ── Add event modal ───────────────────────────────────────────────────── */}
       {showAddEvent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-[#1e1a30] border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-[#1e1a30] border border-white/10 rounded-t-2xl sm:rounded-2xl p-6 w-full sm:max-w-md shadow-2xl max-h-[90dvh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-base font-semibold text-white">Evenement toevoegen</h2>
               <button onClick={() => setShowAddEvent(false)} className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/8 transition-colors"><X size={16} /></button>
@@ -1283,6 +1572,89 @@ export default function BandSpaceDetailPage() {
                 {savingEvent ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Opslaan
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Share / invite modal ──────────────────────────────────────────────── */}
+      {showShareModal && band && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/70 backdrop-blur-sm" onClick={() => setShowShareModal(false)}>
+          <div className="bg-[#1e1a30] border border-white/10 rounded-t-2xl sm:rounded-2xl p-6 w-full sm:max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-base font-semibold text-white">Band delen</h2>
+              <button onClick={() => setShowShareModal(false)} className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/8 transition-colors"><X size={16} /></button>
+            </div>
+
+            {/* Band info row */}
+            <div className="flex items-center gap-3 mb-5 p-3 bg-white/5 rounded-xl border border-white/8">
+              <div className="w-10 h-10 rounded-xl bg-violet-600/20 border border-violet-500/20 flex items-center justify-center shrink-0">
+                {band.image_url
+                  ? <img src={band.image_url} alt={band.name} className="w-full h-full object-cover rounded-xl" />
+                  : <Music size={16} className="text-violet-400" />
+                }
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-white truncate">{band.name}</p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  {band.is_public
+                    ? <><Globe size={10} className="text-emerald-400" /><span className="text-[11px] text-emerald-400">Openbaar</span></>
+                    : <><Lock size={10} className="text-amber-400" /><span className="text-[11px] text-amber-400">Privé — uitnodiging vereist</span></>
+                  }
+                </div>
+              </div>
+            </div>
+
+            {/* Copy link */}
+            <div className="mb-3">
+              <p className="text-xs font-medium text-slate-400 mb-2">Directe link</p>
+              <div className="flex items-center gap-2 bg-black/30 border border-white/10 rounded-xl px-3 py-2.5">
+                <span className="flex-1 text-xs text-slate-400 truncate">{window.location.href.split('?')[0]}</span>
+                <button
+                  onClick={handleCopyLink}
+                  className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-all shrink-0 ${copied ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-white/8 text-slate-300 hover:text-white hover:bg-white/12 border border-white/10'}`}
+                >
+                  {copied ? <Check size={12} /> : <Copy size={12} />}
+                  {copied ? 'Gekopieerd!' : 'Kopieer'}
+                </button>
+              </div>
+            </div>
+
+            {/* Native share (mobile) */}
+            {typeof navigator !== 'undefined' && !!navigator.share && (
+              <button
+                onClick={handleShare}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-colors mb-3"
+              >
+                <Share2 size={15} /> Delen via…
+              </button>
+            )}
+
+            {/* Admin: toggle public/private */}
+            {isAdmin && (
+              <div className="mt-2 pt-4 border-t border-white/8">
+                <p className="text-xs font-medium text-slate-400 mb-2">Zichtbaarheid</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={async () => {
+                      const { error } = await supabase.from('bands').update({ is_public: true }).eq('id', band.id);
+                      if (!error) setBand((b: any) => b ? { ...b, is_public: true } : b);
+                    }}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold border transition-all ${band.is_public ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'border-white/10 text-slate-500 hover:border-white/20 hover:text-slate-300'}`}
+                  >
+                    <Globe size={12} /> Openbaar
+                  </button>
+                  <button
+                    onClick={async () => {
+                      const { error } = await supabase.from('bands').update({ is_public: false }).eq('id', band.id);
+                      if (!error) setBand((b: any) => b ? { ...b, is_public: false } : b);
+                    }}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold border transition-all ${!band.is_public ? 'bg-amber-500/15 border-amber-500/30 text-amber-400' : 'border-white/10 text-slate-500 hover:border-white/20 hover:text-slate-300'}`}
+                  >
+                    <Lock size={12} /> Privé
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

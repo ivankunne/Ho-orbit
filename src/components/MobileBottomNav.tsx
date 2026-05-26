@@ -1,13 +1,13 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Calendar, User, Zap, MessageSquare } from 'lucide-react';
+import { Home, Users, User, Zap, MessageSquare } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
 
 const tabs = [
-  { label: 'Ontdekken', path: '/muziek',   icon: Home },
-  { label: 'Events',    path: '/events',   icon: Calendar },
-  { label: 'Hub',       path: '/hub',      icon: Zap,          accent: true },
+  { label: 'Ontdekken', path: '/muziek',    icon: Home },
+  { label: 'Band',      path: '/bandspace', icon: Users },
+  { label: 'Hub',       path: '/hub',       icon: Zap,           accent: true },
   { label: 'Berichten', path: '/berichten', icon: MessageSquare },
-  { label: 'Profiel',   path: '/profiel',  icon: User },
+  { label: 'Profiel',   path: '/profiel',   icon: User },
 ];
 
 export default function MobileBottomNav() {
