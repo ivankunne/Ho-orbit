@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   Search, X, Music, Calendar, BookOpen, FileText, ArrowRight,
@@ -126,12 +127,12 @@ export default function SearchOverlay({ onClose }: { onClose: () => void }) {
   let flatIdx = -1;
   const nextIdx = () => { flatIdx++; return flatIdx; };
 
-  return (
-    <div className="fixed inset-0 z-[150] flex flex-col" style={{ animation: 'fadeIn 0.15s ease' }}>
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex flex-col" style={{ animation: 'fadeIn 0.15s ease' }}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
       <div
-        className="relative mx-auto mt-4 sm:mt-16 w-full max-w-2xl bg-[#231d3a] border border-white/10 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden mx-3 sm:mx-auto"
+        className="relative mt-4 sm:mt-16 w-[calc(100%-2rem)] max-w-2xl mx-auto bg-[#231d3a] border border-white/10 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden"
         style={{ animation: 'slideDown 0.2s cubic-bezier(0.34,1.2,0.64,1) both' }}
       >
         {/* Search input */}
@@ -394,6 +395,7 @@ export default function SearchOverlay({ onClose }: { onClose: () => void }) {
         @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
         @keyframes slideDown { from { transform: translateY(-20px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
       `}</style>
-    </div>
+    </div>,
+    document.body,
   );
 }

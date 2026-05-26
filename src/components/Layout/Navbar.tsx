@@ -117,6 +117,17 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
     if (externalShowSearch) setShowSearch(true);
   }, [externalShowSearch]);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowSearch(v => !v);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   const unreadCount = useNotificationCount(user?.id);
   const unreadMessages = useUnreadMessageCount(user?.id);
   const [theme, setThemeState] = useThemeState(() => getTheme());
