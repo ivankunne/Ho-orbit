@@ -24,13 +24,19 @@ In the Supabase dashboard:
    - **Sender email:** `support@h-orbit.nl`
    - **Sender name:** `H-orbit`
 2. **Authentication → URL Configuration:**
-   - **Site URL:** `https://h-orbit.nl`
+   - **Site URL:** `https://h-orbit.nl`  ← must be exact, **no trailing slash** (the reset link is built from it).
    - **Redirect URLs:** add `https://h-orbit.nl/wachtwoord-herstellen` (and `http://localhost:5173/wachtwoord-herstellen` for local dev).
 3. **Authentication → Emails → Templates:**
    - **Reset Password** → paste `email-templates/reset-password.html`.
    - **Confirm signup** → paste `email-templates/confirm-signup.html`.
 
-The reset link lands on `/wachtwoord-herstellen` (see `src/pages/auth/ResetPasswordPage.tsx`), where the user sets a new password.
+The reset email links **directly to your site** using a `token_hash`:
+`{{ .SiteURL }}/wachtwoord-herstellen?token_hash={{ .TokenHash }}&type=recovery`.
+The page (`src/pages/auth/ResetPasswordPage.tsx`) calls `verifyOtp({ token_hash, type: 'recovery' })`
+to establish the session, then lets the user set a new password. This is cross-device safe
+(works when the email is opened on a different device than the request) and doesn't depend on
+URL-fragment redirects. The page also still accepts PKCE `?code=` and implicit-hash links as
+fallbacks, so older links keep working.
 
 ---
 

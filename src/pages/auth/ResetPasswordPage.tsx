@@ -18,6 +18,7 @@ export default function ResetPasswordPage() {
 
   const [ready, setReady] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [linkError, setLinkError] = useState('');
   const [form, setForm] = useState({ password: '', confirm: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -27,22 +28,49 @@ export default function ResetPasswordPage() {
   useEffect(() => {
     let active = true;
 
+    const finishReady = () => { if (active) { setReady(true); setChecking(false); } };
+    const finishError = (msg: string) => { if (active) { setLinkError(msg); setChecking(false); } };
+
+    // PASSWORD_RECOVERY fires when an implicit-hash recovery link is auto-parsed.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!active) return;
-      if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
-        setReady(true);
-        setChecking(false);
+      if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) finishReady();
+    });
+
+    (async () => {
+      const url = new URL(window.location.href);
+      const q = url.searchParams;
+      const hash = new URLSearchParams(url.hash.replace(/^#/, ''));
+      const clean = () => window.history.replaceState({}, '', url.pathname);
+
+      // 1. Supabase returned an error (expired / already used / invalid link).
+      const errDesc = q.get('error_description') || hash.get('error_description');
+      if (errDesc) return finishError(decodeURIComponent(errDesc.replace(/\+/g, ' ')));
+
+      // 2. token_hash flow (recommended, cross-device safe) — verify explicitly.
+      const tokenHash = q.get('token_hash');
+      const type = q.get('type');
+      if (tokenHash && (type === 'recovery' || !type)) {
+        const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' });
+        clean();
+        return error ? finishError(error.message) : finishReady();
       }
-    });
 
-    // Recovery session may already be established by the time we mount.
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!active) return;
-      if (session) setReady(true);
-      setChecking(false);
-    });
+      // 3. PKCE flow — exchange the code for a session.
+      const code = q.get('code');
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        clean();
+        return error ? finishError(error.message) : finishReady();
+      }
 
-    const timer = setTimeout(() => { if (active) setChecking(false); }, 4000);
+      // 4. Implicit-hash flow / already-established session.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) return finishReady();
+      // Otherwise wait for the auth event above; the timeout closes the spinner.
+    })();
+
+    const timer = setTimeout(() => { if (active) setChecking(false); }, 6000);
     return () => { active = false; subscription.unsubscribe(); clearTimeout(timer); };
   }, []);
 
@@ -90,7 +118,9 @@ export default function ResetPasswordPage() {
             </div>
             <h1 className="text-2xl font-bold text-white mb-2">Link verlopen of ongeldig</h1>
             <p className="text-slate-400 mb-6">
-              Deze herstellink is niet meer geldig. Vraag een nieuwe aan op de inlogpagina.
+              {linkError
+                ? linkError
+                : 'Deze herstellink is niet meer geldig. Vraag een nieuwe aan op de inlogpagina.'}
             </p>
             <Link to="/login">
               <Button className="w-full">Naar inloggen <ArrowRight size={18} /></Button>
