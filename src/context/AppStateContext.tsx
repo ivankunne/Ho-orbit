@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { addNotification } from '@services/notificationService';
+import { notifyNewFollower } from '@services/emailService';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isUUID = (id: string | null) => !!id && UUID_RE.test(id);
@@ -112,6 +113,8 @@ export function AppStateProvider({ children }) {
               body: `Je volgt nu ${artistName}`, link: `/profiel/${profile?.username}`,
             });
           }
+          // Notify the followed user (in-app + email).
+          notifyNewFollower(String(artistId));
         }
       } else {
         // Artist table follow (numeric ID from ArtistDetailPage)
@@ -134,6 +137,8 @@ export function AppStateProvider({ children }) {
               body: `Je volgt nu ${artistRow.name}`,
               link: `/artists/${artistRow.slug || artistId}`,
             });
+            // Notify the followed user if this artist is linked to a profile.
+            if (artistRow.profile_id) notifyNewFollower(String(artistRow.profile_id));
           }
         }
       }

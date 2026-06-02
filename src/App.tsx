@@ -69,6 +69,7 @@ const MasterclassPage = lazy(() => import('@pages/MasterclassPage'));
 const PrivacyPage     = lazy(() => import('@pages/legal/PrivacyPage'));
 const TermsPage       = lazy(() => import('@pages/legal/TermsPage'));
 const CookiesPage     = lazy(() => import('@pages/legal/CookiesPage'));
+const ResetPasswordPage = lazy(() => import('@pages/auth/ResetPasswordPage'));
 
 function PageLoader() {
   return (
@@ -184,6 +185,7 @@ function ProtectedApp() {
               {/* Auth routes — open modal overlay, redirect to /muziek */}
               <Route path="/login" element={<AuthRedirect tab="login" />} />
               <Route path="/signup" element={<AuthRedirect tab="signup" />} />
+              <Route path="/wachtwoord-herstellen" element={<ResetPasswordPage />} />
 
               {/* Publicly browsable */}
               <Route path="/radio" element={<RadioPage />} />

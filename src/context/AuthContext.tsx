@@ -243,6 +243,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  // Send a password-reset email. The link returns the user to /wachtwoord-herstellen
+  // where they set a new password. Uses the Resend SMTP configured in Supabase Auth.
+  const requestPasswordReset = async (email: string): Promise<{ ok: boolean; error?: string }> => {
+    const trimmed = email.trim();
+    if (!trimmed) return { ok: false, error: 'Vul je e-mailadres in.' };
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
+        redirectTo: `${window.location.origin}/wachtwoord-herstellen`,
+      });
+      if (error) return { ok: false, error: translateError(error.message) };
+      return { ok: true };
+    } catch (e: any) {
+      return { ok: false, error: translateError(e?.message || 'Er ging iets mis.') };
+    }
+  };
+
+  // Set a new password for the user in the active recovery session.
+  const updatePassword = async (newPassword: string): Promise<{ ok: boolean; error?: string }> => {
+    if (!newPassword || newPassword.length < 6) {
+      return { ok: false, error: 'Wachtwoord moet minimaal 6 tekens zijn.' };
+    }
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) return { ok: false, error: translateError(error.message) };
+      return { ok: true };
+    } catch (e: any) {
+      return { ok: false, error: translateError(e?.message || 'Er ging iets mis.') };
+    }
+  };
+
   const updateProfile = (updates: Record<string, any>) => {
     const EDITABLE = [
       'displayName', 'bio', 'location', 'email', 'avatar', 'banner',
@@ -273,7 +303,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, signup, error, setError, updateProfile, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, signup, error, setError, updateProfile, loading, requestPasswordReset, updatePassword }}>
       {children}
     </AuthContext.Provider>
   );

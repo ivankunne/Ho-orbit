@@ -1,0 +1,12 @@
+# Supabase CLI config for h-orbit.
+# Generated for the `notify` Edge Function deploy. Safe to commit.
+
+project_id = "ellezlbjqrjcxeifrwdo"
+
+# Notification emails (new chat message / new follower).
+# verify_jwt = true → only logged-in users (with a valid session token) can
+# invoke it; the function itself re-validates the caller. Keep this on.
+[functions.notify]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/notify/index.ts"

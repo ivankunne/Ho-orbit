@@ -11,10 +11,15 @@ import { Checkbox } from '@components/ui/checkbox';
 // ─── Login form ──────────────────────────────────────────────────────────────
 
 function LoginForm({ onSuccess, onSwitch }: { onSuccess: () => void; onSwitch: () => void }) {
-  const { login, error, setError } = useAuth();
+  const { login, error, setError, requestPasswordReset } = useAuth();
   const [form, setForm] = useState({ identifier: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<'login' | 'forgot'>('login');
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetMsg, setResetMsg] = useState('');
+  const [resetSent, setResetSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,6 +28,80 @@ function LoginForm({ onSuccess, onSwitch }: { onSuccess: () => void; onSwitch: (
     setLoading(false);
     if (ok) onSuccess();
   };
+
+  const handleReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetMsg('');
+    setResetLoading(true);
+    const result = await requestPasswordReset(resetEmail);
+    setResetLoading(false);
+    if (result.ok) setResetSent(true);
+    else setResetMsg(result.error || 'Er ging iets mis.');
+  };
+
+  if (mode === 'forgot') {
+    return (
+      <div>
+        <h2 className="text-2xl font-bold text-white mb-1">Wachtwoord vergeten</h2>
+        <p className="text-slate-400 text-sm mb-6">
+          Vul je e-mailadres in en we sturen je een link om je wachtwoord opnieuw in te stellen.
+        </p>
+
+        {resetSent ? (
+          <div className="text-center py-2">
+            <div className="w-16 h-16 rounded-full bg-violet-600/20 border border-violet-500/30 flex items-center justify-center mx-auto mb-4">
+              <Check size={28} className="text-violet-400" />
+            </div>
+            <p className="text-slate-300 text-sm leading-relaxed mb-6">
+              Als er een account bestaat voor <span className="text-white font-medium">{resetEmail}</span>,
+              ontvang je een e-mail met een herstellink.
+            </p>
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={() => { setMode('login'); setResetSent(false); setResetEmail(''); }}
+            >
+              Terug naar inloggen
+            </Button>
+          </div>
+        ) : (
+          <>
+            {resetMsg && (
+              <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-4 py-3 rounded-xl mb-4">
+                {resetMsg}
+              </div>
+            )}
+            <form onSubmit={handleReset} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">E-mailadres</label>
+                <Input
+                  type="email"
+                  value={resetEmail}
+                  onChange={e => { setResetEmail(e.target.value); setResetMsg(''); }}
+                  placeholder="jouw@email.nl"
+                  autoComplete="email"
+                  required
+                />
+              </div>
+              <Button type="submit" disabled={resetLoading || !resetEmail} className="w-full mt-1">
+                {resetLoading
+                  ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  : <>Herstellink versturen <ArrowRight size={16} /></>}
+              </Button>
+            </form>
+            <p className="text-center text-sm text-slate-400 mt-5">
+              <button
+                onClick={() => { setMode('login'); setResetMsg(''); }}
+                className="text-violet-400 hover:text-violet-300 font-medium transition-colors"
+              >
+                Terug naar inloggen
+              </button>
+            </p>
+          </>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -53,7 +132,11 @@ function LoginForm({ onSuccess, onSwitch }: { onSuccess: () => void; onSwitch: (
         <div>
           <div className="flex items-center justify-between mb-2">
             <label className="text-sm font-medium text-slate-300">Wachtwoord</label>
-            <button type="button" className="text-xs text-violet-400 hover:text-violet-300 transition-colors">
+            <button
+              type="button"
+              onClick={() => { setError(''); setMode('forgot'); }}
+              className="text-xs text-violet-400 hover:text-violet-300 transition-colors"
+            >
               Vergeten?
             </button>
           </div>

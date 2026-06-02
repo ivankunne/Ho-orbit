@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { notifyNewMessage } from '@services/emailService';
 
 export interface ConversationParticipant {
   id: string;
@@ -137,6 +138,9 @@ export async function sendMessage(
     .from('conversations')
     .update({ last_message_at: new Date().toISOString() })
     .eq('id', conversationId);
+
+  // Notify the recipient (in-app + email). Best-effort, never blocks the send.
+  notifyNewMessage(conversationId, data.id);
 
   return data;
 }

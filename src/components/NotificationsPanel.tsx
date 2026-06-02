@@ -12,6 +12,7 @@ import {
 const TYPE_ICON = {
   like:        { icon: Heart,        color: 'text-violet-400 bg-violet-600/15' },
   follow:      { icon: UserPlus,     color: 'text-blue-400 bg-blue-500/15' },
+  message:     { icon: MessageSquare, color: 'text-violet-400 bg-violet-600/15' },
   rsvp:        { icon: Calendar,     color: 'text-green-400 bg-green-500/15' },
   comment:     { icon: MessageSquare, color: 'text-purple-400 bg-purple-500/15' },
   forum_reply: { icon: MessageSquare, color: 'text-orange-400 bg-orange-500/15' },
@@ -147,7 +148,7 @@ export default function NotificationsPanel({ onClose }) {
                     {notif.title}
                   </p>
                   <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{notif.body}</p>
-                  <p className="text-xs text-slate-600 mt-1">{relativeTime(notif.createdAt)}</p>
+                  <p className="text-xs text-slate-600 mt-1">{relativeTime(notif.created_at)}</p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0 mt-1">
                   {!notif.read && <div className="w-2 h-2 rounded-full bg-violet-500" />}

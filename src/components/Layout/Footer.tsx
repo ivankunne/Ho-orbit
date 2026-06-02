@@ -11,6 +11,7 @@ export default function Footer() {
           <Link to="/privacy"      className="hover:text-slate-400 transition-colors">Privacybeleid</Link>
           <Link to="/voorwaarden"  className="hover:text-slate-400 transition-colors">Voorwaarden</Link>
           <Link to="/cookies"      className="hover:text-slate-400 transition-colors">Cookies</Link>
+          <a href="mailto:info@h-orbit.nl" className="hover:text-slate-400 transition-colors">Contact</a>
         </div>
 
         <p>
