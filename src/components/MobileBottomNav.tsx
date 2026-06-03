@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Home, Users, User, Zap, MessageSquare } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
@@ -13,9 +14,31 @@ const tabs = [
 export default function MobileBottomNav() {
   const { pathname } = useLocation();
   const { user } = useAuth();
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Publish the bar's real rendered height (incl. the iOS safe-area inset) as a
+  // CSS variable so the music player and install prompt always sit cleanly above
+  // it instead of overlapping on devices with a home indicator.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const setVar = () =>
+      document.documentElement.style.setProperty('--bottom-nav-h', `${el.offsetHeight}px`);
+    setVar();
+    const ro = new ResizeObserver(setVar);
+    ro.observe(el);
+    window.addEventListener('orientationchange', setVar);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('orientationchange', setVar);
+    };
+  }, []);
 
   return (
-    <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#1a1528]/95 backdrop-blur-xl border-t border-white/8">
+    <div
+      ref={ref}
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#1a1528] border-t border-white/10"
+    >
       <div className="flex items-center px-1 pt-2" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
         {tabs.map(({ label, path, icon: Icon, accent }) => {
           const resolvedPath = path === '/profiel' && user?.username ? `/profiel/${user.username}` : path;

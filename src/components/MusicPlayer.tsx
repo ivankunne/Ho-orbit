@@ -67,8 +67,8 @@ export default function MusicPlayer() {
         <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm" onClick={() => setExpanded(false)} />
       )}
 
-      <div className={`fixed left-0 right-0 z-[70] bg-[#1a1528]/98 backdrop-blur-2xl border-t border-white/8 transition-all duration-500 ease-out ${
-        expanded ? 'bottom-0' : 'bottom-16 lg:bottom-0'
+      <div className={`fixed left-0 right-0 z-[70] bg-[#1a1528] border-t border-white/8 transition-all duration-500 ease-out ${
+        expanded ? 'bottom-0' : 'bottom-[var(--bottom-nav-h,4.5rem)] lg:bottom-0'
       }`}>
 
         {/* Expanded panel */}

@@ -7,6 +7,7 @@
 
 @layer base {
   :root {
+    --bottom-nav-h:         4.5rem;        /* mobile bottom nav height; updated at runtime incl. safe-area */
     --background:           222 21% 13%;   /* #1a1528 */
     --foreground:           270 33% 92%;   /* #ede8f5 */
     --card:                 248 29% 17%;   /* #231d3a */
