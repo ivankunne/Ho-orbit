@@ -624,6 +624,17 @@ export default function BandSpaceDetailPage() {
   // ── Nav helper ───────────────────────────────────────────────────────────
   function switchChannel(key: ChannelKey) { setActiveChannel(key); setActiveView('channel'); setShowMobileSidebar(false); setChannelTab('chat'); }
 
+  // Clicking a calendar day selects it (so its events show) and, for members
+  // who can create events, opens the create modal with the date pre-filled.
+  function handleDayClick(day: number) {
+    setSelectedDay(day);
+    if (isAdmin && isMember) {
+      const date = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      setEventForm(f => ({ ...f, date }));
+      setShowAddEvent(true);
+    }
+  }
+
   // ── Sidebar nav item ─────────────────────────────────────────────────────
   function NavItem({ view, icon: Icon, label, color }: { view: ActiveView; icon: any; label: string; color?: string }) {
     const active = activeView === view && (view !== 'channel');
@@ -1115,7 +1126,7 @@ export default function BandSpaceDetailPage() {
                         const isSelected = selectedDay === day;
                         const dayEvs = eventsByDay[day] ?? [];
                         return (
-                          <button key={day} onClick={() => setSelectedDay(isSelected ? null : day)}
+                          <button key={day} onClick={() => handleDayClick(day)}
                             className={`bg-[#13102088] h-20 lg:h-24 p-2 flex flex-col items-start hover:bg-white/5 transition-colors text-left ${isSelected ? 'ring-1 ring-inset ring-violet-500/60' : ''}`}>
                             <span className={`text-xs font-semibold w-6 h-6 flex items-center justify-center rounded-full mb-1.5 ${isToday ? 'bg-violet-500 text-white' : 'text-slate-400'}`}>{day}</span>
                             <div className="flex flex-col gap-0.5 w-full">

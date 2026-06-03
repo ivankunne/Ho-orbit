@@ -159,6 +159,10 @@ function ProtectedApp() {
   const [showSearch, setShowSearch] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const isLanding = !!useMatch('/');
+  // The band workspace is a full-height app shell with its own internal scroll.
+  // Drop the page footer + bottom padding here so the window doesn't scroll on
+  // top of it (which produced a nested scrollbar).
+  const isWorkspace = !!useMatch('/bandspace/:id');
 
   if (user?.needsOnboarding && sessionStorage.getItem('ho_show_onboarding') === 'true') {
     return (
@@ -177,7 +181,7 @@ function ProtectedApp() {
         />
       )}
       {!isLanding && <Navbar externalShowSearch={showSearch} onExternalSearchClose={() => setShowSearch(false)} />}
-      <main className={isLanding ? '' : 'pb-28 lg:pb-20 flex flex-col'}>
+      <main className={isLanding ? '' : isWorkspace ? 'flex flex-col' : 'pb-28 lg:pb-20 flex flex-col'}>
         <ErrorBoundary>
           <Suspense fallback={<PageLoader />}>
             <Routes>
@@ -232,7 +236,7 @@ function ProtectedApp() {
             </Routes>
           </Suspense>
         </ErrorBoundary>
-        {!isLanding && <Footer />}
+        {!isLanding && !isWorkspace && <Footer />}
       </main>
       {!isLanding && <MusicPlayer />}
       {!isLanding && <MobileBottomNav />}
