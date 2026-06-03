@@ -1,11 +1,51 @@
 import { supabase } from '@/lib/supabase';
 
+function relativeTime(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return '';
+  const diffMin = Math.floor((Date.now() - then) / 60000);
+  if (diffMin < 1) return 'zojuist';
+  if (diffMin < 60) return `${diffMin} min geleden`;
+  const diffH = Math.floor(diffMin / 60);
+  if (diffH < 24) return `${diffH} uur geleden`;
+  const diffD = Math.floor(diffH / 24);
+  if (diffD < 7) return `${diffD} dag${diffD === 1 ? '' : 'en'} geleden`;
+  return new Date(iso).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
+}
+
 export async function getCategories() {
-  const { data } = await supabase
+  const { data: cats } = await supabase
     .from('forum_categories')
     .select('*')
     .order('sort_order');
-  return data ?? [];
+  if (!cats) return [];
+
+  // Aggregate thread/reply counts + latest post per category in one query.
+  const { data: threads } = await supabase
+    .from('forum_threads')
+    .select('category_id, title, replies_count, last_post_at, created_at')
+    .order('last_post_at', { ascending: false });
+
+  const byCat = new Map<number, any[]>();
+  for (const t of threads ?? []) {
+    const arr = byCat.get(t.category_id) ?? [];
+    arr.push(t);
+    byCat.set(t.category_id, arr);
+  }
+
+  return cats.map((cat) => {
+    const ts = byCat.get(cat.id) ?? [];
+    const latest = ts[0]; // threads are ordered by last_post_at desc
+    return {
+      ...cat,
+      thread_count: ts.length,
+      post_count: ts.reduce((sum, t) => sum + ((t.replies_count as number) ?? 0), 0),
+      last_post: latest
+        ? { threadTitle: latest.title, time: relativeTime(latest.last_post_at ?? latest.created_at) }
+        : null,
+    };
+  });
 }
 
 export async function getThreadsByCategory(categoryId?: number) {

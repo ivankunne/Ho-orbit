@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { avatarPlaceholder, coverPlaceholder } from '@utils/placeholder';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -104,7 +105,7 @@ function mapProfile(d: Record<string, unknown>): ManagedUser {
     username,
     displayName: (d.display_name as string) ?? username,
     email: '',
-    avatar: (d.avatar_url as string) || `https://picsum.photos/seed/${username}/80/80`,
+    avatar: (d.avatar_url as string) || avatarPlaceholder(d.display_name as string || username),
     role: (d.role as string) ?? 'Luisteraar',
     verified: (d.verified as boolean) ?? false,
     joinedDate: d.joined_date
@@ -162,9 +163,9 @@ function mapEvent(d: Record<string, unknown>): PendingEvent {
     genre: (d.genre as string) ?? '',
     description: (d.description as string) ?? '',
     ticketLink: '',
-    poster: (d.poster_url as string) || `https://picsum.photos/seed/${d.id}/400/300`,
+    poster: (d.poster_url as string) || coverPlaceholder(String(d.name ?? d.id)),
     submittedBy: (d.submitted_by_username as string) ?? 'onbekend',
-    submittedByAvatar: `https://picsum.photos/seed/${d.submitted_by ?? d.id}/80/80`,
+    submittedByAvatar: avatarPlaceholder((d.submitted_by_username as string) ?? 'onbekend'),
     submittedAt: (d.submitted_at as string) ?? (d.created_at as string) ?? new Date().toISOString(),
     status: ((d.status as string) ?? 'approved') as EventStatus,
     rejectionReason: (d.rejection_reason as string) ?? null,
@@ -181,6 +182,26 @@ export async function getReports(): Promise<ContentReport[]> {
     .order('created_at', { ascending: false });
   if (error) return [];
   return (data ?? []).map(mapReport);
+}
+
+export async function createReport(params: {
+  type: ReportType;
+  targetId: string;
+  targetTitle?: string;
+  reason: string;
+  details?: string;
+  reportedByUsername?: string;
+}): Promise<void> {
+  const { error } = await supabase.from('reports').insert({
+    type: params.type,
+    target_id: params.targetId,
+    target_title: params.targetTitle ?? '',
+    reason: params.reason,
+    details: params.details ?? '',
+    reported_by_username: params.reportedByUsername ?? null,
+    status: 'open',
+  });
+  if (error) throw error;
 }
 
 export async function resolveReport(reportId: string, notes: string): Promise<void> {
@@ -205,7 +226,7 @@ function mapReport(d: Record<string, unknown>): ContentReport {
     targetId: (d.target_id as string) ?? '',
     targetTitle: (d.target_title as string) ?? '',
     reportedBy: (d.reported_by_username as string) ?? 'onbekend',
-    reportedByAvatar: `https://picsum.photos/seed/${d.reported_by_username ?? d.id}/80/80`,
+    reportedByAvatar: avatarPlaceholder((d.reported_by_username as string) ?? 'onbekend'),
     reason: (d.reason as string) ?? '',
     details: (d.details as string) ?? '',
     createdAt: (d.created_at as string) ?? new Date().toISOString(),

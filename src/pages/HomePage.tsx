@@ -4,7 +4,7 @@ import {
   TrendingUp, ChevronRight, Flame, Sparkles, Play, Pause,
   MapPin, Newspaper, Users, Music2, Compass,
   Handshake, Star, UserPlus,
-  Building2, Search, Megaphone,
+  Search, Megaphone,
 } from 'lucide-react';
 import { getGenreColor } from '@data/genreColors';
 import { useAuth } from '@context/AuthContext';
@@ -25,16 +25,21 @@ const GENRE_LABEL: Record<string, string> = {
 
 const GENRES = ['Alles', 'Nederpop', 'Hip-Hop', 'Elektronisch', 'Jazz', 'Indie', 'R&B', 'Rock'];
 
-const PREV_POSITIONS: Record<number, number | null> = {
-  101: 3, 102: 1, 103: 2, 104: 6, 105: 4,
-  106: 8, 107: 5, 108: null, 109: 7, 110: 10,
-};
+// Label for the current chart week, e.g. "Week van 2 jun".
+function currentWeekLabel(): string {
+  const now = new Date();
+  const day = now.getDay(); // 0 = Sunday
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((day + 6) % 7));
+  return `Week van ${monday.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}`;
+}
 
 export default function HomePage() {
   const [activeGenre, setActiveGenre] = useState('Alles');
   const [artists, setArtists] = useState<any[]>([]);
   const [tracks, setTracks] = useState<any[]>([]);
   const [cities, setCities] = useState<any[]>([]);
+  const [venueCount, setVenueCount] = useState<number | null>(null);
   const [newsArticles, setNewsArticles] = useState<any[]>([]);
   const [localPosts, setLocalPosts] = useState<any[]>([]);
 
@@ -49,6 +54,7 @@ export default function HomePage() {
     fetchArtistProfiles(12).then(setArtists);
     supabase.from('tracks').select('*').or('is_user_upload.is.null,is_user_upload.eq.false,upload_status.eq.approved').order('plays', { ascending: false }).limit(100).then(({ data }) => setTracks((data ?? []).map(t => ({ ...t, artist: t.artist || t.artist_name || '' }))));
     supabase.from('dutch_cities').select('*').limit(6).then(({ data }) => setCities(data ?? []));
+    supabase.from('venues').select('id', { count: 'exact', head: true }).then(({ count }) => setVenueCount(count ?? null));
     supabase.from('articles').select('*').order('published_at', { ascending: false }).limit(3).then(({ data }) => setNewsArticles(data ?? []));
     supabase.from('networking_posts')
       .select('*, poster:profiles(username,display_name,avatar_url)')
@@ -145,7 +151,7 @@ export default function HomePage() {
               {[
                 { n: artists.length ? artists.length + '+' : '—', label: 'Artiesten' },
                 { n: cities.length || '—', label: 'Steden' },
-                { n: '50+', label: 'Venues' },
+                { n: venueCount ?? '—', label: 'Venues' },
               ].map(s => (
                 <div key={s.label} className="text-center">
                   <p className="text-2xl lg:text-3xl font-bold text-white">{s.n}</p>
@@ -242,21 +248,6 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* ── Zoek samenwerking (Collaboration Board) — hidden when empty ── */}
-        {false && (
-          <section className="pb-10">
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-2">
-                <Handshake size={18} className="text-emerald-400" />
-                <h2 className="text-xl font-bold text-white">Zoek samenwerking</h2>
-              </div>
-              <Link to="/forums" className="flex items-center gap-1 text-sm text-violet-400 hover:text-violet-300 transition-colors">
-                Alle oproepen <ChevronRight size={15} />
-              </Link>
-            </div>
-          </section>
-        )}
-
         {/* ── Nieuw op h-orbit (Rising Artists) ── */}
         <section className="pb-10">
           <div className="flex items-center justify-between mb-5">
@@ -335,21 +326,6 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* ── Oefenruimtes (Rehearsal Spaces) — hidden when no data ── */}
-        {false && (
-          <section className="pb-10">
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-2">
-                <Building2 size={18} className="text-violet-400" />
-                <h2 className="text-xl font-bold text-white">Oefenruimtes & studio's</h2>
-              </div>
-            </div>
-            <p className="text-slate-400 text-sm mb-5 max-w-2xl">
-              Vind repetitieruimtes, studio's en jamspaces bij jou in de buurt.
-            </p>
-          </section>
-        )}
-
         {/* ── Personalized recommendations ── */}
         {preferredGenres.slice(0, 2).map(genreId => {
           const matched = matchArtistsForGenre(genreId);
@@ -398,7 +374,7 @@ export default function HomePage() {
                   <TrendingUp size={18} className="text-violet-400" />
                   <h2 className="text-xl font-bold text-white">Nederlandse Top 10</h2>
                 </div>
-                <span className="text-xs text-slate-600 hidden sm:block">Week van 24 mrt</span>
+                <span className="text-xs text-slate-600 hidden sm:block">{currentWeekLabel()}</span>
               </div>
 
               {/* Genre pills */}
@@ -434,7 +410,7 @@ export default function HomePage() {
                 ) : (
                   filteredTracks.map((track, i) => (
                     <div key={track.id} className={i < filteredTracks.length - 1 ? 'border-b border-white/5' : ''}>
-                      <TrendingRow track={track} rank={i + 1} queue={filteredTracks} prevPosition={PREV_POSITIONS[track.id]} />
+                      <TrendingRow track={track} rank={i + 1} queue={filteredTracks} />
                     </div>
                   ))
                 )}

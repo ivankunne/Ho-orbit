@@ -494,9 +494,9 @@ function SignupForm({ onSuccess, onSwitch }: { onSuccess: () => void; onSwitch: 
             />
             <span className="text-sm text-slate-300 leading-relaxed">
               Ik ga akkoord met de{' '}
-              <span className="text-violet-400 hover:underline cursor-pointer">gebruiksvoorwaarden</span>
+              <a href="/voorwaarden" target="_blank" rel="noreferrer" className="text-violet-400 hover:underline">gebruiksvoorwaarden</a>
               {' '}en het{' '}
-              <span className="text-violet-400 hover:underline cursor-pointer">privacybeleid</span>.
+              <a href="/privacy" target="_blank" rel="noreferrer" className="text-violet-400 hover:underline">privacybeleid</a>.
             </span>
           </label>
           {formErrors.agreeTerms && (

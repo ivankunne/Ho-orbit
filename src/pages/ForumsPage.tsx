@@ -4,6 +4,7 @@ import { MessageSquare, Sliders, Users, Calendar, Coffee, Pin, ChevronLeft, X, S
 import { getCategories, getThreadsByCategory, createThread } from '@services/forumService';
 import { useAuth } from '@context/AuthContext';
 import { useToast } from '@components/Toast';
+import { avatarPlaceholder } from '@utils/placeholder';
 
 const iconMap = { MessageSquare, Sliders, Users, Calendar, Coffee };
 const colorMap = {
@@ -53,7 +54,7 @@ function ThreadRow({ thread }) {
       to={`/forums/thread/${thread.id}`}
       className="flex items-center gap-4 p-4 bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl transition-colors group"
     >
-      <img src={thread.author.avatar || `https://picsum.photos/seed/${thread.author.name}/40/40`} alt={thread.author.name} className="w-10 h-10 rounded-full object-cover shrink-0" />
+      <img src={thread.author.avatar || avatarPlaceholder(thread.author.name)} alt={thread.author.name} className="w-10 h-10 rounded-full object-cover shrink-0" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           {thread.pinned && <Pin size={12} className="text-violet-400 shrink-0" />}
@@ -314,7 +315,7 @@ export default function ForumsPage() {
                     to={`/forums/thread/${thread.id}`}
                     className="flex items-center gap-3 p-3 hover:bg-white/4 rounded-xl transition-colors group"
                   >
-                    <img src={thread.author.avatar || `https://picsum.photos/seed/${thread.author.name}/40/40`} alt={thread.author.name} className="w-8 h-8 rounded-full shrink-0 object-cover" />
+                    <img src={thread.author.avatar || avatarPlaceholder(thread.author.name)} alt={thread.author.name} className="w-8 h-8 rounded-full shrink-0 object-cover" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-white group-hover:text-violet-300 transition-colors truncate">{thread.title}</p>
                       <p className="text-xs text-slate-500">{thread.author.name} · {thread.lastPost?.time}</p>

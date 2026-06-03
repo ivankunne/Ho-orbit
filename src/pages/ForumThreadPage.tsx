@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { getThread, getReplies, createReply, toggleReplyLike } from '@services/forumService';
+import { createReport } from '@services/adminService';
 import { addNotification } from '@services/notificationService';
 import { useAuth } from '@context/AuthContext';
 import { useToast } from '@components/Toast';
@@ -21,6 +22,27 @@ function formatDate(iso) {
   } catch {
     return iso;
   }
+}
+
+// Render a minimal subset of markdown (**bold**, *italic*) as React nodes.
+function renderInline(text: string, keyPrefix = '') {
+  const nodes: (string | JSX.Element)[] = [];
+  const regex = /(\*\*([^*]+)\*\*|\*([^*]+)\*)/g;
+  let last = 0;
+  let idx = 0;
+  let m: RegExpExecArray | null;
+  while ((m = regex.exec(text)) !== null) {
+    if (m.index > last) nodes.push(text.slice(last, m.index));
+    if (m[2] !== undefined) {
+      nodes.push(<strong key={`${keyPrefix}b${idx}`} className="font-semibold text-white">{m[2]}</strong>);
+    } else if (m[3] !== undefined) {
+      nodes.push(<em key={`${keyPrefix}i${idx}`} className="italic">{m[3]}</em>);
+    }
+    last = m.index + m[0].length;
+    idx++;
+  }
+  if (last < text.length) nodes.push(text.slice(last));
+  return nodes;
 }
 
 function ReplyCard({ reply, isOP, isOwn, index, onLike, liked, initialLiked, onReport }) {
@@ -65,12 +87,12 @@ function ReplyCard({ reply, isOP, isOwn, index, onLike, liked, initialLiked, onR
           <div className="mb-2">
             {reply.content.split('\n').map((line, i) => (
               line.startsWith('>')
-                ? <p key={i} className="text-xs text-slate-500 italic border-l-2 border-white/20 pl-2 mb-1">{line.slice(1).trim()}</p>
-                : <p key={i} className="text-sm text-slate-300 leading-relaxed">{line}</p>
+                ? <p key={i} className="text-xs text-slate-500 italic border-l-2 border-white/20 pl-2 mb-1">{renderInline(line.slice(1).trim(), `q${i}-`)}</p>
+                : <p key={i} className="text-sm text-slate-300 leading-relaxed">{renderInline(line, `l${i}-`)}</p>
             ))}
           </div>
         ) : (
-          <p className="text-sm text-slate-300 leading-relaxed">{reply.content}</p>
+          <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">{renderInline(reply.content)}</p>
         )}
 
         <div className="flex items-center gap-4 mt-3 pt-2 border-t border-white/5">
@@ -148,6 +170,48 @@ export default function ForumThreadPage() {
         next.has(replyId) ? next.delete(replyId) : next.add(replyId);
         return next;
       });
+    }
+  }
+
+  function applyFormat(kind: 'bold' | 'italic' | 'quote' | 'emoji') {
+    const ta = document.getElementById('reply-box') as HTMLTextAreaElement | null;
+    const start = ta?.selectionStart ?? replyText.length;
+    const end = ta?.selectionEnd ?? replyText.length;
+    const selected = replyText.slice(start, end);
+
+    let next = replyText;
+    let caret = end;
+    if (kind === 'quote') {
+      const lineStart = replyText.lastIndexOf('\n', start - 1) + 1;
+      next = replyText.slice(0, lineStart) + '> ' + replyText.slice(lineStart);
+      caret = end + 2;
+    } else {
+      const wrap = kind === 'bold' ? '**' : kind === 'italic' ? '*' : '';
+      const insert = kind === 'emoji' ? '🙂' : `${wrap}${selected || 'tekst'}${wrap}`;
+      next = replyText.slice(0, start) + insert + replyText.slice(end);
+      caret = start + insert.length;
+    }
+    setReplyText(next);
+    requestAnimationFrame(() => {
+      ta?.focus();
+      ta?.setSelectionRange(caret, caret);
+    });
+  }
+
+  async function handleReport(reply) {
+    if (!user) { addToast('Log in om te melden.', 'error'); return; }
+    try {
+      await createReport({
+        type: 'reply',
+        targetId: String(reply.id),
+        targetTitle: thread?.title ?? '',
+        reason: 'Gemeld door gebruiker',
+        details: (reply.content ?? '').slice(0, 280),
+        reportedByUsername: user.username,
+      });
+      addToast('Melding verzonden. We bekijken het zo snel mogelijk.', 'success');
+    } catch {
+      addToast('Melden mislukt. Probeer het opnieuw.', 'error');
     }
   }
 
@@ -262,7 +326,7 @@ export default function ForumThreadPage() {
               onLike={handleLike}
               liked={likedReplies.has(reply.id)}
               initialLiked={initialLikedReplies.has(reply.id)}
-              onReport={() => addToast('Melding verzonden. We bekijken het zo snel mogelijk.', 'success')}
+              onReport={() => handleReport(reply)}
             />
           ))
         )}
@@ -281,10 +345,17 @@ export default function ForumThreadPage() {
         </div>
 
         <div className="flex items-center gap-1 mb-2 pb-2 border-b border-white/8">
-          {[Bold, Italic, Quote, Smile].map((Icon, i) => (
+          {([
+            { Icon: Bold, kind: 'bold' as const, title: 'Vet' },
+            { Icon: Italic, kind: 'italic' as const, title: 'Cursief' },
+            { Icon: Quote, kind: 'quote' as const, title: 'Citaat' },
+            { Icon: Smile, kind: 'emoji' as const, title: 'Emoji' },
+          ]).map(({ Icon, kind, title }) => (
             <button
-              key={i}
+              key={kind}
               type="button"
+              title={title}
+              onClick={() => applyFormat(kind)}
               className="p-1.5 text-slate-500 hover:text-white hover:bg-white/8 rounded transition-colors"
             >
               <Icon size={14} />

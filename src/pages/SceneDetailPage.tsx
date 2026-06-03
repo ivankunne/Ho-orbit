@@ -10,6 +10,7 @@ import { useAuth } from '@context/AuthContext';
 import { StarRating } from '@components/StarRating';
 import { Textarea } from '@components/ui/textarea';
 import { Button } from '@components/ui/button';
+import { getReviewStats, submitReview, type ReviewStats } from '@services/reviewService';
 
 function RatingBar({ label, pct }) {
   return (
@@ -40,6 +41,7 @@ export default function SceneDetailPage() {
   const [scene, setScene] = useState(null);
   const [sceneArtists, setSceneArtists] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [reviewStats, setReviewStats] = useState<ReviewStats | null>(null);
 
   useEffect(() => {
     supabase.from('dutch_cities').select('*').eq('slug', slug).single()
@@ -47,6 +49,7 @@ export default function SceneDetailPage() {
         setScene(data);
         setLoading(false);
         if (data) {
+          getReviewStats('scene', data.id).then(setReviewStats);
           supabase
             .from('dutch_city_artists')
             .select('artists(id, name, image_url, genre, location)')
@@ -70,6 +73,12 @@ export default function SceneDetailPage() {
       </div>
     );
   }
+
+  // Prefer real review data when reviews exist; otherwise fall back to the
+  // scene's stored aggregate rating.
+  const hasReviews = (reviewStats?.count ?? 0) > 0;
+  const displayRating = hasReviews ? reviewStats!.average! : scene.rating;
+  const displayCount = hasReviews ? reviewStats!.count : (scene.rating_count ?? 0);
 
   return (
     <div className="min-h-screen bg-[#1a1528]">
@@ -103,9 +112,9 @@ export default function SceneDetailPage() {
             <h1 className="text-4xl lg:text-6xl font-bold text-white mb-3">{scene.name}</h1>
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-2">
-                <StarRating rating={scene.rating} size={18} />
-                <span className="text-white font-semibold text-lg">{scene.rating}</span>
-                <span className="text-slate-400 text-sm">({scene.rating_count?.toLocaleString('nl-NL')} beoordelingen)</span>
+                <StarRating rating={displayRating} size={18} />
+                <span className="text-white font-semibold text-lg">{displayRating ?? '—'}</span>
+                <span className="text-slate-400 text-sm">({displayCount.toLocaleString('nl-NL')} beoordelingen)</span>
               </div>
               {scene.stats?.venues && (
                 <div className="flex items-center gap-1 text-slate-300 text-sm">
@@ -284,16 +293,16 @@ export default function SceneDetailPage() {
                       if (!userRating) return;
                       setSubmittingReview(true);
                       try {
-                        const { error } = await supabase.from('reviews').insert({
-                          resource_type: 'scene',
-                          resource_id: scene.id,
+                        await submitReview({
+                          resourceType: 'scene',
+                          resourceId: scene.id,
                           rating: userRating,
-                          review_text: reviewTextRef.current?.value ?? '',
-                          ...(user?.id ? { user_id: user.id } : {}),
+                          text: reviewTextRef.current?.value ?? '',
+                          userId: user?.id ?? null,
                         });
-                        if (error) throw error;
                         setReviewSubmitted(true);
                         addToast('Bedankt voor je beoordeling! 🎵', 'success');
+                        getReviewStats('scene', scene.id).then(setReviewStats);
                       } catch {
                         addToast('Opslaan mislukt. Probeer het opnieuw.', 'error');
                       } finally {
@@ -337,33 +346,37 @@ export default function SceneDetailPage() {
             )}
 
             {/* Overall rating breakdown */}
-            {scene.rating && (
+            {(displayRating || hasReviews) && (
               <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
                 <h3 className="font-bold text-white mb-4">Beoordeling</h3>
                 <div className="flex items-center gap-4 mb-4">
-                  <span className="text-5xl font-bold text-white">{scene.rating}</span>
+                  <span className="text-5xl font-bold text-white">{displayRating ?? '—'}</span>
                   <div>
-                    <StarRating rating={scene.rating} size={20} />
-                    <p className="text-slate-400 text-xs mt-1">{scene.rating_count?.toLocaleString('nl-NL')} beoordelingen</p>
+                    <StarRating rating={displayRating} size={20} />
+                    <p className="text-slate-400 text-xs mt-1">{displayCount.toLocaleString('nl-NL')} beoordelingen</p>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  {[5, 4, 3, 2, 1].map(n => (
-                    <div key={n} className="flex items-center gap-2">
-                      <span className="text-xs text-slate-500 w-3">{n}</span>
-                      <Star size={11} className="text-violet-400 fill-orange-400 shrink-0" />
-                      <div className="flex-1 h-1.5 bg-white/8 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-violet-600 rounded-full"
-                          style={{ width: `${n === 5 ? 65 : n === 4 ? 22 : n === 3 ? 8 : n === 2 ? 3 : 2}%` }}
-                        />
+                {hasReviews ? (
+                  <div className="space-y-2">
+                    {[5, 4, 3, 2, 1].map(n => (
+                      <div key={n} className="flex items-center gap-2">
+                        <span className="text-xs text-slate-500 w-3">{n}</span>
+                        <Star size={11} className="text-violet-400 fill-orange-400 shrink-0" />
+                        <div className="flex-1 h-1.5 bg-white/8 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-violet-600 rounded-full"
+                            style={{ width: `${reviewStats!.distribution[n as 1 | 2 | 3 | 4 | 5]}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-slate-500 w-7 text-right">
+                          {reviewStats!.distribution[n as 1 | 2 | 3 | 4 | 5]}%
+                        </span>
                       </div>
-                      <span className="text-xs text-slate-500 w-7 text-right">
-                        {n === 5 ? '65%' : n === 4 ? '22%' : n === 3 ? '8%' : n === 2 ? '3%' : '2%'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500">Nog geen beoordelingen. Wees de eerste!</p>
+                )}
               </div>
             )}
 

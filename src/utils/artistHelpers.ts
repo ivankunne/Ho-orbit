@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { avatarPlaceholder, coverPlaceholder } from '@utils/placeholder';
 
 export function toSlug(name: string): string {
   return name
@@ -23,7 +24,6 @@ export const GENRE_MAP: Record<string, string> = {
 };
 
 function mapArtistRow(a: any) {
-  const seed = String(a.id);
   const name = a.name || 'Artiest';
   return {
     id: a.id,
@@ -31,14 +31,13 @@ function mapArtistRow(a: any) {
     profile_id: a.profile_id ?? null,
     name,
     username: a.username || null,
-    image_url: a.image_url || `https://picsum.photos/seed/${seed}/200/200`,
-    cover_url: a.cover_url || `https://picsum.photos/seed/${seed}_cover/800/300`,
+    image_url: a.image_url || avatarPlaceholder(name),
+    cover_url: a.cover_url || coverPlaceholder(String(a.id)),
     genre: a.genre || 'Overig',
     location: a.location || 'Nederland',
     bio: a.bio || '',
     verified: a.verified || false,
     followers_count: a.followers_count || 0,
-    monthly_listeners: a.followers_count || 0,
     social: a.social || {},
     tags: a.genre ? [a.genre] : [],
     featured: a.featured || false,
@@ -51,20 +50,19 @@ function mapArtistRow(a: any) {
 export function mapProfileToArtist(p: any) {
   const genreIds: string[] = Array.isArray(p.preferred_genres) ? p.preferred_genres : [];
   const genre = genreIds.length > 0 ? (GENRE_MAP[genreIds[0]] || genreIds[0]) : 'Overig';
-  const seed = encodeURIComponent(p.username || p.id);
+  const name = p.display_name || p.username || 'Artiest';
   return {
     id: p.id,
     profile_id: p.id,
-    name: p.display_name || p.username || 'Artiest',
+    name,
     username: p.username,
-    image_url: p.avatar_url || `https://picsum.photos/seed/${seed}/200/200`,
-    cover_url: p.banner_url || `https://picsum.photos/seed/${seed}_cover/800/300`,
+    image_url: p.avatar_url || avatarPlaceholder(name),
+    cover_url: p.banner_url || coverPlaceholder(String(p.username || p.id)),
     genre,
     location: p.location || 'Nederland',
     bio: p.bio || '',
     verified: p.verified || false,
     followers_count: p.followers_count ?? p.followers ?? 0,
-    monthly_listeners: p.followers_count ?? p.followers ?? 0,
     social: p.social || {},
     tags: genreIds.map(id => GENRE_MAP[id] || id),
     featured: false,

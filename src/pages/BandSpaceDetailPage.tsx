@@ -16,7 +16,7 @@ import {
   type ChannelKey, type ChannelPreview, type BandEvent, type EventType, type BandPost,
   type BandTodo,
   getChannelPreviews, markChannelRead,
-  uploadBandMedia, setPinned,
+  uploadBandMedia, setPinned, deleteBandMessage,
   getBandPosts, createBandPost, deleteBandPost,
   getBandEvents, getUpcomingEvents, createBandEvent, deleteBandEvent,
   getPinnedEvents, pinBandEvent,
@@ -273,6 +273,11 @@ export default function BandSpaceDetailPage() {
           if (payload.new.channel !== activeChannel) return;
           setMessages(prev => prev.map(m => m.id === payload.new.id ? { ...m, ...payload.new } : m));
         })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'band_messages' },
+        (payload) => {
+          setMessages(prev => prev.filter(m => m.id !== payload.old.id));
+          getChannelPreviews(id, user.id).then(setChannelPreviews);
+        })
       .subscribe();
 
     const notifCh = supabase.channel(`band-notif-${id}-${user.id}`)
@@ -323,8 +328,8 @@ export default function BandSpaceDetailPage() {
     setSubmittingPost(false);
   }
 
-  async function handleDeletePost(postId: string) {
-    const ok = await deleteBandPost(postId);
+  async function handleDeletePost(postId: string, imageUrl?: string | null) {
+    const ok = await deleteBandPost(postId, imageUrl);
     if (!ok) { addToast('Verwijderen mislukt', 'error'); return; }
     setPosts(prev => prev.filter(p => p.id !== postId));
   }
@@ -422,6 +427,20 @@ export default function BandSpaceDetailPage() {
     if (!ok) { addToast('Vastpinnen mislukt', 'error'); return; }
     setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, is_pinned: np, pinned_by: np ? user.id : null } : m));
     addToast(np ? 'Vastgepind' : 'Pin verwijderd', 'info');
+  }
+
+  async function handleDeleteMessage(msg: any) {
+    if (!user || (msg.sender_id !== user.id && !isAdmin)) return;
+    if (!window.confirm('Dit bericht verwijderen?')) return;
+    const prev = messages;
+    setMessages(p => p.filter(m => m.id !== msg.id)); // optimistic
+    const ok = await deleteBandMessage(msg.id, msg.attachment_url);
+    if (!ok) {
+      setMessages(prev); // rollback
+      addToast('Verwijderen mislukt', 'error');
+      return;
+    }
+    if (id && user) getChannelPreviews(id, user.id).then(setChannelPreviews);
   }
 
   // ── Handlers: notes ──────────────────────────────────────────────────────
@@ -879,7 +898,7 @@ export default function BandSpaceDetailPage() {
                               </div>
                             </div>
                             {isAdmin && (
-                              <button onClick={() => handleDeletePost(post.id)}
+                              <button onClick={() => handleDeletePost(post.id, post.image_url)}
                                 className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 text-slate-600 hover:text-red-400 transition-all p-1 shrink-0">
                                 <Trash2 size={14} />
                               </button>
@@ -1348,12 +1367,20 @@ export default function BandSpaceDetailPage() {
                                       }
                                     </div>
                                   )}
-                                  {isAdmin && (
-                                    <button onClick={() => handleTogglePin(msg)} title={msg.is_pinned ? 'Losmaken' : 'Vastpinnen'}
-                                      className={`absolute -top-2.5 ${isMe ? 'left-1' : 'right-1'} opacity-100 lg:opacity-0 lg:group-hover/bubble:opacity-100 transition-opacity bg-[#1e1a30] border border-white/15 rounded-full p-1 shadow-lg`}>
-                                      <Pin size={10} className={msg.is_pinned ? 'text-violet-400' : 'text-slate-400'} />
-                                    </button>
-                                  )}
+                                  <div className={`absolute -top-2.5 ${isMe ? 'left-1' : 'right-1'} flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover/bubble:opacity-100 transition-opacity`}>
+                                    {isAdmin && (
+                                      <button onClick={() => handleTogglePin(msg)} title={msg.is_pinned ? 'Losmaken' : 'Vastpinnen'}
+                                        className="bg-[#1e1a30] border border-white/15 rounded-full p-1 shadow-lg">
+                                        <Pin size={10} className={msg.is_pinned ? 'text-violet-400' : 'text-slate-400'} />
+                                      </button>
+                                    )}
+                                    {(isMe || isAdmin) && (
+                                      <button onClick={() => handleDeleteMessage(msg)} title="Verwijderen"
+                                        className="bg-[#1e1a30] border border-white/15 rounded-full p-1 shadow-lg">
+                                        <Trash2 size={10} className="text-slate-400 hover:text-red-400 transition-colors" />
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             </div>

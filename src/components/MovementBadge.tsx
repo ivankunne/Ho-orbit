@@ -1,5 +1,8 @@
 export function MovementBadge({ prevPosition, rank }) {
-  if (prevPosition === null || prevPosition === undefined) {
+  // No historical data available for this entry → show nothing.
+  if (prevPosition === undefined) return null;
+  // Explicit null means a brand-new chart entry.
+  if (prevPosition === null) {
     return <span className="text-[9px] font-bold text-amber-400 bg-amber-400/10 px-1 py-0.5 rounded leading-none">NEW</span>;
   }
   const diff = prevPosition - rank;

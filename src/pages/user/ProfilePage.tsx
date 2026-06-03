@@ -8,6 +8,9 @@ import { supabase } from '@/lib/supabase';
 import { mapProfileToArtist } from '@utils/artistHelpers';
 import { getUploadedTracks, type UploadedTrack } from '@services/uploadService';
 import { getOrCreateConversation } from '@services/chatService';
+import { shareContent, buildShareUrl } from '@utils/share';
+import { coverPlaceholder } from '@utils/placeholder';
+import { useToast } from '@components/Toast';
 
 
 const PLATFORM_CONFIG: Record<string, { label: string; badge: string; color: string; buildUrl: (v: string) => string }> = {
@@ -42,10 +45,23 @@ export default function ProfilePage() {
   const [followedArtistList, setFollowedArtistList] = useState([]);
   const [otherProfile, setOtherProfile] = useState<any>(null);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [followerList, setFollowerList] = useState<any[]>([]);
 
   const isOwnProfile = !username || username === currentUser?.username;
   const navigate = useNavigate();
+  const addToast = useToast();
   const [startingChat, setStartingChat] = useState(false);
+
+  async function handleShare() {
+    const path = profileUser?.username ? `/profiel/${profileUser.username}` : '/profiel';
+    const result = await shareContent({
+      title: profileUser?.displayName || profileUser?.username || 'Profiel',
+      text: `Bekijk ${profileUser?.displayName || profileUser?.username} op H-Orbit`,
+      url: buildShareUrl(path),
+    });
+    if (result === 'copied') addToast('Link gekopieerd naar klembord', 'success');
+    else if (result === 'error') addToast('Delen mislukt', 'error');
+  }
 
   async function handleStartChat() {
     if (!currentUser?.id || !otherProfile?.id) return;
@@ -118,6 +134,25 @@ export default function ProfilePage() {
       }
     }
   }, [isOwnProfile, likedTracks.join(','), rsvpEvents.join(','), followedArtists.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load the list of users that follow this profile
+  useEffect(() => {
+    const pid = isOwnProfile ? currentUser?.id : otherProfile?.id;
+    if (!pid) { setFollowerList([]); return; }
+    (async () => {
+      const { data: rows } = await supabase
+        .from('user_following_artists')
+        .select('user_id')
+        .eq('artist_id', pid);
+      const ids = (rows ?? []).map((r: any) => r.user_id).filter(Boolean);
+      if (ids.length === 0) { setFollowerList([]); return; }
+      const { data: profs } = await supabase
+        .from('profiles')
+        .select('id, username, display_name, avatar_url, role')
+        .in('id', ids);
+      setFollowerList(profs ?? []);
+    })();
+  }, [isOwnProfile, currentUser?.id, otherProfile?.id]);
 
   const profileUser = isOwnProfile ? currentUser : otherProfile;
 
@@ -194,7 +229,11 @@ export default function ProfilePage() {
                     <span className="hidden sm:inline">Bericht</span>
                   </button>
                 )}
-                <button className="p-2 rounded-xl border border-white/20 text-slate-400 hover:text-white transition-colors">
+                <button
+                  onClick={handleShare}
+                  title="Profiel delen"
+                  className="p-2 rounded-xl border border-white/20 text-slate-400 hover:text-white transition-colors"
+                >
                   <Share2 size={16} />
                 </button>
               </>
@@ -266,7 +305,7 @@ export default function ProfilePage() {
                   <div key={track.id} className="flex items-center gap-4 p-3 hover:bg-white/4 rounded-xl group transition-colors">
                     <span className="w-5 text-center text-sm text-slate-600 shrink-0">{i + 1}</span>
                     <img
-                      src={track.cover || `https://picsum.photos/seed/${track.id}/40/40`}
+                      src={track.cover || coverPlaceholder(String(track.id))}
                       alt={track.title}
                       className="w-10 h-10 rounded-lg object-cover shrink-0"
                     />
@@ -396,77 +435,93 @@ export default function ProfilePage() {
 
         {/* Volgers tab */}
         {activeTab === 'volgers' && (
-          <div className="text-center py-16 text-slate-400">
-            <Users size={32} className="mx-auto mb-3 opacity-30" />
-            <p>Nog geen volgers</p>
+          <div>
+            {followerList.length === 0 ? (
+              <div className="text-center py-16 text-slate-400">
+                <Users size={32} className="mx-auto mb-3 opacity-30" />
+                <p>Nog geen volgers</p>
+              </div>
+            ) : (
+              <div className="grid sm:grid-cols-2 gap-3">
+                {followerList.map(follower => (
+                  <Link
+                    key={follower.id}
+                    to={`/profiel/${follower.username}`}
+                    className="flex items-center gap-4 p-4 bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl transition-all"
+                  >
+                    <UserAvatar
+                      src={follower.avatar_url}
+                      name={follower.display_name || follower.username}
+                      size={48}
+                      className="shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-white truncate">{follower.display_name || follower.username}</p>
+                      <p className="text-xs text-slate-500 truncate">@{follower.username}</p>
+                      {follower.role && <p className="text-xs text-violet-400 truncate">{follower.role}</p>}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
         {/* Dashboard tab (Artiest only) */}
-        {activeTab === 'dashboard' && (
+        {activeTab === 'dashboard' && (() => {
+          const approvedTracks = uploadedTracks.filter(t => t.status === 'approved');
+          const totalStreams = approvedTracks.reduce((sum, t) => sum + (t.plays ?? 0), 0);
+          const topTracks = [...approvedTracks].sort((a, b) => (b.plays ?? 0) - (a.plays ?? 0)).slice(0, 5);
+          const maxPlays = topTracks[0]?.plays ?? 0;
+          return (
           <div className="space-y-6">
-            {/* Stat cards */}
+            {/* Stat cards — real data */}
             <div className="grid sm:grid-cols-3 gap-4">
               {[
-                { label: 'Totale streams', value: '24.8K', change: '+12%', icon: Play },
-                { label: 'Nieuwe volgers', value: '148', change: '+8%', icon: TrendingUp },
-                { label: 'Profielweergaven', value: '3.2K', change: '+21%', icon: BarChart2 },
-              ].map(({ label, value, change, icon: Icon }) => (
+                { label: 'Totale streams', value: formatNum(totalStreams), icon: Play },
+                { label: 'Volgers', value: formatNum(profileUser.followers ?? 0), icon: TrendingUp },
+                { label: 'Gepubliceerde nummers', value: String(approvedTracks.length), icon: BarChart2 },
+              ].map(({ label, value, icon: Icon }) => (
                 <div key={label} className="bg-white/3 border border-white/5 rounded-2xl p-5">
                   <div className="flex items-start justify-between mb-3">
                     <p className="text-xs text-slate-400">{label}</p>
                     <Icon size={15} className="text-violet-400" />
                   </div>
                   <p className="text-2xl font-bold text-white">{value}</p>
-                  <p className="text-xs text-green-400 mt-1">{change} deze maand</p>
                 </div>
               ))}
             </div>
 
-            {/* Top tracks */}
+            {/* Top tracks — real data */}
             <div className="bg-white/3 border border-white/5 rounded-2xl p-5">
               <h3 className="text-sm font-semibold text-white mb-4">Top nummers</h3>
-              <div className="space-y-3">
-                {[
-                  { title: 'Nachtlicht', streams: '8.4K', pct: 85 },
-                  { title: 'Amsterdam Rain', streams: '6.1K', pct: 62 },
-                  { title: 'Zomernacht', streams: '4.9K', pct: 50 },
-                  { title: 'Stadsgeluid', streams: '3.2K', pct: 33 },
-                ].map((t, i) => (
-                  <div key={t.title} className="flex items-center gap-3">
-                    <span className="text-xs text-slate-500 w-4 shrink-0">{i + 1}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="text-xs font-medium text-white truncate">{t.title}</p>
-                        <span className="text-xs text-slate-500 shrink-0 ml-2">{t.streams}</span>
-                      </div>
-                      <div className="w-full bg-white/8 rounded-full h-1">
-                        <div className="h-1 bg-violet-500 rounded-full" style={{ width: `${t.pct}%` }} />
+              {topTracks.length === 0 ? (
+                <p className="text-sm text-slate-500">Nog geen gepubliceerde nummers met streams.</p>
+              ) : (
+                <div className="space-y-3">
+                  {topTracks.map((t, i) => (
+                    <div key={t.id} className="flex items-center gap-3">
+                      <span className="text-xs text-slate-500 w-4 shrink-0">{i + 1}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-xs font-medium text-white truncate">{t.title}</p>
+                          <span className="text-xs text-slate-500 shrink-0 ml-2">{formatNum(t.plays ?? 0)}</span>
+                        </div>
+                        <div className="w-full bg-white/8 rounded-full h-1">
+                          <div
+                            className="h-1 bg-violet-500 rounded-full"
+                            style={{ width: `${maxPlays > 0 ? Math.round(((t.plays ?? 0) / maxPlays) * 100) : 0}%` }}
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Followers growth */}
-            <div className="bg-white/3 border border-white/5 rounded-2xl p-5">
-              <h3 className="text-sm font-semibold text-white mb-4">Volgers groei (afgelopen 6 maanden)</h3>
-              <div className="flex items-end gap-2 h-24">
-                {[40, 55, 48, 70, 85, 100].map((h, i) => (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                    <div className="w-full bg-violet-500/20 rounded-t-sm hover:bg-violet-500/40 transition-colors" style={{ height: `${h}%` }} />
-                  </div>
-                ))}
-              </div>
-              <div className="flex justify-between mt-2">
-                {['Okt', 'Nov', 'Dec', 'Jan', 'Feb', 'Mrt'].map(m => (
-                  <span key={m} className="text-[10px] text-slate-500 flex-1 text-center">{m}</span>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-        )}
+          );
+        })()}
 
         {/* Over tab */}
         {activeTab === 'over' && (

@@ -5,6 +5,7 @@ import UserAvatar from '@components/UserAvatar';
 import { useToast } from './Toast';
 import { getComments, addComment, deleteComment, toggleCommentLike } from '@services/commentService';
 import { addNotification } from '@services/notificationService';
+import { avatarPlaceholder } from '@utils/placeholder';
 
 const MAX_CHARS = 500;
 
@@ -57,7 +58,7 @@ export default function CommentSection({ resourceType, resourceId, resourceTitle
         body,
         authorId: user.id,
         authorName: user.displayName || user.username,
-        authorAvatar: user.avatar || `https://picsum.photos/seed/${user.username}/40/40`,
+        authorAvatar: user.avatar || avatarPlaceholder(user.displayName || user.username),
       });
       setComments(prev => [comment, ...prev]);
       setNewComment('');
@@ -166,7 +167,7 @@ export default function CommentSection({ resourceType, resourceId, resourceTitle
             return (
               <div key={comment.id} className="flex gap-3">
                 <img
-                  src={comment.authorAvatar || `https://picsum.photos/seed/${comment.authorId}/40/40`}
+                  src={comment.authorAvatar || avatarPlaceholder(comment.authorName)}
                   alt={comment.authorName}
                   className="w-9 h-9 rounded-full object-cover shrink-0"
                 />

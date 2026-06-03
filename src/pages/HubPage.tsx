@@ -11,6 +11,7 @@ import { useAuthModal } from '@context/AuthModalContext';
 import { supabase } from '@/lib/supabase';
 import SceneMap from '@components/SceneMap';
 import UserAvatar from '@components/UserAvatar';
+import { avatarPlaceholder } from '@utils/placeholder';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -97,7 +98,7 @@ function mapHubPost(d: Record<string, unknown>): HubThread {
     author: {
       id: String(d.author_id),
       name: profile?.display_name ?? profile?.username ?? 'Onbekend',
-      avatar: profile?.avatar_url ?? `https://picsum.photos/seed/${d.author_id}/40/40`,
+      avatar: profile?.avatar_url ?? avatarPlaceholder(profile?.display_name ?? profile?.username ?? 'Onbekend'),
     },
     createdAt: (d.created_at as string) ?? '',
     replies: (d.replies_count as number) ?? 0,
@@ -117,7 +118,7 @@ function mapHubReply(d: Record<string, unknown>): HubReply {
     author: {
       id: String(d.author_id),
       name: profile?.display_name ?? profile?.username ?? 'Onbekend',
-      avatar: profile?.avatar_url ?? `https://picsum.photos/seed/${d.author_id}/40/40`,
+      avatar: profile?.avatar_url ?? avatarPlaceholder(profile?.display_name ?? profile?.username ?? 'Onbekend'),
     },
     createdAt: (d.created_at as string) ?? '',
   };

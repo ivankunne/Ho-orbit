@@ -49,8 +49,15 @@ export function PlayerProvider({ children }) {
 
     getStreamUrl(track.id, track.stream_url).then(url => {
       if (cancelled) return;
-      audioRef.current.src = url;
       isNewTrack.current = false;
+      if (!url) {
+        // No playable audio for this track — stop instead of playing a placeholder.
+        audioRef.current.removeAttribute('src');
+        audioRef.current.load();
+        setIsPlaying(false);
+        return;
+      }
+      audioRef.current.src = url;
       // play() handles loading by itself — never call load() first,
       // it causes an AbortError that silently kills the play request
       if (isPlaying) {

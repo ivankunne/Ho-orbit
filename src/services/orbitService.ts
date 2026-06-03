@@ -78,6 +78,28 @@ export async function uploadBandMedia(
   return { url: publicUrl, type };
 }
 
+/** Delete the file behind a band-media public URL (best-effort). */
+export async function deleteBandMediaFile(attachmentUrl: string): Promise<void> {
+  const marker = '/band-media/';
+  const idx = attachmentUrl.indexOf(marker);
+  if (idx === -1) return;
+  const path = decodeURIComponent(attachmentUrl.slice(idx + marker.length));
+  await supabase.storage.from('band-media').remove([path]);
+}
+
+// ── Delete a channel message (and its attachment, if any) ──────────────────────
+
+export async function deleteBandMessage(
+  messageId: string, attachmentUrl?: string | null,
+): Promise<boolean> {
+  if (attachmentUrl) {
+    // Best-effort storage cleanup — don't block row deletion if it fails.
+    try { await deleteBandMediaFile(attachmentUrl); } catch { /* ignore */ }
+  }
+  const { error } = await supabase.from('band_messages').delete().eq('id', messageId);
+  return !error;
+}
+
 // ── Pin / unpin ───────────────────────────────────────────────────────────────
 
 export async function setPinned(
@@ -126,7 +148,10 @@ export async function createBandPost(
   return data as BandPost;
 }
 
-export async function deleteBandPost(postId: string): Promise<boolean> {
+export async function deleteBandPost(postId: string, imageUrl?: string | null): Promise<boolean> {
+  if (imageUrl) {
+    try { await deleteBandMediaFile(imageUrl); } catch { /* ignore storage cleanup errors */ }
+  }
   const { error } = await supabase.from('band_posts').delete().eq('id', postId);
   return !error;
 }
@@ -254,9 +279,7 @@ export async function markMentionsRead(
 }
 
 // ── Band Todos ────────────────────────────────────────────────────────────────
-// Requires DB table: band_todos(id uuid pk, band_id uuid fk bands, created_by uuid fk profiles,
-//   content text, completed bool default false, completed_by uuid nullable fk profiles,
-//   completed_at timestamptz nullable, created_at timestamptz default now())
+// DB table defined in supabase/band_todos_migration.sql
 
 export interface BandTodo {
   id: string;

@@ -1,20 +1,9 @@
 import { supabase } from '@/lib/supabase';
+import { coverPlaceholder } from '@utils/placeholder';
 
-const DEMO_URLS = [
-  'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-  'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-  'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
-  'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3',
-];
-
-export async function getStreamUrl(trackId, streamUrl?: string) {
-  if (!streamUrl) {
-    // No URL stored — use a deterministic demo track
-    const str = String(trackId);
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) hash = (Math.imul(31, hash) + str.charCodeAt(i)) | 0;
-    return DEMO_URLS[Math.abs(hash) % DEMO_URLS.length];
-  }
+export async function getStreamUrl(_trackId, streamUrl?: string): Promise<string | null> {
+  // No audio stored for this track — nothing to play.
+  if (!streamUrl) return null;
 
   // For Supabase storage public URLs, generate a signed URL so they work
   // regardless of whether the bucket has public or private access configured.
@@ -50,7 +39,7 @@ export async function getAllTracks() {
     .select('*')
     .or('is_user_upload.is.null,is_user_upload.eq.false,upload_status.eq.approved');
   return (data ?? []).map(t => {
-    const cover = t.cover_url || `https://picsum.photos/seed/${encodeURIComponent(String(t.title || t.id))}/300/300`;
+    const cover = t.cover_url || coverPlaceholder(String(t.title || t.id));
     return {
       ...t,
       cover_url: cover,

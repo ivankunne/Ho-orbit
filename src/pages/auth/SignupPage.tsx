@@ -274,7 +274,7 @@ export default function SignupPage() {
                   className="mt-0.5 shrink-0"
                 />
                 <span className="text-sm text-slate-300 leading-relaxed">
-                  Ik ga akkoord met de <span className="text-violet-400 cursor-pointer hover:underline">gebruiksvoorwaarden</span> en het <span className="text-violet-400 cursor-pointer hover:underline">privacybeleid</span> van h-orbit.
+                  Ik ga akkoord met de <a href="/voorwaarden" target="_blank" rel="noreferrer" className="text-violet-400 hover:underline">gebruiksvoorwaarden</a> en het <a href="/privacy" target="_blank" rel="noreferrer" className="text-violet-400 hover:underline">privacybeleid</a> van h-orbit.
                 </span>
               </label>
               {errors.agreeTerms && <p className="text-red-400 text-xs -mt-3">{errors.agreeTerms}</p>}

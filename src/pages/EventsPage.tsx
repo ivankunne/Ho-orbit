@@ -1,11 +1,12 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, Users, Clock, Star, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, Star, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAppState } from '@context/AppStateContext';
 import { useAuth } from '@context/AuthContext';
 import { useToast } from '@components/Toast';
 import BlurImage from '@components/BlurImage';
+import { uploadEventPoster } from '@services/uploadService';
 
 function calcCountdown(dateStr, nowMs) {
   const diff = new Date(dateStr + 'T00:00:00').getTime() - nowMs;
@@ -389,6 +390,23 @@ function CreateEventForm({ onCreated }: { onCreated?: () => void }) {
   });
   const [submitted, setSubmitted] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [posterFile, setPosterFile] = useState<File | null>(null);
+  const [posterPreview, setPosterPreview] = useState<string | null>(null);
+  const posterInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePosterSelect = (file?: File | null) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      addToast('Kies een afbeelding (PNG of JPG).', 'error');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      addToast('Afbeelding is te groot (max 10MB).', 'error');
+      return;
+    }
+    setPosterFile(file);
+    setPosterPreview(URL.createObjectURL(file));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -398,6 +416,14 @@ function CreateEventForm({ onCreated }: { onCreated?: () => void }) {
     }
     setSaving(true);
     try {
+      let posterUrl: string | null = null;
+      if (posterFile) {
+        try {
+          posterUrl = await uploadEventPoster(posterFile);
+        } catch {
+          addToast('Poster uploaden mislukt — evenement wordt zonder poster opgeslagen.', 'error');
+        }
+      }
       const { error } = await supabase.from('events').insert({
         name: form.title,
         date: form.date,
@@ -408,6 +434,7 @@ function CreateEventForm({ onCreated }: { onCreated?: () => void }) {
         description: form.description || null,
         price: form.price || null,
         ticket_link: form.ticketLink || null,
+        ...(posterUrl ? { poster_url: posterUrl } : {}),
         status: 'approved',
         featured: false,
         attendees_count: 0,
@@ -476,10 +503,42 @@ function CreateEventForm({ onCreated }: { onCreated?: () => void }) {
 
         <div className="sm:col-span-2">
           <label className="block text-sm font-medium text-slate-300 mb-2">Eventposter</label>
-          <div className="border-2 border-dashed border-white/15 rounded-xl p-8 text-center hover:border-white/30 cursor-pointer transition-colors">
-            <p className="text-slate-400">Sleep poster afbeelding of klik om te bladeren</p>
-            <p className="text-slate-600 text-xs mt-1">PNG, JPG tot 10MB · Aanbevolen: 400×600px</p>
-          </div>
+          <input
+            ref={posterInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="hidden"
+            onChange={e => handlePosterSelect(e.target.files?.[0])}
+          />
+          {posterPreview ? (
+            <div className="flex items-center gap-4 border border-white/15 rounded-xl p-4">
+              <img src={posterPreview} alt="Postervoorbeeld" className="w-20 h-28 object-cover rounded-lg shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-white truncate">{posterFile?.name}</p>
+                <p className="text-xs text-slate-500">{posterFile ? `${(posterFile.size / 1024 / 1024).toFixed(1)} MB` : ''}</p>
+                <button
+                  type="button"
+                  onClick={() => { setPosterFile(null); setPosterPreview(null); if (posterInputRef.current) posterInputRef.current.value = ''; }}
+                  className="mt-2 inline-flex items-center gap-1 text-xs text-slate-400 hover:text-white transition-colors"
+                >
+                  <X size={12} /> Verwijderen
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => posterInputRef.current?.click()}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); posterInputRef.current?.click(); } }}
+              onDragOver={e => e.preventDefault()}
+              onDrop={e => { e.preventDefault(); handlePosterSelect(e.dataTransfer.files?.[0]); }}
+              className="border-2 border-dashed border-white/15 rounded-xl p-8 text-center hover:border-white/30 cursor-pointer transition-colors"
+            >
+              <p className="text-slate-400">Sleep poster afbeelding of klik om te bladeren</p>
+              <p className="text-slate-600 text-xs mt-1">PNG, JPG tot 10MB · Aanbevolen: 400×600px</p>
+            </div>
+          )}
         </div>
       </div>
 

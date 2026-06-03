@@ -54,9 +54,9 @@ export default function ArtistsPage() {
 
   const sorted = useMemo(() =>
     [...filtered].sort((a, b) => {
-      if (sortBy === 'followers') return (b.followers_count ?? 0) - (a.followers_count ?? 0);
       if (sortBy === 'az') return a.name.localeCompare(b.name, 'nl');
-      return (b.monthly_listeners ?? 0) - (a.monthly_listeners ?? 0);
+      // 'trending' and 'followers' both rank by follower count (no separate metric exists yet)
+      return (b.followers_count ?? 0) - (a.followers_count ?? 0);
     }),
     [filtered, sortBy]
   );
@@ -90,11 +90,6 @@ export default function ArtistsPage() {
                   <p className="text-violet-400 font-medium mb-2">{featuredArtist.genre}</p>
                   <p className="text-slate-300 text-sm leading-relaxed max-w-lg line-clamp-2 mb-4">{featuredArtist.bio}</p>
                   <div className="flex items-center gap-4">
-                    <div>
-                      <p className="text-lg font-bold text-white">{formatFollowers(featuredArtist.monthly_listeners)}</p>
-                      <p className="text-xs text-slate-400">Maandelijkse luisteraars</p>
-                    </div>
-                    <div className="w-px h-8 bg-white/10" />
                     <div>
                       <p className="text-lg font-bold text-white">{formatFollowers(featuredArtist.followers_count)}</p>
                       <p className="text-xs text-slate-400">Volgers</p>

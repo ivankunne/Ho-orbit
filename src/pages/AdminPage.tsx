@@ -20,6 +20,7 @@ import {
 } from '@services/adminService';
 import { supabase } from '@/lib/supabase';
 import { getThreadsByCategory } from '@services/forumService';
+import { coverPlaceholder } from '@utils/placeholder';
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -110,13 +111,11 @@ function RejectInput({ onConfirm, onCancel, label = 'Reden (optioneel)' }: { onC
 
 // ─── Mini audio player ────────────────────────────────────────────────────────
 
-const DEMO_FALLBACK = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
-
 function TrackPlayer({ src, hasRealAudio }: { src: string; hasRealAudio: boolean }) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
   const [loadError, setLoadError] = useState(false);
-  const [resolvedSrc, setResolvedSrc] = useState(src || DEMO_FALLBACK);
+  const [resolvedSrc, setResolvedSrc] = useState<string | null>(src || null);
 
   // Resolve signed URL when src changes so private buckets also work
   useEffect(() => {
@@ -143,20 +142,23 @@ function TrackPlayer({ src, hasRealAudio }: { src: string; hasRealAudio: boolean
 
   return (
     <div className="flex items-center gap-2 mt-2">
-      <audio
-        ref={audioRef}
-        src={resolvedSrc}
-        onEnded={() => setPlaying(false)}
-        onError={() => { setPlaying(false); setLoadError(true); }}
-      />
+      {resolvedSrc && (
+        <audio
+          ref={audioRef}
+          src={resolvedSrc}
+          onEnded={() => setPlaying(false)}
+          onError={() => { setPlaying(false); setLoadError(true); }}
+        />
+      )}
       <button
         onClick={toggle}
-        className="flex items-center gap-1.5 bg-violet-600/20 hover:bg-violet-600/35 text-violet-400 border border-violet-500/30 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+        disabled={!resolvedSrc}
+        className="flex items-center gap-1.5 bg-violet-600/20 hover:bg-violet-600/35 disabled:opacity-40 disabled:cursor-not-allowed text-violet-400 border border-violet-500/30 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
       >
         {playing ? <Pause size={12} /> : <Play size={12} />}
         {playing ? 'Pauzeren' : 'Beluisteren'}
       </button>
-      {!hasRealAudio && <span className="text-[10px] text-slate-600 italic">demo audio</span>}
+      {!hasRealAudio && <span className="text-[10px] text-slate-600 italic">geen audio</span>}
       {loadError && <span className="text-[10px] text-red-400 italic">afspelen mislukt</span>}
     </div>
   );
@@ -208,8 +210,8 @@ function UploadsSection({ adminId }: { adminId: string }) {
             <div key={track.id} className="bg-white/[0.03] border border-white/8 rounded-2xl overflow-hidden hover:border-white/15 transition-all">
               <div className="flex gap-4 p-4 sm:p-5">
                 <img
-                  src={track.cover || `https://picsum.photos/seed/${encodeURIComponent(track.title)}/300/300`}
-                  onError={e => { (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${encodeURIComponent(track.title)}/300/300`; }}
+                  src={track.cover || coverPlaceholder(track.title)}
+                  onError={e => { (e.target as HTMLImageElement).src = coverPlaceholder(track.title); }}
                   alt={track.title}
                   className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover shrink-0 bg-white/5"
                 />

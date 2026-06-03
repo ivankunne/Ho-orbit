@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@context/AuthContext';
+import { getReviewStats, submitReview, type ReviewStats } from '@services/reviewService';
 
 function StarRating({ rating, size = 16 }) {
   return (
@@ -42,10 +43,15 @@ export default function VenueDetailPage() {
   const reviewTextRef = useRef<HTMLTextAreaElement>(null);
   const [venue, setVenue] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [reviewStats, setReviewStats] = useState<ReviewStats | null>(null);
 
   useEffect(() => {
     supabase.from('venues').select('*').eq('id', id).single()
       .then(({ data }) => { setVenue(data); setLoading(false); });
+  }, [id]);
+
+  useEffect(() => {
+    if (id) getReviewStats('venue', id).then(setReviewStats);
   }, [id]);
 
   if (loading) return null;
@@ -60,6 +66,12 @@ export default function VenueDetailPage() {
       </div>
     );
   }
+
+  // Prefer real review data when reviews exist; otherwise fall back to the
+  // venue's stored aggregate rating.
+  const hasReviews = (reviewStats?.count ?? 0) > 0;
+  const displayRating = hasReviews ? reviewStats!.average! : venue.rating;
+  const displayCount = hasReviews ? reviewStats!.count : (venue.rating_count ?? 0);
 
   return (
     <div className="min-h-screen bg-[#1a1528]">
@@ -98,9 +110,9 @@ export default function VenueDetailPage() {
             <h1 className="text-4xl lg:text-6xl font-bold text-white mb-3">{venue.name}</h1>
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-2">
-                <StarRating rating={venue.rating} size={18} />
-                <span className="text-white font-semibold text-lg">{venue.rating}</span>
-                <span className="text-slate-400 text-sm">({venue.rating_count?.toLocaleString('nl-NL')} beoordelingen)</span>
+                <StarRating rating={displayRating} size={18} />
+                <span className="text-white font-semibold text-lg">{displayRating ?? '—'}</span>
+                <span className="text-slate-400 text-sm">({displayCount.toLocaleString('nl-NL')} beoordelingen)</span>
               </div>
               <div className="flex items-center gap-1 text-slate-300 text-sm">
                 <Users size={14} className="text-violet-400" />
@@ -230,16 +242,16 @@ export default function VenueDetailPage() {
                       if (!userRating) return;
                       setSubmittingReview(true);
                       try {
-                        const { error } = await supabase.from('reviews').insert({
-                          resource_type: 'venue',
-                          resource_id: venue.id,
+                        await submitReview({
+                          resourceType: 'venue',
+                          resourceId: venue.id,
                           rating: userRating,
-                          review_text: reviewTextRef.current?.value ?? '',
-                          ...(user?.id ? { user_id: user.id } : {}),
+                          text: reviewTextRef.current?.value ?? '',
+                          userId: user?.id ?? null,
                         });
-                        if (error) throw error;
                         setReviewSubmitted(true);
                         addToast(`Bedankt voor je recensie van ${venue.name}! 🎶`, 'success');
+                        getReviewStats('venue', venue.id).then(setReviewStats);
                       } catch {
                         addToast('Opslaan mislukt. Probeer het opnieuw.', 'error');
                       } finally {
@@ -287,26 +299,33 @@ export default function VenueDetailPage() {
             <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
               <h3 className="font-bold text-white mb-4">Beoordeling</h3>
               <div className="flex items-center gap-4 mb-4">
-                <span className="text-5xl font-bold text-white">{venue.rating}</span>
+                <span className="text-5xl font-bold text-white">{displayRating ?? '—'}</span>
                 <div>
-                  <StarRating rating={venue.rating} size={20} />
-                  <p className="text-slate-400 text-xs mt-1">{venue.rating_count?.toLocaleString('nl-NL')} beoordelingen</p>
+                  <StarRating rating={displayRating} size={20} />
+                  <p className="text-slate-400 text-xs mt-1">{displayCount.toLocaleString('nl-NL')} beoordelingen</p>
                 </div>
               </div>
-              <div className="space-y-2">
-                {[5, 4, 3, 2, 1].map(n => (
-                  <div key={n} className="flex items-center gap-2">
-                    <span className="text-xs text-slate-500 w-3">{n}</span>
-                    <Star size={11} className="text-violet-400 fill-orange-400 shrink-0" />
-                    <div className="flex-1 h-1.5 bg-white/8 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-violet-600 rounded-full"
-                        style={{ width: `${n === 5 ? 68 : n === 4 ? 20 : n === 3 ? 7 : n === 2 ? 3 : 2}%` }}
-                      />
+              {hasReviews ? (
+                <div className="space-y-2">
+                  {[5, 4, 3, 2, 1].map(n => (
+                    <div key={n} className="flex items-center gap-2">
+                      <span className="text-xs text-slate-500 w-3">{n}</span>
+                      <Star size={11} className="text-violet-400 fill-orange-400 shrink-0" />
+                      <div className="flex-1 h-1.5 bg-white/8 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-violet-600 rounded-full"
+                          style={{ width: `${reviewStats!.distribution[n as 1 | 2 | 3 | 4 | 5]}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-slate-500 w-8 text-right">
+                        {reviewStats!.distribution[n as 1 | 2 | 3 | 4 | 5]}%
+                      </span>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500">Nog geen beoordelingen. Wees de eerste!</p>
+              )}
             </div>
 
             {/* Genres */}

@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { upsertArtistFromProfile } from '@utils/artistHelpers';
+import { coverPlaceholder } from '@utils/placeholder';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isUUID = (id: string | null | undefined) => !!id && UUID_RE.test(id);
@@ -32,12 +33,6 @@ export interface UploadedTrack {
   reviewedBy: string | null;
   isrc: string | null;
   upc: string | null;
-}
-
-function hashStr(str: string): number {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
-  return Math.abs(h);
 }
 
 function withTimeout<T>(promise: Promise<T>, ms: number, msg: string): Promise<T> {
@@ -90,6 +85,15 @@ async function uploadCoverFile(file: File, trackTitle: string): Promise<string> 
   return data.publicUrl;
 }
 
+export async function uploadEventPoster(file: File): Promise<string> {
+  const ext = file.name.split('.').pop() ?? 'jpg';
+  const path = `posters/${Date.now()}_${Math.round(Math.random() * 1e6)}.${ext}`;
+  const { error } = await supabase.storage.from('audio').upload(path, file, { contentType: file.type });
+  if (error) throw error;
+  const { data } = supabase.storage.from('audio').getPublicUrl(path);
+  return data.publicUrl;
+}
+
 export async function uploadTrack({
   title, genre, description, tags, explicit, isPrivate, userId, artistName, audioFile, coverFile, isrc, upc, onStep,
 }: {
@@ -98,8 +102,6 @@ export async function uploadTrack({
   audioFile?: File; coverFile?: File; isrc?: string; upc?: string;
   onStep?: (step: 'audio' | 'cover' | 'saving') => void;
 }): Promise<UploadedTrack> {
-  const seed = hashStr(title + userId);
-
   let streamUrl = '';
   let duration = '0:00';
   if (audioFile) {
@@ -108,7 +110,7 @@ export async function uploadTrack({
     streamUrl = await uploadAudioFile(audioFile, title);
   }
 
-  let coverUrl = `https://picsum.photos/seed/${seed}/300/300`;
+  let coverUrl = coverPlaceholder(title);
   if (coverFile) {
     onStep?.('cover');
     try {
