@@ -264,7 +264,7 @@ export default function BandSpaceDetailPage() {
         async (payload) => {
           if (payload.new.channel !== activeChannel) { getChannelPreviews(id, user.id).then(setChannelPreviews); return; }
           const { data: sender } = await supabase.from('profiles').select('id,username,display_name,avatar_url').eq('id', payload.new.sender_id).single();
-          setMessages(prev => [...prev, { ...payload.new, sender }]);
+          setMessages(prev => prev.some(m => m.id === payload.new.id) ? prev : [...prev, { ...payload.new, sender }]);
           setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
           getChannelPreviews(id, user.id).then(setChannelPreviews);
         })
@@ -356,10 +356,16 @@ export default function BandSpaceDetailPage() {
 
     const { data: inserted, error } = await supabase.from('band_messages')
       .insert({ band_id: id, channel: activeChannel, sender_id: user.id, content, mentions: mentionedIds })
-      .select('id').single();
+      .select('*, sender:profiles(id,username,display_name,avatar_url)').single();
 
-    if (error) { setInput(content); addToast('Versturen mislukt', 'error'); }
-    else if (inserted && mentionedIds.length > 0) await createMentionNotifications(inserted.id, id!, activeChannel, user.id, mentionedIds);
+    if (error || !inserted) { setInput(content); addToast('Versturen mislukt', 'error'); }
+    else {
+      // Show it immediately — don't rely on the realtime echo (which may be disabled for the project).
+      setMessages(prev => prev.some(m => m.id === inserted.id) ? prev : [...prev, inserted]);
+      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+      if (id && user) getChannelPreviews(id, user.id).then(setChannelPreviews);
+      if (mentionedIds.length > 0) await createMentionNotifications(inserted.id, id!, activeChannel, user.id, mentionedIds);
+    }
 
     setSending(false);
     inputRef.current?.focus();
@@ -410,8 +416,16 @@ export default function BandSpaceDetailPage() {
     if (!result) { addToast('Upload mislukt', 'error'); setUploading(false); return; }
     const content = input.trim() || file.name;
     setInput('');
-    const { error } = await supabase.from('band_messages').insert({ band_id: id, channel: activeChannel, sender_id: user.id, content, attachment_url: result.url, attachment_type: result.type });
-    if (error) addToast('Versturen mislukt', 'error');
+    const { data: inserted, error } = await supabase.from('band_messages')
+      .insert({ band_id: id, channel: activeChannel, sender_id: user.id, content, attachment_url: result.url, attachment_type: result.type })
+      .select('*, sender:profiles(id,username,display_name,avatar_url)').single();
+    if (error || !inserted) { addToast('Versturen mislukt', 'error'); }
+    else {
+      // Append right away so the upload is visible without waiting on realtime.
+      setMessages(prev => prev.some(m => m.id === inserted.id) ? prev : [...prev, inserted]);
+      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+      if (id && user) getChannelPreviews(id, user.id).then(setChannelPreviews);
+    }
     setUploading(false); inputRef.current?.focus();
   }
 
@@ -518,8 +532,16 @@ export default function BandSpaceDetailPage() {
   }
 
   // ── Handlers: share ──────────────────────────────────────────────────────
+  // Real invite link: opening it lets the recipient join directly (active member,
+  // no approval, private bands included) via the join_band_with_token RPC.
+  function inviteLink() {
+    return band?.invite_token
+      ? `${window.location.origin}/bandspace/join/${band.invite_token}`
+      : window.location.href.split('?')[0];
+  }
+
   function handleShare() {
-    const url = window.location.href.split('?')[0];
+    const url = inviteLink();
     if (navigator.share) {
       navigator.share({ title: band?.name, text: `Sluit je aan bij ${band?.name} op h-orbit`, url });
     } else {
@@ -528,8 +550,7 @@ export default function BandSpaceDetailPage() {
   }
 
   function handleCopyLink() {
-    const url = window.location.href.split('?')[0];
-    navigator.clipboard.writeText(url).then(() => {
+    navigator.clipboard.writeText(inviteLink()).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
@@ -1632,10 +1653,10 @@ export default function BandSpaceDetailPage() {
             </div>
 
             {/* Copy link */}
-            <div className="mb-3">
-              <p className="text-xs font-medium text-slate-400 mb-2">Directe link</p>
+            <div className="mb-1">
+              <p className="text-xs font-medium text-slate-400 mb-2">Uitnodigingslink</p>
               <div className="flex items-center gap-2 bg-black/30 border border-white/10 rounded-xl px-3 py-2.5">
-                <span className="flex-1 text-xs text-slate-400 truncate">{window.location.href.split('?')[0]}</span>
+                <span className="flex-1 text-xs text-slate-400 truncate">{inviteLink()}</span>
                 <button
                   onClick={handleCopyLink}
                   className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-all shrink-0 ${copied ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-white/8 text-slate-300 hover:text-white hover:bg-white/12 border border-white/10'}`}
@@ -1644,6 +1665,9 @@ export default function BandSpaceDetailPage() {
                   {copied ? 'Gekopieerd!' : 'Kopieer'}
                 </button>
               </div>
+              <p className="text-[11px] text-slate-500 mt-2">
+                Iedereen met deze link wordt direct lid — ook bij een privéband.
+              </p>
             </div>
 
             {/* Native share (mobile) */}

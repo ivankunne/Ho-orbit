@@ -64,6 +64,7 @@ const MessagesPage = lazy(() => import('@pages/MessagesPage'));
 const ConversationPage = lazy(() => import('@pages/ConversationPage'));
 const BandSpacePage = lazy(() => import('@pages/BandSpacePage'));
 const BandSpaceDetailPage = lazy(() => import('@pages/BandSpaceDetailPage'));
+const JoinBandPage = lazy(() => import('@pages/JoinBandPage'));
 const NetworkingPage = lazy(() => import('@pages/NetworkingPage'));
 const MasterclassPage = lazy(() => import('@pages/MasterclassPage'));
 const PrivacyPage     = lazy(() => import('@pages/legal/PrivacyPage'));
@@ -203,6 +204,9 @@ function ProtectedApp() {
               <Route path="/venue/:id" element={<VenueDetailPage />} />
               <Route path="/forums" element={<ForumsPage />} />
               <Route path="/forums/thread/:threadId" element={<ForumThreadPage />} />
+
+              {/* Band invite link — public; handles its own auth + direct join */}
+              <Route path="/bandspace/join/:token" element={<JoinBandPage />} />
 
               {/* Requires login */}
               <Route path="/upload" element={<ProtectedRoute><UploadPage /></ProtectedRoute>} />
