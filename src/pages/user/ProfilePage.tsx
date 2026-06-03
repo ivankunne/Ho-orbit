@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { MapPin, Users, Music, Calendar, Heart, BadgeCheck, Settings, Share2, TrendingUp, Play, BarChart2, Clock, ExternalLink, Mail, Phone, Briefcase, MessageSquare } from 'lucide-react';
+import { MapPin, Users, Music, Calendar, Heart, BadgeCheck, Settings, Share2, TrendingUp, Play, BarChart2, Clock, ExternalLink, Mail, Phone, Briefcase, MessageSquare, HandHeart } from 'lucide-react';
+import { normalizeDonationUrl, isTikkieUrl } from '@utils/donation';
 import { useAuth } from '@context/AuthContext';
 import UserAvatar from '@components/UserAvatar';
 import { useAppState } from '@context/AppStateContext';
@@ -580,7 +581,7 @@ export default function ProfilePage() {
             )}
 
             {/* Social links */}
-            {profileUser.social && Object.values(profileUser.social).some(Boolean) && (
+            {profileUser.social && Object.entries(profileUser.social).some(([k, v]) => k !== 'donation' && Boolean(v)) && (
               <div>
                 <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Links & platforms</p>
                 <div className="flex flex-wrap gap-2">
@@ -605,6 +606,24 @@ export default function ProfilePage() {
                 </div>
               </div>
             )}
+
+            {/* Donatie / Tikkie — "Steun mij" */}
+            {(() => {
+              const donationUrl = normalizeDonationUrl(profileUser.social?.donation);
+              if (!donationUrl) return null;
+              return (
+                <a
+                  href={donationUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-colors shadow-lg shadow-violet-600/20"
+                >
+                  <HandHeart size={16} />
+                  {isTikkieUrl(donationUrl) ? 'Steun mij via Tikkie' : 'Steun mij'}
+                  <ExternalLink size={12} className="text-white/70" />
+                </a>
+              );
+            })()}
           </div>
         )}
 

@@ -78,6 +78,8 @@ export interface Artist {
     appleMusic?: string;
     shopify?: string;
     website?: string;
+    /** Tikkie / betaalverzoek / donation link — shown as a "support me" button */
+    donation?: string;
   };
   events: number[];
   tracks: ArtistTrack[];
@@ -143,6 +145,8 @@ export interface User {
     appleMusic?: string;
     shopify?: string;
     website?: string;
+    /** Tikkie / betaalverzoek / donation link — shown as a "support me" button */
+    donation?: string;
   };
 }
 

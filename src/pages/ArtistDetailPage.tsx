@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   Play, Heart, Share2, MapPin, Users, Music, BadgeCheck,
-  Calendar, ChevronLeft, ExternalLink, MessageSquare, Loader2
+  Calendar, ChevronLeft, ExternalLink, MessageSquare, Loader2, HandHeart, Settings
 } from 'lucide-react';
 import { getGenreColor } from '@data/genreColors';
 import { useAppState } from '@context/AppStateContext';
@@ -15,6 +15,7 @@ import { formatPlays } from '@utils/format';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@components/ui/tabs';
 import { supabase } from '@/lib/supabase';
 import { mapProfileToArtist } from '@utils/artistHelpers';
+import { normalizeDonationUrl, isTikkieUrl } from '@utils/donation';
 import { getOrCreateConversation } from '@services/chatService';
 
 export default function ArtistDetailPage() {
@@ -52,6 +53,19 @@ export default function ArtistDetailPage() {
           // Fall back to profiles by username
           const { data: profileData } = await supabase.from('profiles').select('*').eq('username', slug).single();
           if (profileData) artistData = mapProfileToArtist(profileData);
+        }
+      }
+
+      // Artist rows aren't kept in sync with the owner's profile social links
+      // (donation link, socials), so merge the linked profile's social on top.
+      if (artistData?.profile_id) {
+        const { data: linkedProfile } = await supabase
+          .from('profiles')
+          .select('social')
+          .eq('id', artistData.profile_id)
+          .single();
+        if (linkedProfile?.social) {
+          artistData = { ...artistData, social: { ...(artistData.social || {}), ...linkedProfile.social } };
         }
       }
 
@@ -146,6 +160,8 @@ export default function ArtistDetailPage() {
   };
 
   const social = artist.social ?? {};
+  const donationUrl = normalizeDonationUrl(social.donation);
+  const isOwner = !!user && !!artist.profile_id && artist.profile_id === user.id;
   const tags: string[] = Array.isArray(artist.tags) ? artist.tags : [];
   const albums: any[] = Array.isArray(artist.albums) ? artist.albums : [];
 
@@ -239,7 +255,7 @@ export default function ArtistDetailPage() {
         </div>
 
         {/* Sociale links */}
-        {Object.values(social).some(Boolean) && (
+        {Object.entries(social).some(([k, v]) => k !== 'donation' && Boolean(v)) && (
           <div className="flex gap-2 mb-6 flex-wrap">
             {Object.entries(social).map(([key, value]) => {
               if (!value) return null;
@@ -260,6 +276,37 @@ export default function ArtistDetailPage() {
               );
             })}
           </div>
+        )}
+
+        {/* Donatie / Tikkie — "Steun mij" */}
+        {donationUrl && (
+          <a
+            href={donationUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 mb-6 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-colors shadow-lg shadow-violet-600/20"
+          >
+            <HandHeart size={16} />
+            {isTikkieUrl(donationUrl) ? `Steun ${artist.name} via Tikkie` : `Steun ${artist.name}`}
+            <ExternalLink size={12} className="text-white/70" />
+          </a>
+        )}
+
+        {/* Owner reminder — only the artist sees this, only when no link is set */}
+        {isOwner && !donationUrl && (
+          <Link
+            to="/account"
+            className="flex items-start gap-3 mb-6 p-3.5 rounded-xl border border-violet-500/30 bg-violet-600/10 hover:bg-violet-600/15 transition-colors"
+          >
+            <HandHeart size={18} className="text-violet-300 shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-violet-100">Voeg een donatielink toe</p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Heb je een Tikkie of betaalverzoek? Voeg het toe in je account, dan kunnen fans je hier direct steunen.
+              </p>
+            </div>
+            <Settings size={15} className="text-slate-500 shrink-0 mt-0.5 ml-auto" />
+          </Link>
         )}
 
         {/* Tags */}

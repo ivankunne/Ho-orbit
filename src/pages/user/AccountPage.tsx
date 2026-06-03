@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { User, Bell, Lock, Palette, Check, LogOut, Camera, AlertTriangle, Eye, EyeOff, Sun, Moon, Loader, Mail, Phone, Briefcase } from 'lucide-react';
+import { User, Bell, Lock, Palette, Check, LogOut, Camera, AlertTriangle, Eye, EyeOff, Sun, Moon, Loader, Mail, Phone, Briefcase, HandHeart } from 'lucide-react';
 import UserAvatar from '@components/UserAvatar';
 import { useAuth } from '@context/AuthContext';
 import { changePassword, deleteAccount, updateEmail, updateProfile as persistProfile, updatePreferences, uploadAvatar, uploadBanner } from '@services/userService';
@@ -345,6 +345,27 @@ function ProfielSection({ user, updateProfile, userId }: { user: any; updateProf
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Donatielink / Tikkie */}
+        <div className="rounded-xl border border-violet-500/30 bg-violet-600/10 p-4">
+          <label htmlFor="donation-link" className="flex items-center gap-2 text-sm font-semibold text-violet-200">
+            <HandHeart size={16} className="text-violet-300" />
+            Donatielink (Tikkie / betaalverzoek)
+          </label>
+          <p className="text-xs text-slate-400 mt-1 mb-3">
+            Heb je een Tikkie of ander betaalverzoek? Plak de link hier — dan verschijnt er een
+            <span className="text-slate-200 font-medium"> “Steun mij”-knop</span> op je artiestenpagina zodat fans je
+            direct kunnen steunen. Werkt ook met PayPal, Bunq, Ko-fi en meer.
+          </p>
+          <Input
+            id="donation-link"
+            type="url"
+            inputMode="url"
+            placeholder="https://tikkie.me/pay/…"
+            value={form.social?.donation || ''}
+            onChange={e => setSocial('donation', e.target.value)}
+          />
         </div>
 
         {/* Booking & contact */}
