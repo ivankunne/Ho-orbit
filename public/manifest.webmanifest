@@ -1,0 +1,40 @@
+{
+  "name": "h-orbit",
+  "short_name": "h-orbit",
+  "description": "h-orbit — de plek voor Nederlandse muziek, artiesten en fans.",
+  "lang": "nl",
+  "dir": "ltr",
+  "start_url": "/muziek",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1a1528",
+  "theme_color": "#1a1528",
+  "categories": ["music", "social", "entertainment"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

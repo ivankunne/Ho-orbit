@@ -15,6 +15,7 @@ import KeyboardShortcutsModal from '@components/KeyboardShortcutsModal';
 import Navbar from '@components/Layout/Navbar';
 import Footer from '@components/Layout/Footer';
 import InviteResumer from '@components/InviteResumer';
+import InstallPrompt from '@components/InstallPrompt';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -254,6 +255,7 @@ function ProtectedApp() {
 
       <KeyboardShortcutsModal open={showShortcuts} onOpenChange={setShowShortcuts} />
       <InviteResumer />
+      <InstallPrompt />
       <AuthModal />
     </div>
   );
