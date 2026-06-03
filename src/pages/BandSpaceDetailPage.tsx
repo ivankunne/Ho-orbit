@@ -7,6 +7,7 @@ import {
   Image as ImageIcon, FileText as FileIcon, ShieldCheck,
   Calendar, Plus, MessageSquare, PenLine, AtSign, MapPin,
   CheckSquare, Square, Share2, Copy, ListTodo,
+  FolderKanban, Handshake,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@context/AuthContext';
@@ -33,6 +34,8 @@ const CHANNELS = [
   { key: 'socials'    as ChannelKey, label: 'Socials',       icon: Globe,     color: 'text-sky-400',     bg: 'bg-sky-500/20',     accent: 'bg-sky-500',     border: 'border-sky-500/30'     },
   { key: 'magazine'   as ChannelKey, label: 'Muziekbladen', icon: Newspaper, color: 'text-amber-400',   bg: 'bg-amber-500/20',   accent: 'bg-amber-500',   border: 'border-amber-500/30'   },
   { key: 'media'      as ChannelKey, label: 'Media',         icon: Video,     color: 'text-emerald-400', bg: 'bg-emerald-500/20', accent: 'bg-emerald-500', border: 'border-emerald-500/30' },
+  { key: 'projects'   as ChannelKey, label: 'Projecten',     icon: FolderKanban, color: 'text-indigo-400', bg: 'bg-indigo-500/20', accent: 'bg-indigo-500', border: 'border-indigo-500/30' },
+  { key: 'collabs'    as ChannelKey, label: 'Samenwerkingen', icon: Handshake, color: 'text-teal-400',   bg: 'bg-teal-500/20',    accent: 'bg-teal-500',    border: 'border-teal-500/30'    },
 ] as const;
 
 const EVENT_TYPES: { value: EventType; label: string; dot: string; color: string; channel: ChannelKey | null }[] = [

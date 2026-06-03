@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
 
-export type ChannelKey = 'rehearsals' | 'gigs' | 'socials' | 'magazine' | 'media';
+export type ChannelKey = 'rehearsals' | 'gigs' | 'socials' | 'magazine' | 'media' | 'projects' | 'collabs';
 
 export interface ChannelPreview {
   lastContent: string | null;
@@ -29,7 +29,7 @@ export async function getChannelPreviews(
   bandId: string,
   currentUserId: string,
 ): Promise<Partial<Record<ChannelKey, ChannelPreview>>> {
-  const KEYS: ChannelKey[] = ['rehearsals', 'gigs', 'socials', 'magazine', 'media'];
+  const KEYS: ChannelKey[] = ['rehearsals', 'gigs', 'socials', 'magazine', 'media', 'projects', 'collabs'];
 
   const results = await Promise.all(
     KEYS.map(ch =>
