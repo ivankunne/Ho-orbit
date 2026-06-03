@@ -14,6 +14,7 @@ import { useKeyboardShortcuts } from '@hooks/useKeyboardShortcuts';
 import KeyboardShortcutsModal from '@components/KeyboardShortcutsModal';
 import Navbar from '@components/Layout/Navbar';
 import Footer from '@components/Layout/Footer';
+import InviteResumer from '@components/InviteResumer';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -248,6 +249,7 @@ function ProtectedApp() {
       )}
 
       <KeyboardShortcutsModal open={showShortcuts} onOpenChange={setShowShortcuts} />
+      <InviteResumer />
       <AuthModal />
     </div>
   );

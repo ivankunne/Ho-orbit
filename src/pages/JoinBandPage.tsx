@@ -5,12 +5,15 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@context/AuthContext';
 import { useAuthModal } from '@context/AuthModalContext';
 import { useToast } from '@components/Toast';
+import { PENDING_INVITE_KEY } from '@lib/invite';
 
 /**
  * Public landing for band invite links: /bandspace/join/:token
  *
- * - Logged out → open the auth modal (stays on this URL, so once the
- *   visitor signs in we resume the join automatically).
+ * - Logged out → stash the token and open the auth modal. The visitor can
+ *   log in (resumes instantly on this URL) OR register. Because the token is
+ *   persisted, the join also completes after an email-confirmation round-trip,
+ *   even if the confirmation link drops them on a different page.
  * - Logged in  → call the secure join_band_with_token RPC, which adds
  *   them as an active member (private bands included) and returns the
  *   band id, then redirect into the workspace.
@@ -29,7 +32,10 @@ export default function JoinBandPage() {
     if (loading || !token) return;
 
     if (!user) {
-      open('signup'); // overlay; this URL is preserved so we resume after sign-in
+      // Persist so the join still completes after the visitor registers and
+      // confirms their email (which can land them on a different page).
+      try { localStorage.setItem(PENDING_INVITE_KEY, token); } catch {}
+      open('login'); // overlay; both "Inloggen" and "Aanmelden" tabs are available
       return;
     }
 
@@ -39,6 +45,7 @@ export default function JoinBandPage() {
     (async () => {
       setStatus('joining');
       const { data, error } = await supabase.rpc('join_band_with_token', { p_token: token });
+      try { localStorage.removeItem(PENDING_INVITE_KEY); } catch {}
       if (error || !data) {
         setStatus('error');
         addToast('Kon niet lid worden van deze band', 'error');

@@ -118,9 +118,17 @@ export default function BandSpacePage() {
     }
 
     // Creator is automatically an active admin — no approval needed
-    await supabase.from('band_members').insert({
+    const { error: memberError } = await supabase.from('band_members').insert({
       band_id: band.id, user_id: user.id, role: 'admin', status: 'active',
     });
+
+    if (memberError) {
+      // Band row exists but membership failed — surface it instead of
+      // silently leaving the creator locked out of their own band.
+      addToast('Band aangemaakt, maar lidmaatschap mislukte. Probeer opnieuw te openen.', 'error');
+      setCreating(false);
+      return;
+    }
 
     setCreating(false);
     setShowCreate(false);
