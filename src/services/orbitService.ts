@@ -35,7 +35,7 @@ export async function getChannelPreviews(
     KEYS.map(ch =>
       supabase
         .from('band_messages')
-        .select('id, content, created_at, sender_id, sender:profiles(display_name, username)')
+        .select('id, content, created_at, sender_id, sender:profiles!band_messages_sender_id_fkey(display_name, username)')
         .eq('band_id', bandId)
         .eq('channel', ch)
         .order('created_at', { ascending: false })

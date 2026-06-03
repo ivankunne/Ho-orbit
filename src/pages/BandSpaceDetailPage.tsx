@@ -229,7 +229,7 @@ export default function BandSpaceDetailPage() {
     if (!id) return;
     setMsgLoading(true);
     const { data } = await supabase.from('band_messages')
-      .select('*, sender:profiles(id,username,display_name,avatar_url)')
+      .select('*, sender:profiles!band_messages_sender_id_fkey(id,username,display_name,avatar_url)')
       .eq('band_id', id).eq('channel', activeChannel)
       .order('created_at', { ascending: true }).limit(100);
     setMessages(data ?? []);
@@ -356,7 +356,7 @@ export default function BandSpaceDetailPage() {
 
     const { data: inserted, error } = await supabase.from('band_messages')
       .insert({ band_id: id, channel: activeChannel, sender_id: user.id, content, mentions: mentionedIds })
-      .select('*, sender:profiles(id,username,display_name,avatar_url)').single();
+      .select('*, sender:profiles!band_messages_sender_id_fkey(id,username,display_name,avatar_url)').single();
 
     if (error || !inserted) { setInput(content); addToast('Versturen mislukt', 'error'); }
     else {
@@ -418,7 +418,7 @@ export default function BandSpaceDetailPage() {
     setInput('');
     const { data: inserted, error } = await supabase.from('band_messages')
       .insert({ band_id: id, channel: activeChannel, sender_id: user.id, content, attachment_url: result.url, attachment_type: result.type })
-      .select('*, sender:profiles(id,username,display_name,avatar_url)').single();
+      .select('*, sender:profiles!band_messages_sender_id_fkey(id,username,display_name,avatar_url)').single();
     if (error || !inserted) { addToast('Versturen mislukt', 'error'); }
     else {
       // Append right away so the upload is visible without waiting on realtime.
