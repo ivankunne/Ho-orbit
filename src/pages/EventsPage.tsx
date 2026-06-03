@@ -438,7 +438,8 @@ function CreateEventForm({ onCreated }: { onCreated?: () => void }) {
         status: 'approved',
         featured: false,
         attendees_count: 0,
-        ...(user?.id ? { submitted_by: user.id } : {}),
+        submitted_by_username: user?.displayName || user?.username || 'onbekend',
+        submitted_at: new Date().toISOString(),
       });
       if (error) throw error;
       setSubmitted(true);
