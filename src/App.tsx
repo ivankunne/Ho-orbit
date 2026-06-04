@@ -159,6 +159,7 @@ function ProtectedApp() {
   const { user } = useAuth();
   const [showSearch, setShowSearch] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isLanding = !!useMatch('/');
   // The band workspace is a full-height app shell with its own internal scroll.
   // Drop the page footer + bottom padding here so the window doesn't scroll on
@@ -181,7 +182,7 @@ function ProtectedApp() {
           onToggleShortcutsModal={() => setShowShortcuts(v => !v)}
         />
       )}
-      {!isLanding && <Navbar externalShowSearch={showSearch} onExternalSearchClose={() => setShowSearch(false)} />}
+      {!isLanding && <Navbar externalShowSearch={showSearch} onExternalSearchClose={() => setShowSearch(false)} onMobileMenuChange={setMobileMenuOpen} />}
       <main className={isLanding ? '' : isWorkspace ? 'flex flex-col' : 'pb-28 lg:pb-20 flex flex-col'}>
         <ErrorBoundary>
           <Suspense fallback={<PageLoader />}>
@@ -239,7 +240,7 @@ function ProtectedApp() {
         </ErrorBoundary>
         {!isLanding && !isWorkspace && <Footer />}
       </main>
-      {!isLanding && <MusicPlayer />}
+      {!isLanding && <MusicPlayer hidden={mobileMenuOpen} />}
       {!isLanding && <MobileBottomNav />}
 
       {/* Floating ? badge — desktop only, logged-in only */}

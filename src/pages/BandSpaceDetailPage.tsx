@@ -1591,12 +1591,18 @@ export default function BandSpaceDetailPage() {
                 <div>
                   <label className="block text-xs font-medium text-slate-400 mb-1.5">Type</label>
                   <div className="space-y-1.5">
-                    {EVENT_TYPES.map(t => (
-                      <button key={t.value} onClick={() => setEventForm(f => ({ ...f, type: t.value }))}
-                        className={`w-full flex items-center gap-2 text-xs px-3 py-2 rounded-lg border transition-all text-left ${eventForm.type === t.value ? 'bg-white/8 border-white/20 text-white' : 'border-white/8 text-slate-400 hover:border-white/15'}`}>
-                        <span className={`w-2 h-2 rounded-full shrink-0 ${t.dot}`} />{t.label}
-                      </button>
-                    ))}
+                    {EVENT_TYPES.map(t => {
+                      const selected = eventForm.type === t.value;
+                      return (
+                        <button key={t.value} type="button" onClick={() => setEventForm(f => ({ ...f, type: t.value }))}
+                          aria-pressed={selected}
+                          className={`w-full flex items-center gap-2 text-xs px-3 py-2 rounded-lg border transition-all text-left ${selected ? 'bg-violet-600/20 border-violet-500 text-white font-semibold ring-1 ring-violet-500/40' : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/25 hover:text-slate-200'}`}>
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${selected ? t.dot : 'bg-slate-600'}`} />
+                          <span className="flex-1">{t.label}</span>
+                          {selected && <Check size={13} className="text-violet-300 shrink-0" />}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
                 <div className="flex flex-col gap-3">

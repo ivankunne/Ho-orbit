@@ -42,20 +42,49 @@ function withTimeout<T>(promise: Promise<T>, ms: number, msg: string): Promise<T
   ]);
 }
 
-async function getAudioDuration(file: File): Promise<string> {
-  try {
-    // decodeAudioData reads exact sample count — immune to VBR estimation errors
-    // that the HTML Audio element's loadedmetadata commonly gets wrong.
-    const arrayBuffer = await file.arrayBuffer();
-    const ctx = new AudioContext();
-    const buffer = await ctx.decodeAudioData(arrayBuffer);
-    ctx.close();
-    const total = Math.round(buffer.duration);
-    if (total <= 0) return '0:00';
-    return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
-  } catch {
-    return '0:00';
-  }
+function getAudioDuration(file: File): Promise<string> {
+  // Read duration from the streamed metadata via an <audio> element. We must NOT
+  // decode the whole file into PCM (decodeAudioData) here: a normal song decodes
+  // to hundreds of MB of memory and OOM-crashes the tab on mobile — which is the
+  // majority of our users — making uploads silently fail. The element streams the
+  // file instead, and the player refines the duration via 'durationchange' anyway.
+  return new Promise(resolve => {
+    const audio = new Audio();
+    const url = URL.createObjectURL(file);
+    let done = false;
+
+    const finish = (value: string) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      URL.revokeObjectURL(url);
+      audio.removeAttribute('src');
+      resolve(value);
+    };
+
+    const format = (secs: number) =>
+      `${Math.floor(secs / 60)}:${String(Math.round(secs % 60)).padStart(2, '0')}`;
+
+    // Never block the upload on duration detection — resolve after 10s regardless.
+    const timer = setTimeout(() => finish('0:00'), 10_000);
+
+    audio.preload = 'metadata';
+    audio.onloadedmetadata = () => {
+      if (isFinite(audio.duration) && audio.duration > 0) {
+        finish(format(audio.duration));
+      } else {
+        // VBR file without an accurate header — seek past the end so the browser
+        // scans the file and reports the real duration via the 'seeked' event.
+        // This streams, it does not allocate the decoded file in memory.
+        audio.currentTime = 1e101;
+      }
+    };
+    audio.onseeked = () => {
+      finish(isFinite(audio.duration) && audio.duration > 0 ? format(audio.duration) : '0:00');
+    };
+    audio.onerror = () => finish('0:00');
+    audio.src = url;
+  });
 }
 
 async function uploadAudioFile(file: File, trackTitle: string): Promise<string> {

@@ -18,7 +18,7 @@ function formatTime(secs) {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-export default function MusicPlayer() {
+export default function MusicPlayer({ hidden = false }: { hidden?: boolean }) {
   const {
     track, queue, currentIndex, isPlaying,
     volume, shuffle, repeatMode,
@@ -48,6 +48,9 @@ export default function MusicPlayer() {
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
   const waveformBars = useMemo(() => getWaveform(currentIndex + 1, 60, 'player'), [currentIndex]);
 
+  // Hidden while the mobile menu is open so the bar doesn't float over the menu.
+  // Audio lives in PlayerContext, so unmounting here never interrupts playback.
+  if (hidden) return null;
   if (!track && !isRadioPlaying) return null;
 
   const queueDisplay = queue.filter((_, i) => i !== currentIndex);

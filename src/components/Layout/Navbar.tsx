@@ -94,7 +94,7 @@ const magazineDropdown = [
   },
 ];
 
-export default function Navbar({ externalShowSearch = false, onExternalSearchClose }) {
+export default function Navbar({ externalShowSearch = false, onExternalSearchClose, onMobileMenuChange }) {
   const location = useLocation();
   const { user, logout } = useAuth();
   const { open: openAuthModal } = useAuthModal();
@@ -116,6 +116,11 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
   useEffect(() => {
     if (externalShowSearch) setShowSearch(true);
   }, [externalShowSearch]);
+
+  // Let the shell hide the floating music player while the mobile menu is open.
+  useEffect(() => {
+    onMobileMenuChange?.(mobileMenuOpen);
+  }, [mobileMenuOpen, onMobileMenuChange]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
