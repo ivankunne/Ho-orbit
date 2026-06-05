@@ -146,8 +146,13 @@ export default function LandingPage() {
       />
 
 
+      {/* Logo — mobile only (desktop grid fills the viewport) */}
+      <div className="md:hidden relative z-10 flex justify-center pt-6 pb-2">
+        <img src="/H-orbit-logo.png" alt="h-orbit" className="h-10 w-auto" />
+      </div>
+
       {/* Bento grid */}
-      <div className="relative z-10 h-full grid gap-2 p-3 grid-cols-2 md:p-5 md:gap-3 landing-grid" style={{ minHeight: '100dvh' }}>
+      <div className="relative z-10 h-full grid gap-2 px-3 pb-3 md:p-5 md:gap-3 landing-grid" style={{ minHeight: '100dvh' }}>
         {/* Radio tile — area i */}
         {(() => {
           const color = '#ef4444';

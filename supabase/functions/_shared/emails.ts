@@ -46,8 +46,8 @@ function layout({ preheader, heading, bodyHtml, ctaLabel, ctaUrl }: LayoutParams
           <tr>
             <td class="hero-pad" align="center"
                 style="background: linear-gradient(135deg, #2d1f5e 0%, #1a1040 50%, #0f0c28 100%);padding:44px 40px 32px;">
-              <div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#5b21b6);display:inline-block;box-shadow:0 0 0 1px rgba(124,58,237,0.4), 0 8px 32px rgba(124,58,237,0.35);line-height:60px;text-align:center;font-size:26px;">&#9702;</div>
-              <h1 style="margin:18px 0 4px;font-family:${font};font-size:26px;font-weight:800;letter-spacing:-0.5px;color:#ffffff;">h<span style="color:#a78bfa;">-orbit</span></h1>
+              <img src="https://h-orbit.nl/H-orbit-logo-email.png" width="84" height="76" alt="h-orbit" style="display:inline-block;border:0;outline:none;text-decoration:none;width:84px;height:76px;" />
+              <h1 style="margin:14px 0 4px;font-family:${font};font-size:26px;font-weight:800;letter-spacing:-0.5px;color:#ffffff;">h<span style="color:#a78bfa;">-orbit</span></h1>
               <p style="margin:0;font-family:${font};font-size:12px;color:rgba(255,255,255,0.45);letter-spacing:0.08em;text-transform:uppercase;">Nederlandse muziekgemeenschap</p>
             </td>
           </tr>

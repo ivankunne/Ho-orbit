@@ -14,6 +14,26 @@ The domain `h-orbit.nl` is verified in Resend, so all three addresses send fine.
 
 ---
 
+## Logo / branding
+
+All four emails (signup confirm, password reset, new message, new follower) lead with
+the H-orbit logo so recipients immediately recognise the email as genuine.
+
+- The logo is referenced by absolute URL: `https://h-orbit.nl/H-orbit-logo-email.png`
+  (an email-optimised 256px / ~82 KB copy of `public/H-orbit-logo.png`). It must be
+  reachable on production — i.e. **the frontend has to be deployed to Vercel** for the
+  image to load in inboxes. The `h-orbit` wordmark + tagline still render as a text
+  fallback if a client blocks images.
+- After changing the logo file, regenerate the email copy:
+  `sips -Z 256 public/H-orbit-logo.png --out public/H-orbit-logo-email.png`.
+
+> **Auth templates are dashboard-managed.** Editing `email-templates/*.html` in the repo
+> does **not** change live emails — you must re-paste the updated HTML into the Supabase
+> dashboard (step 3 below) for the signup-confirm and password-reset emails. The two
+> notification emails update automatically on the next `notify` deploy.
+
+---
+
 ## 1. Password reset & signup confirmation (Supabase Auth → Resend SMTP)
 
 These emails are sent by **Supabase Auth itself** through the Resend SMTP you configured. No code deploy needed — the app already calls `supabase.auth.resetPasswordForEmail(...)`.

@@ -260,7 +260,7 @@ export default function HomePage() {
             </Link>
           </div>
           <p className="text-slate-400 text-sm mb-5 max-w-2xl">
-            Opkomende artiesten die net begonnen zijn. Volg ze en ontdek hun muziek als eerste.
+            Grote carrières beginnen klein. Ontdek veelbelovende artiesten aan het begin van hun muzikale avontuur.
           </p>
           {risingArtists.length === 0 ? (
             <p className="text-sm text-slate-500 py-4">Nog geen nieuwe artiesten beschikbaar.</p>

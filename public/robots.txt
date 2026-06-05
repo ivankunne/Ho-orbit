@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+
+# Private / authenticated areas — not for indexing
+Disallow: /login
+Disallow: /signup
+Disallow: /wachtwoord-herstellen
+Disallow: /account
+Disallow: /profiel
+Disallow: /berichten
+Disallow: /library
+Disallow: /upload
+Disallow: /hub
+Disallow: /bandspace
+Disallow: /admin
+
+Sitemap: https://h-orbit.nl/sitemap.xml
