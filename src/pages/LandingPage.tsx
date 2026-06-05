@@ -146,9 +146,18 @@ export default function LandingPage() {
       />
 
 
-      {/* Logo — mobile only (desktop grid fills the viewport) */}
+      {/* Logo — mobile: centered above the stacked tiles */}
       <div className="md:hidden relative z-10 flex justify-center pt-6 pb-2">
         <img src="/H-orbit-logo.png" alt="h-orbit" className="h-10 w-auto" />
+      </div>
+
+      {/* Logo — desktop: overlaid in the top-left, over the featured hero tile */}
+      <div className="hidden md:block absolute top-8 left-10 z-20 pointer-events-none">
+        <img
+          src="/H-orbit-logo.png"
+          alt="h-orbit"
+          className="h-12 w-auto drop-shadow-[0_2px_14px_rgba(0,0,0,0.55)]"
+        />
       </div>
 
       {/* Bento grid */}
