@@ -38,6 +38,9 @@ const CHANNELS = [
   { key: 'collabs'    as ChannelKey, label: 'Samenwerkingen', icon: Handshake, color: 'text-teal-400',   bg: 'bg-teal-500/20',    accent: 'bg-teal-500',    border: 'border-teal-500/30'    },
 ] as const;
 
+// Radius (px) of the desktop orbit ring on which the channel bubbles sit.
+const ORBIT_RADIUS = 170;
+
 const EVENT_TYPES: { value: EventType; label: string; dot: string; color: string; channel: ChannelKey | null }[] = [
   { value: 'rehearsal', label: 'Repetitie', dot: 'bg-violet-500', color: 'text-violet-400', channel: 'rehearsals' },
   { value: 'gig',       label: 'Optreden',  dot: 'bg-pink-500',   color: 'text-pink-400',   channel: 'gigs'       },
@@ -818,9 +821,10 @@ export default function BandSpaceDetailPage() {
             {/* ── Orbit Channel Tiles ──────────────────────────────────────── */}
             {isMember && (
               <div className="border-b border-white/8 bg-black/15">
-                <div className="max-w-6xl mx-auto px-4 lg:px-8 py-5">
+                {/* Mobile / tablet: informative grid with previews */}
+                <div className="max-w-6xl mx-auto px-4 lg:px-8 py-5 lg:hidden">
                   <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-3">Orbit Kanalen</p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {CHANNELS.map(ch => {
                       const Icon = ch.icon;
                       const preview = channelPreviews[ch.key];
@@ -857,6 +861,55 @@ export default function BandSpaceDetailPage() {
                               <p className="text-[10px] text-slate-600 mt-1">{shortTime(preview.lastAt)}</p>
                             )}
                           </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Desktop: channels orbit the h-orbit logo */}
+                <div className="hidden lg:flex flex-col items-center max-w-6xl mx-auto px-8 py-8">
+                  <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Orbit Kanalen</p>
+                  <div className="relative" style={{ width: 640, height: ORBIT_RADIUS * 2 + 130 }}>
+                    {/* Orbit path */}
+                    <div aria-hidden
+                      className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-white/10"
+                      style={{ width: ORBIT_RADIUS * 2, height: ORBIT_RADIUS * 2 }} />
+                    <div aria-hidden
+                      className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/[0.04]"
+                      style={{ width: ORBIT_RADIUS * 2 + 60, height: ORBIT_RADIUS * 2 + 60 }} />
+
+                    {/* Center: h-orbit logo */}
+                    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none select-none">
+                      <div aria-hidden className="absolute -z-10 w-44 h-44 rounded-full bg-violet-600/25 blur-3xl" />
+                      <img src="/H-orbit-logo.png" alt="h-orbit"
+                        className="h-24 w-auto drop-shadow-[0_0_30px_rgba(139,92,246,0.45)]" />
+                    </div>
+
+                    {/* Orbiting channel bubbles */}
+                    {CHANNELS.map((ch, i) => {
+                      const Icon = ch.icon;
+                      const preview = channelPreviews[ch.key];
+                      const mentions = mentionCounts[ch.key] ?? 0;
+                      const angle = (-90 + i * (360 / CHANNELS.length)) * (Math.PI / 180);
+                      const x = Math.cos(angle) * ORBIT_RADIUS;
+                      const y = Math.sin(angle) * ORBIT_RADIUS;
+                      return (
+                        <button key={ch.key} onClick={() => switchChannel(ch.key)} title={ch.label}
+                          className="absolute flex flex-col items-center gap-2 group focus:outline-none"
+                          style={{ left: `calc(50% + ${x}px)`, top: `calc(50% + ${y}px)`, transform: 'translate(-50%, -50%)' }}>
+                          <div className={`relative w-16 h-16 rounded-full flex items-center justify-center ${ch.bg} border ${ch.border} shadow-lg group-hover:scale-110 group-active:scale-95 group-focus-visible:ring-2 group-focus-visible:ring-white/40 transition-transform`}>
+                            <Icon size={24} className={ch.color} />
+                            {mentions > 0 && (
+                              <span className="absolute -top-1.5 -right-1.5 flex items-center gap-0.5 bg-amber-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow ring-2 ring-[#0f0c1a]">
+                                <AtSign size={8} />{mentions}
+                              </span>
+                            )}
+                            {preview?.hasUnread && mentions === 0 && (
+                              <span className={`absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full ring-2 ring-[#0f0c1a] ${ch.accent} animate-pulse`} />
+                            )}
+                          </div>
+                          <span className="text-xs font-semibold text-slate-300 group-hover:text-white transition-colors whitespace-nowrap">{ch.label}</span>
                         </button>
                       );
                     })}
