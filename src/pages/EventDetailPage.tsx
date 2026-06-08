@@ -312,7 +312,7 @@ export default function EventDetailPage() {
                 type="text"
                 value={ocTitle}
                 onChange={e => setOcTitle(e.target.value)}
-                placeholder="Bijv. Zoek support act — elektronisch, 30 min set"
+                placeholder="Bijv. Zoek support act — techno, 30 min set"
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-400 transition-colors"
               />
               <textarea

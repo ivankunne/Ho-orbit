@@ -16,14 +16,9 @@ import { supabase } from '@/lib/supabase';
 import { fetchArtistProfiles } from '@utils/artistHelpers';
 import { useRadio } from '@context/RadioContext';
 import { Radio } from 'lucide-react';
+import { FILTER_GENRES, genreLabelById } from '@data/genres';
 
-const GENRE_LABEL: Record<string, string> = {
-  nederpop: 'Nederpop', hiphop: 'Hip-Hop', elektronisch: 'Elektronisch',
-  jazz: 'Jazz', indie: 'Indie', rnb: 'R&B', rock: 'Rock',
-  folk: 'Folk', techno: 'Techno', klassiek: 'Klassiek',
-};
-
-const GENRES = ['Alles', 'Nederpop', 'Hip-Hop', 'Elektronisch', 'Jazz', 'Indie', 'R&B', 'Rock'];
+const GENRES = ['Alles', ...FILTER_GENRES];
 
 // Label for the current chart week, e.g. "Week van 2 jun".
 function currentWeekLabel(): string {
@@ -65,7 +60,7 @@ export default function HomePage() {
   }, []);
 
   function matchArtistsForGenre(genreId: string) {
-    const label = GENRE_LABEL[genreId] || '';
+    const label = genreLabelById(genreId);
     const lc = label.toLowerCase();
     return artists.filter(a => a.genre?.toLowerCase().includes(lc)).slice(0, 6);
   }
@@ -114,8 +109,7 @@ export default function HomePage() {
                 muziekscene, <span className="text-violet-400">op één plek</span>
               </h1>
               <p className="text-slate-300 text-base lg:text-lg leading-relaxed mb-8 max-w-xl">
-                Vind nieuwe artiesten, ontdek lokale scenes van Amsterdam tot Groningen,
-                en maak connecties in de Nederlandse muziekwereld.
+                vind, ontdek, maak connecties.
               </p>
 
               {/* Featured artist inline */}
@@ -330,7 +324,7 @@ export default function HomePage() {
         {preferredGenres.slice(0, 2).map(genreId => {
           const matched = matchArtistsForGenre(genreId);
           if (!matched.length) return null;
-          const label = GENRE_LABEL[genreId] || genreId;
+          const label = genreLabelById(genreId);
           return (
             <section key={genreId} className="pb-8">
               <div className="flex items-center gap-2 mb-4">

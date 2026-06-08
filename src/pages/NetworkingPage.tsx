@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@context/AuthContext';
 import { useToast } from '@components/Toast';
 import UserAvatar from '@components/UserAvatar';
+import GenreOptions from '@components/GenreOptions';
 
 const TABS = [
   { key: 'all',           label: 'Alles' },
@@ -23,11 +24,6 @@ const TYPE_META: Record<string, { label: string; icon: React.ElementType; color:
   jump_on_track: { label: 'Jump on a Track', icon: Music2,    color: 'text-violet-400',  bg: 'bg-violet-400/10 border-violet-400/20' },
   open_call:     { label: 'Open Call',       icon: Megaphone, color: 'text-sky-400',     bg: 'bg-sky-400/10 border-sky-400/20' },
 };
-
-const GENRES = [
-  'Hip-hop', 'R&B', 'Pop', 'Electronic', 'House', 'Techno', 'Drum & Bass',
-  'Afrobeats', 'Reggaeton', 'Jazz', 'Soul', 'Funk', 'Rock', 'Indie', 'Overig',
-];
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -277,7 +273,7 @@ export default function NetworkingPage() {
                     className="w-full bg-[#1a1528] border border-white/10 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-violet-500 transition-colors"
                   >
                     <option value="">Kies genre</option>
-                    {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
+                    <GenreOptions />
                   </select>
                 </div>
                 <div>

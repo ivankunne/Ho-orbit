@@ -1,17 +1,7 @@
 import { useState } from 'react';
 import { Check, ChevronRight, Music, Headphones, Radio, Mic2, Newspaper, MapPin } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@components/ui/dialog';
-
-const GENRES = [
-  { id: 'pop',        label: 'Pop',             emoji: '🎤' },
-  { id: 'hiphop',     label: 'Hip-Hop',         emoji: '🎧' },
-  { id: 'jazz',       label: 'Jazz',            emoji: '🎷' },
-  { id: 'elektronisch', label: 'Elektronisch',  emoji: '🎛️' },
-  { id: 'rb',         label: 'R&B / Soul',      emoji: '🎵' },
-  { id: 'rock',       label: 'Rock / Blues',    emoji: '🎸' },
-  { id: 'indie',      label: 'Indie / Folk',    emoji: '🪗' },
-  { id: 'klassiek',   label: 'Klassiek',        emoji: '🎻' },
-];
+import { GENRE_OPTION_GROUPS, genreLabelById } from '@data/genres';
 
 const ROLES = [
   { id: 'fan',        label: 'Muziekfan',       desc: 'Ontdekken en genieten',      icon: Headphones },
@@ -87,23 +77,29 @@ export default function OnboardingModal({ open, onOpenChange, onComplete }) {
           {step === 0 && (
             <div>
               <p className="text-sm font-medium text-slate-300 mb-4">Welke muziek luister jij het liefst? <span className="text-slate-500">(kies meerdere)</span></p>
-              <div className="grid grid-cols-2 gap-2">
-                {GENRES.map(g => {
-                  const active = selectedGenres.includes(g.id);
-                  return (
-                    <button
-                      key={g.id}
-                      onClick={() => toggleGenre(g.id)}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all ${
-                        active ? 'border-violet-500 bg-violet-600/15 text-white' : 'border-white/8 bg-white/3 text-slate-300 hover:bg-white/6'
-                      }`}
-                    >
-                      <span className="text-xl">{g.emoji}</span>
-                      <span className="text-sm font-medium">{g.label}</span>
-                      {active && <Check size={14} className="text-violet-400 ml-auto shrink-0" />}
-                    </button>
-                  );
-                })}
+              <div className="space-y-4 max-h-[320px] overflow-y-auto pr-1 -mr-1">
+                {GENRE_OPTION_GROUPS.map(group => (
+                  <div key={group.label}>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">{group.label}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {group.options.map(g => {
+                        const active = selectedGenres.includes(g.id);
+                        return (
+                          <button
+                            key={g.id}
+                            onClick={() => toggleGenre(g.id)}
+                            className={`flex items-center gap-2 px-3.5 py-2 rounded-full border text-sm font-medium transition-all ${
+                              active ? 'border-violet-500 bg-violet-600/15 text-white' : 'border-white/8 bg-white/3 text-slate-300 hover:bg-white/6'
+                            }`}
+                          >
+                            {active && <Check size={13} className="text-violet-400 shrink-0" />}
+                            {g.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -165,7 +161,7 @@ export default function OnboardingModal({ open, onOpenChange, onComplete }) {
                   <p className="text-xs text-slate-500 mb-1">Jouw profiel:</p>
                   <div className="flex flex-wrap gap-1.5">
                     {selectedRole && <span className="text-xs bg-violet-600/20 text-violet-400 px-2 py-0.5 rounded-full">{ROLES.find(r=>r.id===selectedRole)?.label}</span>}
-                    {selectedGenres.map(g => <span key={g} className="text-xs bg-white/8 text-slate-300 px-2 py-0.5 rounded-full">{GENRES.find(x=>x.id===g)?.label}</span>)}
+                    {selectedGenres.map(g => <span key={g} className="text-xs bg-white/8 text-slate-300 px-2 py-0.5 rounded-full">{genreLabelById(g)}</span>)}
                   </div>
                 </div>
               )}

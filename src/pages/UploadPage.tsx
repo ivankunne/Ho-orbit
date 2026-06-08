@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Upload, Music, Image, X, CheckCircle, Loader } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-const genres = ['Nederpop','Nederlandstalige Hip-Hop','Elektronisch','Jazz','Folk','Bluesrock','R&B','Indie','Techno','Overig'];
+import GenreSelectItems from '@components/GenreSelectItems';
 import { useAuth } from '@context/AuthContext';
 import { uploadTrack } from '@services/uploadService';
 import { addNotification } from '@services/notificationService';
 import { Input } from '@components/ui/input';
 import { Textarea } from '@components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@components/ui/select';
+import { Select, SelectContent, SelectTrigger, SelectValue } from '@components/ui/select';
 import { Checkbox } from '@components/ui/checkbox';
 import { Button } from '@components/ui/button';
 
@@ -270,9 +270,7 @@ export default function UploadPage() {
                 <SelectValue placeholder="Selecteer genre" />
               </SelectTrigger>
               <SelectContent>
-                {genres.filter(g => g !== 'Alles').map(g => (
-                  <SelectItem key={g} value={g}>{g}</SelectItem>
-                ))}
+                <GenreSelectItems />
               </SelectContent>
             </Select>
           </div>

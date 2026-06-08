@@ -5,7 +5,8 @@ import { useAuthModal } from '@context/AuthModalContext';
 import UserAvatar from '@components/UserAvatar';
 import { Input } from '@components/ui/input';
 import { Button } from '@components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@components/ui/select';
+import { Select, SelectContent, SelectTrigger, SelectValue } from '@components/ui/select';
+import GenreSelectItems from '@components/GenreSelectItems';
 import { Checkbox } from '@components/ui/checkbox';
 
 // ─── Login form ──────────────────────────────────────────────────────────────
@@ -185,7 +186,6 @@ function LoginForm({ onSuccess, onSwitch }: { onSuccess: () => void; onSwitch: (
 // ─── Signup form ─────────────────────────────────────────────────────────────
 
 const STEPS = ['Account', 'Profiel', 'Klaar'];
-const GENRES = ['Nederpop', 'Nederlandstalige Hip-Hop', 'Elektronisch', 'Jazz', 'Bluesrock', 'R&B', 'Indie', 'Techno', 'Folk', 'Overig'];
 
 function SignupForm({ onSuccess, onSwitch }: { onSuccess: () => void; onSwitch: () => void }) {
   const { signup, error, setError } = useAuth();
@@ -442,7 +442,7 @@ function SignupForm({ onSuccess, onSwitch }: { onSuccess: () => void; onSwitch: 
                   <SelectValue placeholder="Selecteer genre" />
                 </SelectTrigger>
                 <SelectContent>
-                  {GENRES.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                  <GenreSelectItems />
                 </SelectContent>
               </Select>
             </div>

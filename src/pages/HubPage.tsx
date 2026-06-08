@@ -11,6 +11,8 @@ import { useAuthModal } from '@context/AuthModalContext';
 import { supabase } from '@/lib/supabase';
 import SceneMap from '@components/SceneMap';
 import UserAvatar from '@components/UserAvatar';
+import GenreOptions from '@components/GenreOptions';
+import { FILTER_GENRES } from '@data/genres';
 import { avatarPlaceholder } from '@utils/placeholder';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -59,7 +61,7 @@ const SECTIONS = [
   { id: 'network', label: 'Netwerken', icon: Users,         desc: 'Samenwerking, collabs & open calls' },
 ];
 
-const NETWORK_GENRES = ['Alle', 'Hip-hop', 'R&B', 'Pop', 'Electronic', 'House', 'Techno', 'Jazz', 'Rock', 'Overig'];
+const NETWORK_GENRES = ['Alle', ...FILTER_GENRES];
 
 const NETWORK_TABS = [
   { key: 'all',           label: 'Alles' },
@@ -502,7 +504,6 @@ function NetworkPostCard({ post }: { post: NetworkPost }) {
 
 // ─── Network create form ──────────────────────────────────────────────────────
 
-const GENRES = ['Hip-hop', 'R&B', 'Pop', 'Electronic', 'House', 'Techno', 'Drum & Bass', 'Jazz', 'Soul', 'Rock', 'Indie', 'Overig'];
 
 interface CreateForm {
   type: 'wanted' | 'jump_on_track' | 'open_call';
@@ -586,7 +587,7 @@ function NetworkCreateModal({ onClose, onCreated }: { onClose: () => void; onCre
               <select value={form.genre} onChange={e => setForm(f => ({ ...f, genre: e.target.value }))}
                 className="w-full bg-[#1a1528] border border-white/10 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-violet-500 transition-colors">
                 <option value="">Kies genre</option>
-                {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
+                <GenreOptions />
               </select>
             </div>
             <div>

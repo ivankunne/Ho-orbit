@@ -6,6 +6,9 @@ import {
   Handshake, GraduationCap, Music2,
 } from 'lucide-react';
 import { useRadio } from '@context/RadioContext';
+import { useAuth } from '@context/AuthContext';
+import { useAuthModal } from '@context/AuthModalContext';
+import UserAvatar from '@components/UserAvatar';
 
 const tiles = [
   {
@@ -112,6 +115,8 @@ const tiles = [
 export default function LandingPage() {
   const [mounted, setMounted] = useState(false);
   const { isLive } = useRadio();
+  const { user } = useAuth();
+  const { open: openAuthModal } = useAuthModal();
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setMounted(true));
@@ -158,6 +163,39 @@ export default function LandingPage() {
           alt="h-orbit"
           className="h-12 w-auto drop-shadow-[0_2px_14px_rgba(0,0,0,0.55)]"
         />
+      </div>
+
+      {/* Auth bar — top-right: login/signup when logged out, account when logged in */}
+      <div className="absolute top-5 right-4 md:top-8 md:right-10 z-30 flex items-center gap-2">
+        {user ? (
+          <Link
+            to="/account"
+            className="flex items-center gap-2 bg-white/8 hover:bg-white/12 border border-white/10 rounded-full pl-1.5 pr-3.5 py-1.5 text-sm font-medium text-slate-200 transition-colors backdrop-blur-sm"
+          >
+            <UserAvatar
+              src={user.avatar}
+              name={user.displayName || user.username}
+              size={28}
+              className="ring-2 ring-violet-500/30"
+            />
+            <span className="hidden sm:block">{user.displayName?.split(' ')[0] || user.username}</span>
+          </Link>
+        ) : (
+          <>
+            <button
+              onClick={() => openAuthModal('login')}
+              className="text-sm font-medium text-slate-300 hover:text-white transition-colors px-3 py-2 rounded-lg hover:bg-white/5"
+            >
+              Inloggen
+            </button>
+            <button
+              onClick={() => openAuthModal('signup')}
+              className="bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all hover:scale-105"
+            >
+              Aanmelden
+            </button>
+          </>
+        )}
       </div>
 
       {/* Bento grid */}

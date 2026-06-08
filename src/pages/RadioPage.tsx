@@ -139,7 +139,7 @@ function StudioRow({ station, onRefresh }: { station: RadioStation; onRefresh: (
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-400 mb-1.5">Genre</label>
-              <input value={genre} onChange={e => setGenre(e.target.value)} placeholder="bijv. Hip-Hop, Nederpop…"
+              <input value={genre} onChange={e => setGenre(e.target.value)} placeholder="bijv. Hip-Hop, Techno…"
                 className="w-full bg-white/[0.04] border border-white/8 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500/40 transition-colors" />
             </div>
           </div>
@@ -200,7 +200,7 @@ function AddStationForm({ onRefresh, onClose, userId }: { onRefresh: () => void;
         </div>
         <div>
           <label className="block text-xs font-medium text-slate-400 mb-1.5">Genre</label>
-          <input value={genre} onChange={e => setGenre(e.target.value)} placeholder="bijv. Hip-Hop, Nederpop…"
+          <input value={genre} onChange={e => setGenre(e.target.value)} placeholder="bijv. Hip-Hop, Techno…"
             className="w-full bg-white/[0.04] border border-white/8 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500/40 transition-colors" />
         </div>
       </div>

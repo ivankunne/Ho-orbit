@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { Music, Eye, EyeOff, ArrowRight, Check } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
 import { Input } from '@components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@components/ui/select';
+import { Select, SelectContent, SelectTrigger, SelectValue } from '@components/ui/select';
+import GenreSelectItems from '@components/GenreSelectItems';
 import { Checkbox } from '@components/ui/checkbox';
 import { Button } from '@components/ui/button';
 
@@ -227,9 +228,7 @@ export default function SignupPage() {
                       <SelectValue placeholder="Selecteer genre" />
                     </SelectTrigger>
                     <SelectContent>
-                      {['Nederpop', 'Nederlandstalige Hip-Hop', 'Elektronisch', 'Jazz', 'Bluesrock', 'R&B', 'Indie', 'Techno', 'Folk', 'Overig'].map(g => (
-                        <SelectItem key={g} value={g}>{g}</SelectItem>
-                      ))}
+                      <GenreSelectItems />
                     </SelectContent>
                   </Select>
                 </div>

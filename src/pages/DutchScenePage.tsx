@@ -37,7 +37,7 @@ export default function DutchScenePage() {
                 Made in the Netherlands
               </h1>
               <p className="text-slate-300 max-w-xl text-base leading-relaxed">
-                From Rotterdam hip-hop to Amsterdam jazz, Den Haag Nederpop to Nijmegen blues — explore the cities and sounds that define Dutch music.
+                From Rotterdam hip-hop to Amsterdam jazz, Den Haag pop to Nijmegen blues — explore the cities and sounds that define Dutch music.
               </p>
             </div>
           </div>

@@ -7,17 +7,12 @@ import {
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@context/AuthContext';
 import { useToast } from '@components/Toast';
+import GenreOptions from '@components/GenreOptions';
 
 function slugify(name: string) {
   return name.toLowerCase().normalize('NFD')
     .replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 }
-
-const GENRES = [
-  'Hip-hop', 'R&B', 'Pop', 'Electronic', 'House', 'Techno', 'Drum & Bass',
-  'Afrobeats', 'Reggaeton', 'Jazz', 'Soul', 'Funk', 'Rock', 'Metal', 'Indie',
-  'Classical', 'Latin', 'Reggae', 'Dancehall', 'Overig',
-];
 
 interface Band {
   id: string;
@@ -248,7 +243,7 @@ export default function BandSpacePage() {
                     className="w-full bg-[#1a1528] border border-white/10 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-violet-500 transition-colors"
                   >
                     <option value="">Kies genre</option>
-                    {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
+                    <GenreOptions />
                   </select>
                 </div>
                 <div>
