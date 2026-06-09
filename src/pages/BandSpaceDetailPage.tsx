@@ -13,6 +13,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@context/AuthContext';
 import { useToast } from '@components/Toast';
 import UserAvatar from '@components/UserAvatar';
+import GenreBadge from '@components/GenreBadge';
 import {
   type ChannelKey, type ChannelPreview, type BandEvent, type EventType, type BandPost,
   type BandTodo,
@@ -82,9 +83,9 @@ function formatEventDate(dateStr: string) {
 
 function bandGradient(genre: string) {
   const g = (genre ?? '').toLowerCase();
-  if (g.includes('hip') || g.includes('rap'))   return 'from-orange-950 via-amber-950 to-yellow-950';
+  if (g.includes('hip'))   return 'from-orange-950 via-amber-950 to-yellow-950';
   if (g.includes('r&b') || g.includes('soul'))  return 'from-purple-950 via-violet-950 to-fuchsia-950';
-  if (g.includes('electronic') || g.includes('techno') || g.includes('house')) return 'from-cyan-950 via-sky-950 to-blue-950';
+  if (g.includes('techno') || g.includes('house') || g.includes('trance') || g.includes('dubstep') || g.includes('drum')) return 'from-cyan-950 via-sky-950 to-blue-950';
   if (g.includes('jazz'))  return 'from-amber-950 via-orange-950 to-red-950';
   if (g.includes('rock') || g.includes('metal')) return 'from-zinc-950 via-slate-950 to-gray-950';
   if (g.includes('pop'))   return 'from-pink-950 via-rose-950 to-fuchsia-950';
@@ -677,7 +678,7 @@ export default function BandSpaceDetailPage() {
             </div>
             <div className="min-w-0">
               <p className="text-sm font-bold text-white truncate">{band.name}</p>
-              {band.genre && <p className="text-[11px] text-slate-500 truncate">{band.genre}</p>}
+              {band.genre && <div className="mt-0.5"><GenreBadge genre={band.genre} className="text-[10px] px-1.5" /></div>}
             </div>
           </div>
           <div className="mt-2.5">
@@ -794,7 +795,7 @@ export default function BandSpaceDetailPage() {
                     {!band.is_public && <Lock size={14} className="text-slate-400 shrink-0" />}
                   </div>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-300">
-                    {band.genre && <span>{band.genre}</span>}
+                    {band.genre && <GenreBadge genre={band.genre} />}
                     {band.location && <span className="flex items-center gap-1"><MapPin size={12} />{band.location}</span>}
                     <span>{members.length} {members.length === 1 ? 'lid' : 'leden'}</span>
                   </div>

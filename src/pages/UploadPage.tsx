@@ -1,13 +1,12 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Upload, Music, Image, X, CheckCircle, Loader } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-const genres = ['Nederpop','Nederlandstalige Hip-Hop','Elektronisch','Jazz','Folk','Bluesrock','R&B','Indie','Techno','Overig'];
+import GenrePicker from '@components/GenrePicker';
 import { useAuth } from '@context/AuthContext';
 import { uploadTrack } from '@services/uploadService';
 import { addNotification } from '@services/notificationService';
 import { Input } from '@components/ui/input';
 import { Textarea } from '@components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@components/ui/select';
 import { Checkbox } from '@components/ui/checkbox';
 import { Button } from '@components/ui/button';
 
@@ -53,7 +52,10 @@ export default function UploadPage() {
     e.preventDefault();
     setDragOver(false);
     const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('audio/')) setTrackFile(file);
+    // Accept by MIME type, or fall back to extension — some systems report an
+    // empty/non-standard MIME type for .wav/.flac/.m4a files.
+    const audioExt = /\.(mp3|wav|flac|aac|m4a|ogg|oga|mp4)$/i;
+    if (file && (file.type.startsWith('audio/') || audioExt.test(file.name))) setTrackFile(file);
   };
 
   const handleArtworkDrop = (e) => {
@@ -193,7 +195,7 @@ export default function UploadPage() {
           <input
             ref={fileRef}
             type="file"
-            accept="audio/*"
+            accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/wave,audio/flac,audio/aac,audio/mp4,audio/x-m4a,audio/*,.mp3,.wav,.flac,.aac,.m4a"
             className="hidden"
             onChange={e => e.target.files[0] && setTrackFile(e.target.files[0])}
           />
@@ -265,16 +267,7 @@ export default function UploadPage() {
 
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">Genre</label>
-            <Select value={form.genre} onValueChange={(val) => setForm({ ...form, genre: val })}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecteer genre" />
-              </SelectTrigger>
-              <SelectContent>
-                {genres.filter(g => g !== 'Alles').map(g => (
-                  <SelectItem key={g} value={g}>{g}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <GenrePicker value={form.genre} onChange={(val) => setForm({ ...form, genre: val })} />
           </div>
 
           <div>

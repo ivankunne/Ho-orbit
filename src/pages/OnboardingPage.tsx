@@ -2,19 +2,7 @@ import { useState } from 'react';
 import { Music, Check, ArrowRight, ChevronLeft, Headphones, Radio, Users, MapPin } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
 import { supabase } from '@lib/supabase';
-
-const GENRES = [
-  { id: 'pop',        label: 'Pop',            color: 'bg-pink-500/15 border-pink-500/30 text-pink-300' },
-  { id: 'hiphop',     label: 'Hip-Hop',        color: 'bg-purple-500/15 border-purple-500/30 text-purple-300' },
-  { id: 'elektronisch', label: 'Elektronisch', color: 'bg-blue-500/15 border-blue-500/30 text-blue-300' },
-  { id: 'jazz',       label: 'Jazz',            color: 'bg-yellow-500/15 border-yellow-500/30 text-yellow-300' },
-  { id: 'indie',      label: 'Indie',           color: 'bg-green-500/15 border-green-500/30 text-green-300' },
-  { id: 'rnb',        label: 'R&B / Soul',      color: 'bg-red-500/15 border-red-500/30 text-red-300' },
-  { id: 'rock',       label: 'Rock',            color: 'bg-violet-600/15 border-violet-500/30 text-violet-300' },
-  { id: 'folk',       label: 'Folk / Singer-songwriter', color: 'bg-teal-500/15 border-teal-500/30 text-teal-300' },
-  { id: 'techno',     label: 'Techno / House',  color: 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300' },
-  { id: 'klassiek',   label: 'Klassiek',        color: 'bg-slate-500/15 border-slate-500/30 text-slate-300' },
-];
+import GenreChips from '@components/GenreChips';
 
 const CITIES = ['Amsterdam', 'Rotterdam', 'Den Haag', 'Utrecht', 'Eindhoven', 'Groningen', 'Tilburg', 'Breda', 'Overig'];
 
@@ -114,21 +102,8 @@ export default function OnboardingPage() {
           <div>
             <h1 className="text-2xl font-bold text-white mb-1">Welke genres spreken jou aan?</h1>
             <p className="text-slate-400 mb-6 text-sm">Kies alles wat bij je past — we gebruiken dit om je feed te personaliseren.</p>
-            <div className="flex flex-wrap gap-2 mb-8">
-              {GENRES.map(g => (
-                <button
-                  key={g.id}
-                  onClick={() => toggleGenre(g.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition-all ${
-                    selectedGenres.includes(g.id)
-                      ? `${g.color} scale-105`
-                      : 'bg-white/4 border-white/10 text-slate-400 hover:border-white/20 hover:text-white'
-                  }`}
-                >
-                  {selectedGenres.includes(g.id) && <Check size={12} />}
-                  {g.label}
-                </button>
-              ))}
+            <div className="mb-8">
+              <GenreChips selected={selectedGenres} onToggle={toggleGenre} />
             </div>
             {selectedGenres.length > 0 && (
               <p className="text-xs text-slate-500 mb-4">{selectedGenres.length} genre{selectedGenres.length !== 1 ? 's' : ''} geselecteerd</p>

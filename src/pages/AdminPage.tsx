@@ -208,7 +208,8 @@ function UploadsSection({ adminId }: { adminId: string }) {
         <div className="space-y-3">
           {visible.map(track => (
             <div key={track.id} className="bg-white/[0.03] border border-white/8 rounded-2xl overflow-hidden hover:border-white/15 transition-all">
-              <div className="flex gap-4 p-4 sm:p-5">
+              <div className="flex flex-col sm:flex-row gap-4 p-4 sm:p-5">
+                <div className="flex gap-4 flex-1 min-w-0">
                 <img
                   src={track.cover || coverPlaceholder(track.title)}
                   onError={e => { (e.target as HTMLImageElement).src = coverPlaceholder(track.title); }}
@@ -248,20 +249,21 @@ function UploadsSection({ adminId }: { adminId: string }) {
                   <p className="text-xs text-slate-600">Ingediend {fmt(track.uploadedAt)}</p>
                   <TrackPlayer src={track.streamUrl} hasRealAudio={!!track.streamUrl} />
                 </div>
-                <div className="flex flex-col gap-2 shrink-0 self-start">
+                </div>
+                <div className="flex flex-col gap-2 w-full sm:w-auto shrink-0 sm:self-start">
                   {track.status !== 'approved' && (
                     <button
                       onClick={async () => { await approveUpload(track.id, adminId); load(); }}
-                      className="flex items-center gap-1.5 bg-emerald-600/20 hover:bg-emerald-600/35 text-emerald-400 border border-emerald-500/30 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
+                      className="flex w-full sm:w-auto items-center justify-center gap-1.5 bg-emerald-600/20 hover:bg-emerald-600/35 active:bg-emerald-600/45 text-emerald-400 border border-emerald-500/30 rounded-lg px-4 py-2.5 sm:py-1.5 text-sm font-medium transition-colors"
                     >
-                      <CheckCircle size={13} /><span className="hidden sm:inline">Goedkeuren</span>
+                      <CheckCircle size={16} /><span>Goedkeuren</span>
                     </button>
                   )}
                   <button
                     onClick={() => setRejectingId(track.id)}
-                    className="flex items-center gap-1.5 bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/25 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
+                    className="flex w-full sm:w-auto items-center justify-center gap-1.5 bg-red-500/15 hover:bg-red-500/25 active:bg-red-500/35 text-red-400 border border-red-500/25 rounded-lg px-4 py-2.5 sm:py-1.5 text-sm font-medium transition-colors"
                   >
-                    <XCircle size={13} /><span className="hidden sm:inline">Verwijderen</span>
+                    <XCircle size={16} /><span>Verwijderen</span>
                   </button>
                 </div>
               </div>

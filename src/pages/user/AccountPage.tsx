@@ -10,6 +10,7 @@ import { Textarea } from '@components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@components/ui/select';
 import { Button } from '@components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@components/ui/dialog';
+import GenreChips from '@components/GenreChips';
 
 const sidebarItems = [
   { key: 'profiel', label: 'Profiel', icon: User },
@@ -31,19 +32,6 @@ const SOCIAL_PLATFORMS = [
   { key: 'beatport',   label: 'Beatport',     badge: 'BP', color: 'text-yellow-400', placeholder: 'artiestslug',        hint: 'beatport.com/artist/{slug}' },
   { key: 'shopify',    label: 'Shop',         badge: 'SH', color: 'text-emerald-400',placeholder: 'Volledige winkel-URL', hint: 'jouwwinkel.myshopify.com' },
   { key: 'website',    label: 'Website',      badge: '🌐', color: 'text-violet-400', placeholder: 'https://jouwsite.nl', hint: 'Eigen website' },
-];
-
-const ALL_GENRES = [
-  { id: 'pop', label: 'Pop' },
-  { id: 'hiphop', label: 'Hip-Hop' },
-  { id: 'elektronisch', label: 'Elektronisch' },
-  { id: 'jazz', label: 'Jazz' },
-  { id: 'indie', label: 'Indie' },
-  { id: 'rnb', label: 'R&B' },
-  { id: 'rock', label: 'Rock' },
-  { id: 'folk', label: 'Folk' },
-  { id: 'techno', label: 'Techno' },
-  { id: 'klassiek', label: 'Klassiek' },
 ];
 
 export default function AccountPage() {
@@ -308,22 +296,7 @@ function ProfielSection({ user, updateProfile, userId }: { user: any; updateProf
 
         <div>
           <label className="block text-sm font-medium text-slate-300 mb-2">Favoriete genres</label>
-          <div className="flex flex-wrap gap-2">
-            {ALL_GENRES.map(g => (
-              <button
-                key={g.id}
-                type="button"
-                onClick={() => toggleGenre(g.id)}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors border ${
-                  form.preferredGenres.includes(g.id)
-                    ? 'bg-violet-600/20 border-violet-500/50 text-violet-400'
-                    : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-white'
-                }`}
-              >
-                {g.label}
-              </button>
-            ))}
-          </div>
+          <GenreChips selected={form.preferredGenres} onToggle={toggleGenre} />
           <p className="text-xs text-slate-500 mt-2">Wordt gebruikt voor gepersonaliseerde aanbevelingen</p>
         </div>
 

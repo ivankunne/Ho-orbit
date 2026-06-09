@@ -6,6 +6,7 @@ import {
   Handshake, GraduationCap, Music2,
 } from 'lucide-react';
 import { useRadio } from '@context/RadioContext';
+import Navbar from '@components/Layout/Navbar';
 
 const tiles = [
   {
@@ -146,22 +147,11 @@ export default function LandingPage() {
       />
 
 
-      {/* Logo — mobile: centered above the stacked tiles */}
-      <div className="md:hidden relative z-10 flex justify-center pt-6 pb-2">
-        <img src="/H-orbit-logo.png" alt="h-orbit" className="h-10 w-auto" />
-      </div>
-
-      {/* Logo — desktop: overlaid in the top-left, over the featured hero tile */}
-      <div className="hidden md:block absolute top-8 left-10 z-20 pointer-events-none">
-        <img
-          src="/H-orbit-logo.png"
-          alt="h-orbit"
-          className="h-12 w-auto drop-shadow-[0_2px_14px_rgba(0,0,0,0.55)]"
-        />
-      </div>
+      {/* Compacte navbar — zoeken · meldingen · account · hamburgermenu, op elk schermformaat */}
+      <Navbar variant="landing" />
 
       {/* Bento grid */}
-      <div className="relative z-10 h-full grid gap-2 px-3 pb-3 md:p-5 md:gap-3 landing-grid" style={{ minHeight: '100dvh' }}>
+      <div className="relative z-10 h-full grid gap-2 px-3 pt-[4.5rem] pb-3 md:px-5 md:pt-[5.25rem] md:pb-5 md:gap-3 landing-grid" style={{ minHeight: '100dvh' }}>
         {/* Radio tile — area i */}
         {(() => {
           const color = '#ef4444';

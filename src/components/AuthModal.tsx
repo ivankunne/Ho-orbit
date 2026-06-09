@@ -5,7 +5,7 @@ import { useAuthModal } from '@context/AuthModalContext';
 import UserAvatar from '@components/UserAvatar';
 import { Input } from '@components/ui/input';
 import { Button } from '@components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@components/ui/select';
+import GenrePicker from '@components/GenrePicker';
 import { Checkbox } from '@components/ui/checkbox';
 
 // ─── Login form ──────────────────────────────────────────────────────────────
@@ -185,7 +185,6 @@ function LoginForm({ onSuccess, onSwitch }: { onSuccess: () => void; onSwitch: (
 // ─── Signup form ─────────────────────────────────────────────────────────────
 
 const STEPS = ['Account', 'Profiel', 'Klaar'];
-const GENRES = ['Nederpop', 'Nederlandstalige Hip-Hop', 'Elektronisch', 'Jazz', 'Bluesrock', 'R&B', 'Indie', 'Techno', 'Folk', 'Overig'];
 
 function SignupForm({ onSuccess, onSwitch }: { onSuccess: () => void; onSwitch: () => void }) {
   const { signup, error, setError } = useAuth();
@@ -437,14 +436,7 @@ function SignupForm({ onSuccess, onSwitch }: { onSuccess: () => void; onSwitch: 
           {form.isArtist && (
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-1.5">Primair genre</label>
-              <Select value={form.genre} onValueChange={(val) => set('genre', val)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecteer genre" />
-                </SelectTrigger>
-                <SelectContent>
-                  {GENRES.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <GenrePicker value={form.genre} onChange={(val) => set('genre', val)} />
             </div>
           )}
           <div className="flex gap-2 pt-1">

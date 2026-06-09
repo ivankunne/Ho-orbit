@@ -11,7 +11,7 @@ const difficultyColors = {
   Expert:    'bg-red-500/20 text-red-400',
 };
 
-const allTags = ['Alles', 'Mixen', 'Opnemen', 'Masteren', 'Productie', 'Songschrijven', 'Ableton', 'Hip-Hop', 'Jazz', 'Nederpop'];
+const allTags = ['Alles', 'Mixen', 'Opnemen', 'Masteren', 'Productie', 'Songschrijven', 'Ableton', 'Hip-Hop', 'Jazz', 'Techno'];
 
 function formatViews(n) {
   if (n >= 1000) return (n / 1000).toFixed(0) + 'K';

@@ -4,6 +4,8 @@ import { useRadio, type RadioStation } from '@context/RadioContext';
 import { useAuth } from '@context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { EqBars } from '@components/Waveform';
+import GenrePicker from '@components/GenrePicker';
+import GenreBadge from '@components/GenreBadge';
 
 // ─── Station card (public listener view) ────────────────────────────────────
 
@@ -37,7 +39,7 @@ function StationCard({ station }: { station: RadioStation }) {
         </div>
         <div className="flex-1 min-w-0 pr-16">
           <p className="font-bold text-white text-lg leading-tight">{station.name}</p>
-          {station.genre && <p className="text-xs text-slate-500 mt-0.5">{station.genre}</p>}
+          {station.genre && <div className="mt-1"><GenreBadge genre={station.genre} /></div>}
           {station.description && <p className="text-sm text-slate-400 mt-1 line-clamp-2">{station.description}</p>}
         </div>
       </div>
@@ -139,8 +141,7 @@ function StudioRow({ station, onRefresh }: { station: RadioStation; onRefresh: (
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-400 mb-1.5">Genre</label>
-              <input value={genre} onChange={e => setGenre(e.target.value)} placeholder="bijv. Hip-Hop, Nederpop…"
-                className="w-full bg-white/[0.04] border border-white/8 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500/40 transition-colors" />
+              <GenrePicker value={genre} onChange={setGenre} placeholder="Kies genre" />
             </div>
           </div>
           <div>
@@ -200,8 +201,7 @@ function AddStationForm({ onRefresh, onClose, userId }: { onRefresh: () => void;
         </div>
         <div>
           <label className="block text-xs font-medium text-slate-400 mb-1.5">Genre</label>
-          <input value={genre} onChange={e => setGenre(e.target.value)} placeholder="bijv. Hip-Hop, Nederpop…"
-            className="w-full bg-white/[0.04] border border-white/8 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500/40 transition-colors" />
+          <GenrePicker value={genre} onChange={setGenre} placeholder="Kies genre" />
         </div>
       </div>
       <div>

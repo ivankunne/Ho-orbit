@@ -6,6 +6,7 @@ import AuthModal from '@components/AuthModal';
 import { RadioProvider } from '@context/RadioContext';
 import { AppStateProvider, useAppState } from '@context/AppStateContext';
 import { PlayerProvider, usePlayer } from '@context/PlayerContext';
+import { GenreProvider } from '@context/GenreContext';
 import { ToastProvider } from '@components/Toast';
 import MusicPlayer from '@components/MusicPlayer';
 import MobileBottomNav from '@components/MobileBottomNav';
@@ -61,6 +62,7 @@ const OnboardingPage = lazy(() => import('@pages/OnboardingPage'));
 const LandingPage = lazy(() => import('@pages/LandingPage'));
 const HubPage = lazy(() => import('@pages/HubPage'));
 const AdminPage = lazy(() => import('@pages/AdminPage'));
+const AdminLoginPage = lazy(() => import('@pages/AdminLoginPage'));
 const RadioPage = lazy(() => import('@pages/RadioPage'));
 const MessagesPage = lazy(() => import('@pages/MessagesPage'));
 const ConversationPage = lazy(() => import('@pages/ConversationPage'));
@@ -155,6 +157,14 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+// Gate for /admin: show a real admin login screen instead of silently bouncing
+// non-admins to the homepage. Admins (incl. the hardcoded master account) get the panel.
+function AdminGate() {
+  const { user, loading } = useAuth();
+  if (loading) return <PageLoader />;
+  return user?.isAdmin ? <AdminPage /> : <AdminLoginPage />;
+}
+
 function ProtectedApp() {
   const { user } = useAuth();
   const [showSearch, setShowSearch] = useState(false);
@@ -232,7 +242,7 @@ function ProtectedApp() {
               <Route path="/privacy"     element={<PrivacyPage />} />
               <Route path="/voorwaarden" element={<TermsPage />} />
               <Route path="/cookies"     element={<CookiesPage />} />
-              <Route path="/admin" element={user?.isAdmin ? <AdminPage /> : <Navigate to="/" replace />} />
+              <Route path="/admin" element={<AdminGate />} />
 
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
@@ -266,6 +276,7 @@ export default function App() {
   return (
     <AuthProvider>
       <AppStateProvider>
+        <GenreProvider>
         <PlayerProvider>
         <RadioProvider>
         <ToastProvider>
@@ -280,6 +291,7 @@ export default function App() {
         </ToastProvider>
         </RadioProvider>
         </PlayerProvider>
+        </GenreProvider>
       </AppStateProvider>
     </AuthProvider>
   );

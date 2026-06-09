@@ -470,7 +470,7 @@ function CreateEventForm({ onCreated }: { onCreated?: () => void }) {
     { key: 'city', label: 'Stad', placeholder: 'bijv. Amsterdam' },
     { key: 'date', label: 'Datum', type: 'date' },
     { key: 'time', label: 'Tijd', type: 'time' },
-    { key: 'genre', label: 'Genre', placeholder: 'bijv. Nederpop' },
+    { key: 'genre', label: 'Genre', placeholder: 'bijv. Hip-Hop' },
     { key: 'price', label: 'Ticketprijs', placeholder: 'bijv. €28' },
     { key: 'ticketLink', label: 'Ticketlink', placeholder: 'https://...', full: true },
   ];

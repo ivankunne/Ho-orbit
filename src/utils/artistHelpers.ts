@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { avatarPlaceholder, coverPlaceholder } from '@utils/placeholder';
+import { genreLabelById } from '@data/genres';
 
 export function toSlug(name: string): string {
   return name
@@ -9,19 +10,6 @@ export function toSlug(name: string): string {
     .replace(/[^a-z0-9]+/g, '-')      // non-alphanumeric → dash
     .replace(/^-+|-+$/g, '');         // trim leading/trailing dashes
 }
-
-export const GENRE_MAP: Record<string, string> = {
-  nederpop: 'Nederpop',
-  hiphop: 'Hip-Hop',
-  elektronisch: 'Elektronisch',
-  jazz: 'Jazz',
-  indie: 'Indie',
-  rnb: 'R&B',
-  rock: 'Rock',
-  folk: 'Folk',
-  techno: 'Techno',
-  klassiek: 'Klassiek',
-};
 
 function mapArtistRow(a: any) {
   const name = a.name || 'Artiest';
@@ -49,7 +37,7 @@ function mapArtistRow(a: any) {
 // Still used by ProfilePage's followed-artists list (queries profiles directly)
 export function mapProfileToArtist(p: any) {
   const genreIds: string[] = Array.isArray(p.preferred_genres) ? p.preferred_genres : [];
-  const genre = genreIds.length > 0 ? (GENRE_MAP[genreIds[0]] || genreIds[0]) : 'Overig';
+  const genre = genreIds.length > 0 ? genreLabelById(genreIds[0]) : 'Overig';
   const name = p.display_name || p.username || 'Artiest';
   return {
     id: p.id,
@@ -64,7 +52,7 @@ export function mapProfileToArtist(p: any) {
     verified: p.verified || false,
     followers_count: p.followers_count ?? p.followers ?? 0,
     social: p.social || {},
-    tags: genreIds.map(id => GENRE_MAP[id] || id),
+    tags: genreIds.map(genreLabelById),
     featured: false,
     tracks: [],
     albums: [],

@@ -94,11 +94,15 @@ const magazineDropdown = [
   },
 ];
 
-export default function Navbar({ externalShowSearch = false, onExternalSearchClose, onMobileMenuChange }) {
+export default function Navbar({ externalShowSearch = false, onExternalSearchClose, onMobileMenuChange, variant = 'default' }) {
   const location = useLocation();
   const { user, logout } = useAuth();
   const { open: openAuthModal } = useAuthModal();
   const { isLive } = useRadio();
+  // Landing variant: a compact, transparent bar that floats over the bento grid.
+  // Only the action cluster (zoeken · meldingen · account · hamburger) shows — the
+  // full menu lives behind the hamburger at every breakpoint, like subpages do on mobile.
+  const isLandingVariant = variant === 'landing';
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -168,8 +172,10 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
   const isLerenActive = ['/tutorials', '/masterclass'].some(p => location.pathname.startsWith(p));
 
   return (
-    <nav className="sticky top-0 z-50 bg-[#1a1528]/95 backdrop-blur-md border-b border-white/5">
-      <div className="max-w-7xl mx-auto px-4 lg:px-6">
+    <nav className={isLandingVariant
+      ? 'absolute top-0 inset-x-0 z-30 md:bg-[#1a1528]/95 md:backdrop-blur-md md:border-b md:border-white/5'
+      : 'sticky top-0 z-50 bg-[#1a1528]/95 backdrop-blur-md border-b border-white/5'}>
+      <div className={isLandingVariant ? 'px-3 md:px-5' : 'max-w-7xl mx-auto px-4 lg:px-6'}>
         <div className="flex items-center h-16 gap-4">
           {/* Logo */}
           <Link to="/" className="flex items-center shrink-0">
@@ -177,6 +183,7 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
           </Link>
 
           {/* Desktop Nav */}
+          {!isLandingVariant && (
           <div className="hidden lg:flex items-center gap-1 ml-4">
             {navItems.map(item => {
               if (item.label === 'Magazine') {
@@ -362,29 +369,32 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
               );
             })}
           </div>
+          )}
 
           <div className="flex items-center gap-2 ml-auto">
             {/* Zoekknop (mobiel) */}
             <button
               onClick={() => setShowSearch(true)}
-              className="md:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+              className={`${isLandingVariant ? '' : 'md:hidden'} p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors`}
             >
               <Search size={18} />
             </button>
 
             {/* Uploadknop — altijd zichtbaar, route vereist login */}
-            <Link
-              to="/upload"
-              className="hidden sm:flex items-center gap-1.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors"
-            >
-              <Upload size={14} />
-              Uploaden
-            </Link>
+            {!isLandingVariant && (
+              <Link
+                to="/upload"
+                className="hidden sm:flex items-center gap-1.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors"
+              >
+                <Upload size={14} />
+                Uploaden
+              </Link>
+            )}
 
             {user ? (
               <>
                 {/* Admin knop */}
-                {user.isAdmin && (
+                {!isLandingVariant && user.isAdmin && (
                   <Link
                     to="/admin"
                     className="hidden sm:flex items-center gap-1.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors"
@@ -395,13 +405,15 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
                 )}
 
                 {/* Thema toggle */}
-                <button
-                  onClick={handleToggleTheme}
-                  className="hidden md:block p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
-                  title={theme === 'dark' ? 'Lichte modus' : 'Donkere modus'}
-                >
-                  {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-                </button>
+                {!isLandingVariant && (
+                  <button
+                    onClick={handleToggleTheme}
+                    className="hidden md:block p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                    title={theme === 'dark' ? 'Lichte modus' : 'Donkere modus'}
+                  >
+                    {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                  </button>
+                )}
 
                 {/* Meldingen */}
                 <div className="relative">
@@ -535,7 +547,7 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
             {/* Mobiel menu toggle */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 text-slate-400 hover:text-white transition-colors"
+              className={`${isLandingVariant ? '' : 'lg:hidden'} p-2 text-slate-400 hover:text-white transition-colors`}
             >
               {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
@@ -544,6 +556,7 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
       </div>
 
       {/* Zoekbalk tweede rij */}
+      {!isLandingVariant && (
       <div className="hidden md:flex justify-center px-4 lg:px-6 pb-4">
         <button
           onClick={() => setShowSearch(true)}
@@ -554,10 +567,11 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
           <kbd className="hidden lg:inline-flex items-center gap-1 text-[11px] text-slate-600 border border-white/10 rounded-md px-1.5 py-0.5 shrink-0 font-sans">⌘K</kbd>
         </button>
       </div>
+      )}
 
       {/* Mobiel menu uitklapbaar */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-[#231d3a] border-t border-white/5 px-4 py-3">
+        <div className={`${isLandingVariant ? '' : 'lg:hidden'} bg-[#231d3a] border-t border-white/5 px-4 py-3`}>
           <div className="mb-3">
             <button
               onClick={() => { setMobileMenuOpen(false); setShowSearch(true); }}

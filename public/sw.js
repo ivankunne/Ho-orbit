@@ -2,9 +2,13 @@
    Keep it conservative: only same-origin GET requests are touched so Supabase
    API/auth/storage calls (and any other cross-origin traffic) pass straight through. */
 
-const CACHE = 'horbit-v1';
+const CACHE = 'horbit-v2';
 
 self.addEventListener('install', (event) => {
+  // Precache the app shell so navigations have an offline fallback to serve.
+  event.waitUntil(
+    caches.open(CACHE).then((cache) => cache.add('/index.html')).catch(() => {})
+  );
   // Activate this worker as soon as it finishes installing.
   self.skipWaiting();
 });
@@ -45,18 +49,28 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static assets: stale-while-revalidate.
+  // Static assets: stale-while-revalidate. Always resolve to a real Response —
+  // never undefined (which would throw "Failed to convert value to 'Response'").
   event.respondWith(
     (async () => {
       const cache = await caches.open(CACHE);
       const cached = await cache.match(request);
-      const network = fetch(request)
-        .then((res) => {
-          if (res && res.ok && res.type === 'basic') cache.put(request, res.clone()).catch(() => {});
-          return res;
-        })
-        .catch(() => cached);
-      return cached || network;
+      if (cached) {
+        // Refresh in the background; ignore failures.
+        fetch(request)
+          .then((res) => {
+            if (res && res.ok && res.type === 'basic') cache.put(request, res.clone()).catch(() => {});
+          })
+          .catch(() => {});
+        return cached;
+      }
+      try {
+        const res = await fetch(request);
+        if (res && res.ok && res.type === 'basic') cache.put(request, res.clone()).catch(() => {});
+        return res;
+      } catch {
+        return Response.error();
+      }
     })()
   );
 });

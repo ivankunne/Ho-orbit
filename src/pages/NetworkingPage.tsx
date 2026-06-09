@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Plus, Search, Music2, Megaphone, MapPin,
-  Tag, Clock, X, Loader2, ExternalLink
+  Clock, X, Loader2, ExternalLink
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@context/AuthContext';
 import { useToast } from '@components/Toast';
 import UserAvatar from '@components/UserAvatar';
+import GenrePicker from '@components/GenrePicker';
+import GenreBadge from '@components/GenreBadge';
 
 const TABS = [
   { key: 'all',           label: 'Alles' },
@@ -23,11 +25,6 @@ const TYPE_META: Record<string, { label: string; icon: React.ElementType; color:
   jump_on_track: { label: 'Jump on a Track', icon: Music2,    color: 'text-violet-400',  bg: 'bg-violet-400/10 border-violet-400/20' },
   open_call:     { label: 'Open Call',       icon: Megaphone, color: 'text-sky-400',     bg: 'bg-sky-400/10 border-sky-400/20' },
 };
-
-const GENRES = [
-  'Hip-hop', 'R&B', 'Pop', 'Electronic', 'House', 'Techno', 'Drum & Bass',
-  'Afrobeats', 'Reggaeton', 'Jazz', 'Soul', 'Funk', 'Rock', 'Indie', 'Overig',
-];
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -271,14 +268,11 @@ export default function NetworkingPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-1.5">Genre</label>
-                  <select
+                  <GenrePicker
                     value={form.genre}
-                    onChange={e => setForm(f => ({ ...f, genre: e.target.value }))}
-                    className="w-full bg-[#1a1528] border border-white/10 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-violet-500 transition-colors"
-                  >
-                    <option value="">Kies genre</option>
-                    {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
-                  </select>
+                    onChange={genre => setForm(f => ({ ...f, genre }))}
+                    placeholder="Kies genre"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-1.5">Stad</label>
@@ -358,11 +352,7 @@ function PostCard({ post }: { post: Post }) {
       )}
 
       <div className="flex items-center gap-3 flex-wrap">
-        {post.genre && (
-          <span className="text-xs text-slate-500 flex items-center gap-1">
-            <Tag size={11} /> {post.genre}
-          </span>
-        )}
+        {post.genre && <GenreBadge genre={post.genre} />}
         {post.location && (
           <span className="text-xs text-slate-500 flex items-center gap-1">
             <MapPin size={11} /> {post.location}

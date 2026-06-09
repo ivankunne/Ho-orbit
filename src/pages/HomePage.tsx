@@ -6,7 +6,7 @@ import {
   Handshake, Star, UserPlus,
   Search, Megaphone,
 } from 'lucide-react';
-import { getGenreColor } from '@data/genreColors';
+import GenreBadge from '@components/GenreBadge';
 import { useAuth } from '@context/AuthContext';
 import { usePlayer } from '@context/PlayerContext';
 import { useAppState } from '@context/AppStateContext';
@@ -16,14 +16,9 @@ import { supabase } from '@/lib/supabase';
 import { fetchArtistProfiles } from '@utils/artistHelpers';
 import { useRadio } from '@context/RadioContext';
 import { Radio } from 'lucide-react';
+import { FILTER_GENRES, genreLabelById } from '@data/genres';
 
-const GENRE_LABEL: Record<string, string> = {
-  nederpop: 'Nederpop', hiphop: 'Hip-Hop', elektronisch: 'Elektronisch',
-  jazz: 'Jazz', indie: 'Indie', rnb: 'R&B', rock: 'Rock',
-  folk: 'Folk', techno: 'Techno', klassiek: 'Klassiek',
-};
-
-const GENRES = ['Alles', 'Nederpop', 'Hip-Hop', 'Elektronisch', 'Jazz', 'Indie', 'R&B', 'Rock'];
+const GENRES = ['Alles', ...FILTER_GENRES];
 
 // Label for the current chart week, e.g. "Week van 2 jun".
 function currentWeekLabel(): string {
@@ -65,7 +60,7 @@ export default function HomePage() {
   }, []);
 
   function matchArtistsForGenre(genreId: string) {
-    const label = GENRE_LABEL[genreId] || '';
+    const label = genreLabelById(genreId);
     const lc = label.toLowerCase();
     return artists.filter(a => a.genre?.toLowerCase().includes(lc)).slice(0, 6);
   }
@@ -114,8 +109,7 @@ export default function HomePage() {
                 muziekscene, <span className="text-violet-400">op één plek</span>
               </h1>
               <p className="text-slate-300 text-base lg:text-lg leading-relaxed mb-8 max-w-xl">
-                Vind nieuwe artiesten, ontdek lokale scenes van Amsterdam tot Groningen,
-                en maak connecties in de Nederlandse muziekwereld.
+                vind, ontdek, maak connecties.
               </p>
 
               {/* Featured artist inline */}
@@ -214,7 +208,6 @@ export default function HomePage() {
           ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {artists.slice(0, 6).map((artist, i) => {
-              const gc = getGenreColor(artist.genre);
               return (
                 <Link
                   key={artist.id}
@@ -237,9 +230,7 @@ export default function HomePage() {
                   <div className="p-3">
                     <p className="text-sm font-semibold text-white truncate">{artist.name}</p>
                     <p className="text-xs text-slate-400 truncate mt-0.5">{artist.location?.split(',')[0]}</p>
-                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full mt-1.5 inline-block ${gc.bg} ${gc.text}`}>
-                      {artist.genre?.split(' / ')[0]}
-                    </span>
+                    <GenreBadge genre={artist.genre?.split(' / ')[0]} className="text-[10px] px-1.5 mt-1.5" />
                   </div>
                 </Link>
               );
@@ -268,7 +259,6 @@ export default function HomePage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {risingArtists.map(artist => {
               const isFollowing = followedArtists.includes(artist.id);
-              const gc = getGenreColor(artist.genre);
               return (
                 <div
                   key={artist.id}
@@ -304,9 +294,7 @@ export default function HomePage() {
                     <Link to={`/artists/${artist.id}`}>
                       <p className="text-sm font-semibold text-white truncate">{artist.name}</p>
                     </Link>
-                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full mt-1 inline-block ${gc.bg} ${gc.text}`}>
-                      {artist.genre?.split(' / ')[0]}
-                    </span>
+                    <GenreBadge genre={artist.genre?.split(' / ')[0]} className="text-[10px] px-1.5 mt-1" />
                     <button
                       onClick={() => toggleFollow(artist.id)}
                       className={`mt-2 w-full flex items-center justify-center gap-1.5 text-xs font-medium py-1.5 rounded-lg transition-colors ${
@@ -330,7 +318,7 @@ export default function HomePage() {
         {preferredGenres.slice(0, 2).map(genreId => {
           const matched = matchArtistsForGenre(genreId);
           if (!matched.length) return null;
-          const label = GENRE_LABEL[genreId] || genreId;
+          const label = genreLabelById(genreId);
           return (
             <section key={genreId} className="pb-8">
               <div className="flex items-center gap-2 mb-4">
@@ -339,7 +327,6 @@ export default function HomePage() {
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
                 {matched.map(artist => {
-                  const gc = getGenreColor(artist.genre);
                   return (
                     <Link
                       key={artist.id}
@@ -352,9 +339,7 @@ export default function HomePage() {
                       </div>
                       <div className="p-3">
                         <p className="text-sm font-semibold text-white truncate">{artist.name}</p>
-                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full mt-1 inline-block ${gc.bg} ${gc.text}`}>
-                          {artist.genre?.split(' / ')[0]}
-                        </span>
+                        <GenreBadge genre={artist.genre?.split(' / ')[0]} className="text-[10px] px-1.5 mt-1" />
                       </div>
                     </Link>
                   );
