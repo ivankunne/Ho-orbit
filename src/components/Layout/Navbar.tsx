@@ -173,7 +173,7 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
 
   return (
     <nav className={isLandingVariant
-      ? 'absolute top-0 inset-x-0 z-30'
+      ? 'absolute top-0 inset-x-0 z-30 md:bg-[#1a1528]/95 md:backdrop-blur-md md:border-b md:border-white/5'
       : 'sticky top-0 z-50 bg-[#1a1528]/95 backdrop-blur-md border-b border-white/5'}>
       <div className={isLandingVariant ? 'px-3 md:px-5' : 'max-w-7xl mx-auto px-4 lg:px-6'}>
         <div className="flex items-center h-16 gap-4">
