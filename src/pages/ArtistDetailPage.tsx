@@ -4,7 +4,7 @@ import {
   Play, Heart, Share2, MapPin, Users, Music, BadgeCheck,
   Calendar, ChevronLeft, ExternalLink, MessageSquare, Loader2, HandHeart, Settings
 } from 'lucide-react';
-import { getGenreColor } from '@data/genreColors';
+import GenreBadge from '@components/GenreBadge';
 import { useAppState } from '@context/AppStateContext';
 import { usePlayer } from '@context/PlayerContext';
 import { useAuth } from '@context/AuthContext';
@@ -136,7 +136,6 @@ export default function ArtistDetailPage() {
 
   const allTracks = [...artistPlayerTracks, ...uploadedPlayerTracks];
 
-  const genreColor = getGenreColor(artist.genre);
   const tabs = [
     { key: 'nummers', label: 'Nummers' },
     { key: 'albums', label: 'Albums' },
@@ -193,7 +192,7 @@ export default function ArtistDetailPage() {
               {artist.verified && <BadgeCheck size={24} className="text-blue-400" />}
             </div>
             <div className="flex items-center gap-3 text-sm text-slate-400 flex-wrap">
-              <span className={`font-medium text-sm px-2.5 py-0.5 rounded-full ${genreColor.bg} ${genreColor.text}`}>{artist.genre}</span>
+              <GenreBadge genre={artist.genre} size="md" />
               <span className="flex items-center gap-1"><MapPin size={12} />{artist.location}</span>
               <span className="flex items-center gap-1"><Users size={12} />{formatPlays(artist.followers_count)} volgers</span>
               <span className="flex items-center gap-1"><Music size={12} />{formatPlays(totalPlays)} maandelijkse luisteraars</span>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Music, Check, ArrowRight, ChevronLeft, Headphones, Radio, Users, MapPin } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
 import { supabase } from '@lib/supabase';
-import { GENRE_OPTION_GROUPS } from '@data/genres';
+import GenreChips from '@components/GenreChips';
 
 const CITIES = ['Amsterdam', 'Rotterdam', 'Den Haag', 'Utrecht', 'Eindhoven', 'Groningen', 'Tilburg', 'Breda', 'Overig'];
 
@@ -102,28 +102,8 @@ export default function OnboardingPage() {
           <div>
             <h1 className="text-2xl font-bold text-white mb-1">Welke genres spreken jou aan?</h1>
             <p className="text-slate-400 mb-6 text-sm">Kies alles wat bij je past — we gebruiken dit om je feed te personaliseren.</p>
-            <div className="space-y-4 mb-8">
-              {GENRE_OPTION_GROUPS.map(group => (
-                <div key={group.label}>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">{group.label}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {group.options.map(g => (
-                      <button
-                        key={g.id}
-                        onClick={() => toggleGenre(g.id)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition-all ${
-                          selectedGenres.includes(g.id)
-                            ? 'bg-violet-600/15 border-violet-500/30 text-violet-300 scale-105'
-                            : 'bg-white/4 border-white/10 text-slate-400 hover:border-white/20 hover:text-white'
-                        }`}
-                      >
-                        {selectedGenres.includes(g.id) && <Check size={12} />}
-                        {g.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
+            <div className="mb-8">
+              <GenreChips selected={selectedGenres} onToggle={toggleGenre} />
             </div>
             {selectedGenres.length > 0 && (
               <p className="text-xs text-slate-500 mb-4">{selectedGenres.length} genre{selectedGenres.length !== 1 ? 's' : ''} geselecteerd</p>

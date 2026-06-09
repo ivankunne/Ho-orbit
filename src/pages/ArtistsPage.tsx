@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, Users, ChevronRight, BadgeCheck, ArrowUpDown } from 'lucide-react';
 import { fetchArtistProfiles } from '@utils/artistHelpers';
-import { getGenreColor } from '@data/genreColors';
+import GenreBadge from '@components/GenreBadge';
 import EmptyState from '@components/EmptyState';
 import BlurImage from '@components/BlurImage';
 
@@ -95,7 +95,7 @@ export default function ArtistsPage() {
                     <h2 className="text-3xl lg:text-4xl font-bold text-white">{featuredArtist.name}</h2>
                     {featuredArtist.verified && <BadgeCheck size={22} className="text-blue-400" />}
                   </div>
-                  <p className="text-violet-400 font-medium mb-2">{featuredArtist.genre}</p>
+                  <div className="mb-2"><GenreBadge genre={featuredArtist.genre} size="md" /></div>
                   <p className="text-slate-300 text-sm leading-relaxed max-w-lg line-clamp-2 mb-4">{featuredArtist.bio}</p>
                   <div className="flex items-center gap-4">
                     <div>
@@ -180,7 +180,6 @@ export default function ArtistsPage() {
           />
         )}
         {sorted.map(artist => {
-          const gc = getGenreColor(artist.genre);
           return (
             <Link
               key={artist.id}
@@ -211,7 +210,7 @@ export default function ArtistsPage() {
                       <h3 className="font-bold text-white">{artist.name}</h3>
                       {artist.verified && <BadgeCheck size={15} className="text-blue-400 shrink-0" />}
                     </div>
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${gc.bg} ${gc.text}`}>{artist.genre}</span>
+                    <GenreBadge genre={artist.genre} />
                   </div>
                 </div>
                 <div className="flex items-center gap-1 mt-2 text-xs text-slate-500">

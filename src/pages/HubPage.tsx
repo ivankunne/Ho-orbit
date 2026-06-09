@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   MessageCircle, Home, Users, Send, X, Plus, Zap,
-  Clock, Tag, MapPin, ExternalLink, Search, Music2, Megaphone,
+  Clock, MapPin, ExternalLink, Search, Music2, Megaphone,
   ChevronRight, Loader2, Eye, MessageSquare,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -11,7 +11,8 @@ import { useAuthModal } from '@context/AuthModalContext';
 import { supabase } from '@/lib/supabase';
 import SceneMap from '@components/SceneMap';
 import UserAvatar from '@components/UserAvatar';
-import GenreOptions from '@components/GenreOptions';
+import GenrePicker from '@components/GenrePicker';
+import GenreBadge from '@components/GenreBadge';
 import { FILTER_GENRES } from '@data/genres';
 import { avatarPlaceholder } from '@utils/placeholder';
 
@@ -482,7 +483,7 @@ function NetworkPostCard({ post }: { post: NetworkPost }) {
       )}
 
       <div className="flex items-center gap-3 flex-wrap text-xs text-slate-500">
-        {post.genre && <span className="flex items-center gap-1"><Tag size={11} />{post.genre}</span>}
+        {post.genre && <GenreBadge genre={post.genre} />}
         {post.location && <span className="flex items-center gap-1"><MapPin size={11} />{post.location}</span>}
         {post.contact_info && <span className="flex items-center gap-1 text-slate-400"><ExternalLink size={11} />{post.contact_info}</span>}
       </div>
@@ -584,11 +585,11 @@ function NetworkCreateModal({ onClose, onCreated }: { onClose: () => void; onCre
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-1.5">Genre</label>
-              <select value={form.genre} onChange={e => setForm(f => ({ ...f, genre: e.target.value }))}
-                className="w-full bg-[#1a1528] border border-white/10 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-violet-500 transition-colors">
-                <option value="">Kies genre</option>
-                <GenreOptions />
-              </select>
+              <GenrePicker
+                value={form.genre}
+                onChange={genre => setForm(f => ({ ...f, genre }))}
+                placeholder="Kies genre"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-1.5">Stad</label>

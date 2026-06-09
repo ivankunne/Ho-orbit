@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { fetchArtistProfiles } from '@utils/artistHelpers';
 import SceneMap from '@components/SceneMap';
+import GenreBadge from '@components/GenreBadge';
 
 export default function DutchScenePage() {
   const navigate = useNavigate();
@@ -161,7 +162,7 @@ export default function DutchScenePage() {
                 <img src={artist.image_url} alt={artist.name} className="w-12 h-12 rounded-full object-cover shrink-0" />
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-white truncate">{artist.name}</p>
-                  <p className="text-xs text-violet-400 truncate">{artist.genre}</p>
+                  <div className="mt-0.5"><GenreBadge genre={artist.genre} className="text-[10px] px-1.5" /></div>
                   <div className="flex items-center gap-1 text-xs text-slate-500 mt-0.5">
                     <MapPin size={9} />
                     <span className="truncate">{artist.location?.split(',')[0]}</span>

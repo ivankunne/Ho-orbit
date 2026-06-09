@@ -1,13 +1,12 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Upload, Music, Image, X, CheckCircle, Loader } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import GenreSelectItems from '@components/GenreSelectItems';
+import GenrePicker from '@components/GenrePicker';
 import { useAuth } from '@context/AuthContext';
 import { uploadTrack } from '@services/uploadService';
 import { addNotification } from '@services/notificationService';
 import { Input } from '@components/ui/input';
 import { Textarea } from '@components/ui/textarea';
-import { Select, SelectContent, SelectTrigger, SelectValue } from '@components/ui/select';
 import { Checkbox } from '@components/ui/checkbox';
 import { Button } from '@components/ui/button';
 
@@ -265,14 +264,7 @@ export default function UploadPage() {
 
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">Genre</label>
-            <Select value={form.genre} onValueChange={(val) => setForm({ ...form, genre: val })}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecteer genre" />
-              </SelectTrigger>
-              <SelectContent>
-                <GenreSelectItems />
-              </SelectContent>
-            </Select>
+            <GenrePicker value={form.genre} onChange={(val) => setForm({ ...form, genre: val })} />
           </div>
 
           <div>

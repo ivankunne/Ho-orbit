@@ -6,6 +6,7 @@ import AuthModal from '@components/AuthModal';
 import { RadioProvider } from '@context/RadioContext';
 import { AppStateProvider, useAppState } from '@context/AppStateContext';
 import { PlayerProvider, usePlayer } from '@context/PlayerContext';
+import { GenreProvider } from '@context/GenreContext';
 import { ToastProvider } from '@components/Toast';
 import MusicPlayer from '@components/MusicPlayer';
 import MobileBottomNav from '@components/MobileBottomNav';
@@ -275,6 +276,7 @@ export default function App() {
   return (
     <AuthProvider>
       <AppStateProvider>
+        <GenreProvider>
         <PlayerProvider>
         <RadioProvider>
         <ToastProvider>
@@ -289,6 +291,7 @@ export default function App() {
         </ToastProvider>
         </RadioProvider>
         </PlayerProvider>
+        </GenreProvider>
       </AppStateProvider>
     </AuthProvider>
   );

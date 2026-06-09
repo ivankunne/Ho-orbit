@@ -5,8 +5,7 @@ import { useAuthModal } from '@context/AuthModalContext';
 import UserAvatar from '@components/UserAvatar';
 import { Input } from '@components/ui/input';
 import { Button } from '@components/ui/button';
-import { Select, SelectContent, SelectTrigger, SelectValue } from '@components/ui/select';
-import GenreSelectItems from '@components/GenreSelectItems';
+import GenrePicker from '@components/GenrePicker';
 import { Checkbox } from '@components/ui/checkbox';
 
 // ─── Login form ──────────────────────────────────────────────────────────────
@@ -437,14 +436,7 @@ function SignupForm({ onSuccess, onSwitch }: { onSuccess: () => void; onSwitch: 
           {form.isArtist && (
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-1.5">Primair genre</label>
-              <Select value={form.genre} onValueChange={(val) => set('genre', val)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecteer genre" />
-                </SelectTrigger>
-                <SelectContent>
-                  <GenreSelectItems />
-                </SelectContent>
-              </Select>
+              <GenrePicker value={form.genre} onChange={(val) => set('genre', val)} />
             </div>
           )}
           <div className="flex gap-2 pt-1">

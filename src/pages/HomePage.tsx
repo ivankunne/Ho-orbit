@@ -6,7 +6,7 @@ import {
   Handshake, Star, UserPlus,
   Search, Megaphone,
 } from 'lucide-react';
-import { getGenreColor } from '@data/genreColors';
+import GenreBadge from '@components/GenreBadge';
 import { useAuth } from '@context/AuthContext';
 import { usePlayer } from '@context/PlayerContext';
 import { useAppState } from '@context/AppStateContext';
@@ -208,7 +208,6 @@ export default function HomePage() {
           ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {artists.slice(0, 6).map((artist, i) => {
-              const gc = getGenreColor(artist.genre);
               return (
                 <Link
                   key={artist.id}
@@ -231,9 +230,7 @@ export default function HomePage() {
                   <div className="p-3">
                     <p className="text-sm font-semibold text-white truncate">{artist.name}</p>
                     <p className="text-xs text-slate-400 truncate mt-0.5">{artist.location?.split(',')[0]}</p>
-                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full mt-1.5 inline-block ${gc.bg} ${gc.text}`}>
-                      {artist.genre?.split(' / ')[0]}
-                    </span>
+                    <GenreBadge genre={artist.genre?.split(' / ')[0]} className="text-[10px] px-1.5 mt-1.5" />
                   </div>
                 </Link>
               );
@@ -262,7 +259,6 @@ export default function HomePage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {risingArtists.map(artist => {
               const isFollowing = followedArtists.includes(artist.id);
-              const gc = getGenreColor(artist.genre);
               return (
                 <div
                   key={artist.id}
@@ -298,9 +294,7 @@ export default function HomePage() {
                     <Link to={`/artists/${artist.id}`}>
                       <p className="text-sm font-semibold text-white truncate">{artist.name}</p>
                     </Link>
-                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full mt-1 inline-block ${gc.bg} ${gc.text}`}>
-                      {artist.genre?.split(' / ')[0]}
-                    </span>
+                    <GenreBadge genre={artist.genre?.split(' / ')[0]} className="text-[10px] px-1.5 mt-1" />
                     <button
                       onClick={() => toggleFollow(artist.id)}
                       className={`mt-2 w-full flex items-center justify-center gap-1.5 text-xs font-medium py-1.5 rounded-lg transition-colors ${
@@ -333,7 +327,6 @@ export default function HomePage() {
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
                 {matched.map(artist => {
-                  const gc = getGenreColor(artist.genre);
                   return (
                     <Link
                       key={artist.id}
@@ -346,9 +339,7 @@ export default function HomePage() {
                       </div>
                       <div className="p-3">
                         <p className="text-sm font-semibold text-white truncate">{artist.name}</p>
-                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full mt-1 inline-block ${gc.bg} ${gc.text}`}>
-                          {artist.genre?.split(' / ')[0]}
-                        </span>
+                        <GenreBadge genre={artist.genre?.split(' / ')[0]} className="text-[10px] px-1.5 mt-1" />
                       </div>
                     </Link>
                   );

@@ -7,7 +7,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@context/AuthContext';
 import { useToast } from '@components/Toast';
-import GenreOptions from '@components/GenreOptions';
+import GenrePicker from '@components/GenrePicker';
 
 function slugify(name: string) {
   return name.toLowerCase().normalize('NFD')
@@ -237,14 +237,11 @@ export default function BandSpacePage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-1.5">Genre</label>
-                  <select
+                  <GenrePicker
                     value={form.genre}
-                    onChange={e => setForm(f => ({ ...f, genre: e.target.value }))}
-                    className="w-full bg-[#1a1528] border border-white/10 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-violet-500 transition-colors"
-                  >
-                    <option value="">Kies genre</option>
-                    <GenreOptions />
-                  </select>
+                    onChange={genre => setForm(f => ({ ...f, genre }))}
+                    placeholder="Kies genre"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-1.5">Stad</label>

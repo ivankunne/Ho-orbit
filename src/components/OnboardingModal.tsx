@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Check, ChevronRight, Music, Headphones, Radio, Mic2, Newspaper, MapPin } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@components/ui/dialog';
-import { GENRE_OPTION_GROUPS, genreLabelById } from '@data/genres';
+import GenreChips from '@components/GenreChips';
+import { genreLabelById } from '@data/genres';
 
 const ROLES = [
   { id: 'fan',        label: 'Muziekfan',       desc: 'Ontdekken en genieten',      icon: Headphones },
@@ -77,29 +78,8 @@ export default function OnboardingModal({ open, onOpenChange, onComplete }) {
           {step === 0 && (
             <div>
               <p className="text-sm font-medium text-slate-300 mb-4">Welke muziek luister jij het liefst? <span className="text-slate-500">(kies meerdere)</span></p>
-              <div className="space-y-4 max-h-[320px] overflow-y-auto pr-1 -mr-1">
-                {GENRE_OPTION_GROUPS.map(group => (
-                  <div key={group.label}>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">{group.label}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {group.options.map(g => {
-                        const active = selectedGenres.includes(g.id);
-                        return (
-                          <button
-                            key={g.id}
-                            onClick={() => toggleGenre(g.id)}
-                            className={`flex items-center gap-2 px-3.5 py-2 rounded-full border text-sm font-medium transition-all ${
-                              active ? 'border-violet-500 bg-violet-600/15 text-white' : 'border-white/8 bg-white/3 text-slate-300 hover:bg-white/6'
-                            }`}
-                          >
-                            {active && <Check size={13} className="text-violet-400 shrink-0" />}
-                            {g.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
+              <div className="max-h-[320px] overflow-y-auto pr-1 -mr-1">
+                <GenreChips selected={selectedGenres} onToggle={toggleGenre} />
               </div>
             </div>
           )}

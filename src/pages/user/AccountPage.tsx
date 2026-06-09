@@ -10,7 +10,7 @@ import { Textarea } from '@components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@components/ui/select';
 import { Button } from '@components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@components/ui/dialog';
-import { GENRE_OPTION_GROUPS } from '@data/genres';
+import GenreChips from '@components/GenreChips';
 
 const sidebarItems = [
   { key: 'profiel', label: 'Profiel', icon: User },
@@ -296,29 +296,7 @@ function ProfielSection({ user, updateProfile, userId }: { user: any; updateProf
 
         <div>
           <label className="block text-sm font-medium text-slate-300 mb-2">Favoriete genres</label>
-          <div className="space-y-3">
-            {GENRE_OPTION_GROUPS.map(group => (
-              <div key={group.label}>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">{group.label}</p>
-                <div className="flex flex-wrap gap-2">
-                  {group.options.map(g => (
-                    <button
-                      key={g.id}
-                      type="button"
-                      onClick={() => toggleGenre(g.id)}
-                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors border ${
-                        form.preferredGenres.includes(g.id)
-                          ? 'bg-violet-600/20 border-violet-500/50 text-violet-400'
-                          : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-white'
-                      }`}
-                    >
-                      {g.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+          <GenreChips selected={form.preferredGenres} onToggle={toggleGenre} />
           <p className="text-xs text-slate-500 mt-2">Wordt gebruikt voor gepersonaliseerde aanbevelingen</p>
         </div>
 

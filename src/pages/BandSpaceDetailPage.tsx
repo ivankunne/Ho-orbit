@@ -13,6 +13,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@context/AuthContext';
 import { useToast } from '@components/Toast';
 import UserAvatar from '@components/UserAvatar';
+import GenreBadge from '@components/GenreBadge';
 import {
   type ChannelKey, type ChannelPreview, type BandEvent, type EventType, type BandPost,
   type BandTodo,
@@ -677,7 +678,7 @@ export default function BandSpaceDetailPage() {
             </div>
             <div className="min-w-0">
               <p className="text-sm font-bold text-white truncate">{band.name}</p>
-              {band.genre && <p className="text-[11px] text-slate-500 truncate">{band.genre}</p>}
+              {band.genre && <div className="mt-0.5"><GenreBadge genre={band.genre} className="text-[10px] px-1.5" /></div>}
             </div>
           </div>
           <div className="mt-2.5">
@@ -794,7 +795,7 @@ export default function BandSpaceDetailPage() {
                     {!band.is_public && <Lock size={14} className="text-slate-400 shrink-0" />}
                   </div>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-300">
-                    {band.genre && <span>{band.genre}</span>}
+                    {band.genre && <GenreBadge genre={band.genre} />}
                     {band.location && <span className="flex items-center gap-1"><MapPin size={12} />{band.location}</span>}
                     <span>{members.length} {members.length === 1 ? 'lid' : 'leden'}</span>
                   </div>

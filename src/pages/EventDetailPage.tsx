@@ -8,6 +8,7 @@ import { useToast } from '@components/Toast';
 import CommentSection from '@components/CommentSection';
 import { shareContent, buildShareUrl } from '@utils/share';
 import UserAvatar from '@components/UserAvatar';
+import GenreBadge from '@components/GenreBadge';
 
 function safeExternalUrl(url) {
   if (!url) return null;
@@ -272,7 +273,7 @@ export default function EventDetailPage() {
 
           <div className="bg-white/3 border border-white/5 rounded-xl px-4 py-3">
             <p className="text-xs text-slate-500 mb-1">Genre</p>
-            <span className="text-sm font-medium text-violet-400">{event.genre}</span>
+            <GenreBadge genre={event.genre} size="md" />
           </div>
         </div>
       </div>

@@ -8,6 +8,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@context/AuthContext';
 import { StarRating } from '@components/StarRating';
+import GenreBadge from '@components/GenreBadge';
 import { Textarea } from '@components/ui/textarea';
 import { Button } from '@components/ui/button';
 import { getReviewStats, submitReview, type ReviewStats } from '@services/reviewService';
@@ -413,7 +414,7 @@ export default function SceneDetailPage() {
                       <img src={a.image_url} alt={a.name} className="w-10 h-10 rounded-full object-cover shrink-0" />
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-white truncate">{a.name}</p>
-                        <p className="text-xs text-violet-400 truncate">{a.genre}</p>
+                        <div className="mt-0.5"><GenreBadge genre={a.genre} className="text-[10px] px-1.5" /></div>
                       </div>
                       <ChevronRight size={14} className="text-slate-600 ml-auto shrink-0" />
                     </Link>

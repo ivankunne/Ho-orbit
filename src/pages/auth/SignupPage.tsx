@@ -3,8 +3,7 @@ import { Link } from 'react-router-dom';
 import { Music, Eye, EyeOff, ArrowRight, Check } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
 import { Input } from '@components/ui/input';
-import { Select, SelectContent, SelectTrigger, SelectValue } from '@components/ui/select';
-import GenreSelectItems from '@components/GenreSelectItems';
+import GenrePicker from '@components/GenrePicker';
 import { Checkbox } from '@components/ui/checkbox';
 import { Button } from '@components/ui/button';
 
@@ -223,14 +222,7 @@ export default function SignupPage() {
               {form.isArtist && (
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">Primair genre</label>
-                  <Select value={form.genre} onValueChange={(val) => set('genre', val)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecteer genre" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <GenreSelectItems />
-                    </SelectContent>
-                  </Select>
+                  <GenrePicker value={form.genre} onChange={(val) => set('genre', val)} />
                 </div>
               )}
 
