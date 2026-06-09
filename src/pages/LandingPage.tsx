@@ -151,7 +151,7 @@ export default function LandingPage() {
       <Navbar variant="landing" />
 
       {/* Bento grid */}
-      <div className="relative z-10 h-full grid gap-2 px-3 pt-[4.5rem] pb-3 md:p-5 md:gap-3 landing-grid" style={{ minHeight: '100dvh' }}>
+      <div className="relative z-10 h-full grid gap-2 px-3 pt-[4.5rem] pb-3 md:px-5 md:pb-5 md:gap-3 landing-grid" style={{ minHeight: '100dvh' }}>
         {/* Radio tile — area i */}
         {(() => {
           const color = '#ef4444';
