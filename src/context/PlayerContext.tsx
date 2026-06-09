@@ -102,6 +102,16 @@ export function PlayerProvider({ children }) {
     const onTimeUpdate = () => {
       currentTimeRef.current = audio.currentTime;
       notifyProgress();
+      // Keep the lock-screen scrubber in sync with playback position
+      if ('mediaSession' in navigator && durationRef.current && isFinite(durationRef.current)) {
+        try {
+          navigator.mediaSession.setPositionState({
+            duration: durationRef.current,
+            position: Math.min(audio.currentTime, durationRef.current),
+            playbackRate: audio.playbackRate || 1,
+          });
+        } catch { /* setPositionState unsupported */ }
+      }
       if (audio.currentTime >= 30 && !streamCountedRef.current && trackIdRef.current != null) {
         streamCountedRef.current = true;
         incrementPlays(trackIdRef.current);
@@ -234,6 +244,54 @@ export function PlayerProvider({ children }) {
   const toggleShuffle = useCallback(() => {
     setShuffle(s => !s);
   }, []);
+
+  // --- Media Session: real song + artist on the phone lock screen / notification ---
+  // Without this the browser falls back to the page title ("h-orbit"). Set the
+  // metadata from the current track so the actual title, artist and artwork show.
+  useEffect(() => {
+    if (!('mediaSession' in navigator)) return;
+    if (!track) {
+      navigator.mediaSession.metadata = null;
+      return;
+    }
+    const artwork = track.cover
+      ? [
+          { src: track.cover, sizes: '96x96', type: 'image/jpeg' },
+          { src: track.cover, sizes: '256x256', type: 'image/jpeg' },
+          { src: track.cover, sizes: '512x512', type: 'image/jpeg' },
+        ]
+      : [];
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: track.title || 'Onbekend nummer',
+      artist: track.artist || 'Onbekende artiest',
+      album: track.album || 'h-orbit',
+      artwork,
+    });
+  }, [track]);
+
+  // Reflect play/pause state so the lock-screen button shows the right icon
+  useEffect(() => {
+    if (!('mediaSession' in navigator)) return;
+    navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+  }, [isPlaying]);
+
+  // Wire the lock-screen / headset controls to the player
+  useEffect(() => {
+    if (!('mediaSession' in navigator)) return;
+    const ms = navigator.mediaSession;
+    const set = (action, handler) => { try { ms.setActionHandler(action, handler); } catch { /* unsupported action */ } };
+    set('play', () => setIsPlaying(true));
+    set('pause', () => setIsPlaying(false));
+    set('previoustrack', () => skipBack());
+    set('nexttrack', () => skipForward());
+    set('seekbackward', (d) => seek(Math.max(0, currentTimeRef.current - (d.seekOffset || 10))));
+    set('seekforward', (d) => seek(currentTimeRef.current + (d.seekOffset || 10)));
+    set('seekto', (d) => { if (d.seekTime != null) seek(d.seekTime); });
+    return () => {
+      ['play', 'pause', 'previoustrack', 'nexttrack', 'seekbackward', 'seekforward', 'seekto']
+        .forEach(a => set(a, null));
+    };
+  }, [skipBack, skipForward, seek]);
 
   return (
     <PlayerContext.Provider value={{

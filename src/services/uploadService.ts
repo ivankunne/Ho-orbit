@@ -88,10 +88,22 @@ function getAudioDuration(file: File): Promise<string> {
 }
 
 async function uploadAudioFile(file: File, trackTitle: string): Promise<string> {
-  const ext = file.name.split('.').pop() ?? 'mp3';
+  const ext = (file.name.split('.').pop() ?? 'mp3').toLowerCase();
   const safeName = trackTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase();
   const path = `${Date.now()}_${safeName}.${ext}`;
-  const contentType = file.type || `audio/${ext}`;
+  // Map extension → a canonical MIME type. The browser-reported file.type is
+  // inconsistent for some formats (.wav can be audio/x-wav, audio/wave, or empty),
+  // so prefer a known type by extension and only fall back to file.type.
+  const EXT_MIME: Record<string, string> = {
+    mp3: 'audio/mpeg',
+    wav: 'audio/wav',
+    flac: 'audio/flac',
+    aac: 'audio/aac',
+    m4a: 'audio/mp4',
+    ogg: 'audio/ogg',
+    oga: 'audio/ogg',
+  };
+  const contentType = EXT_MIME[ext] || file.type || `audio/${ext}`;
   console.log('[upload] starting storage upload', { path, size: file.size, contentType });
   const { error } = await withTimeout(
     supabase.storage.from('audio').upload(path, file, { contentType }),

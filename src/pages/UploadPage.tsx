@@ -52,7 +52,10 @@ export default function UploadPage() {
     e.preventDefault();
     setDragOver(false);
     const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('audio/')) setTrackFile(file);
+    // Accept by MIME type, or fall back to extension — some systems report an
+    // empty/non-standard MIME type for .wav/.flac/.m4a files.
+    const audioExt = /\.(mp3|wav|flac|aac|m4a|ogg|oga|mp4)$/i;
+    if (file && (file.type.startsWith('audio/') || audioExt.test(file.name))) setTrackFile(file);
   };
 
   const handleArtworkDrop = (e) => {
@@ -192,7 +195,7 @@ export default function UploadPage() {
           <input
             ref={fileRef}
             type="file"
-            accept="audio/*"
+            accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/wave,audio/flac,audio/aac,audio/mp4,audio/x-m4a,audio/*,.mp3,.wav,.flac,.aac,.m4a"
             className="hidden"
             onChange={e => e.target.files[0] && setTrackFile(e.target.files[0])}
           />
