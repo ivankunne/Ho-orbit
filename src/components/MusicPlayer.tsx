@@ -18,6 +18,12 @@ function formatTime(secs) {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+// Resolve a track's artwork regardless of which field convention the source used.
+// Seeded/search tracks carry `cover_url`; user uploads carry `cover`.
+function artworkOf(t) {
+  return t?.cover_url || t?.cover || coverPlaceholder(String(t?.title || t?.id || ''));
+}
+
 export default function MusicPlayer({ hidden = false }: { hidden?: boolean }) {
   const {
     track, queue, currentIndex, isPlaying,
@@ -134,7 +140,7 @@ export default function MusicPlayer({ hidden = false }: { hidden?: boolean }) {
                       onClick={() => playTrack(t)}
                       className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 cursor-pointer transition-colors group"
                     >
-                      <img src={t.cover_url || coverPlaceholder(String(t.title || t.id))} onError={e => { (e.target as HTMLImageElement).src = coverPlaceholder(String(t.id)); }} alt={t.title} className="w-9 h-9 rounded-lg object-cover" />
+                      <img src={artworkOf(t)} onError={e => { (e.target as HTMLImageElement).src = coverPlaceholder(String(t.id)); }} alt={t.title} className="w-9 h-9 rounded-lg object-cover" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-white font-medium truncate group-hover:text-violet-300 transition-colors">{t.title}</p>
                         <p className="text-xs text-slate-500 truncate">{t.artist}</p>
@@ -151,7 +157,7 @@ export default function MusicPlayer({ hidden = false }: { hidden?: boolean }) {
             ) : track ? (
               <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
                 <img
-                  src={track.cover_url || coverPlaceholder(String(track.title || track.id))}
+                  src={artworkOf(track)}
                   onError={e => { (e.target as HTMLImageElement).src = coverPlaceholder(String(track.id)); }}
                   alt={track.title}
                   className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl object-cover shadow-2xl shadow-black/60 shrink-0 mx-auto sm:mx-0"
@@ -280,7 +286,7 @@ export default function MusicPlayer({ hidden = false }: { hidden?: boolean }) {
                 onClick={() => setExpanded(e => !e)}
               >
                 <div className="relative shrink-0">
-                  <img src={track.cover_url || coverPlaceholder(String(track.title || track.id))} onError={e => { (e.target as HTMLImageElement).src = coverPlaceholder(String(track.id)); }} alt={track.title} className="w-10 h-10 rounded-lg object-cover" />
+                  <img src={artworkOf(track)} onError={e => { (e.target as HTMLImageElement).src = coverPlaceholder(String(track.id)); }} alt={track.title} className="w-10 h-10 rounded-lg object-cover" />
                   {isPlaying && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg">
                       <EqBars playing={isPlaying} />

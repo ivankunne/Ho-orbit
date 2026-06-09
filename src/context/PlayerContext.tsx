@@ -254,11 +254,13 @@ export function PlayerProvider({ children }) {
       navigator.mediaSession.metadata = null;
       return;
     }
-    const artwork = track.cover
+    // Uploaded tracks carry `cover`; seeded/search tracks carry `cover_url`.
+    const cover = track.cover_url || track.cover;
+    const artwork = cover
       ? [
-          { src: track.cover, sizes: '96x96', type: 'image/jpeg' },
-          { src: track.cover, sizes: '256x256', type: 'image/jpeg' },
-          { src: track.cover, sizes: '512x512', type: 'image/jpeg' },
+          { src: cover, sizes: '96x96', type: 'image/jpeg' },
+          { src: cover, sizes: '256x256', type: 'image/jpeg' },
+          { src: cover, sizes: '512x512', type: 'image/jpeg' },
         ]
       : [];
     navigator.mediaSession.metadata = new MediaMetadata({
