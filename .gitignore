@@ -16,6 +16,9 @@ dist-ssr
 supabase/functions/.env
 supabase/.temp
 
+# Contains the plaintext master-admin password — must never enter git history
+supabase/create_master_admin.sql
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
