@@ -15,6 +15,7 @@ import { formatPlays } from '@utils/format';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@components/ui/tabs';
 import { supabase } from '@/lib/supabase';
 import { mapProfileToArtist } from '@utils/artistHelpers';
+import { avatarPlaceholder, coverPlaceholder } from '@utils/placeholder';
 import { normalizeDonationUrl, isTikkieUrl } from '@utils/donation';
 import { getOrCreateConversation } from '@services/chatService';
 
@@ -40,20 +41,34 @@ export default function ArtistDetailPage() {
     async function load() {
       let artistData: any = null;
 
-      // Look up by slug first, fall back to numeric id for old links
-      const bySlug = await supabase.from('artists').select('*').eq('slug', slug).single();
+      // Look up by slug first, fall back to numeric id for old links.
+      // Use maybeSingle() so a miss returns null instead of a 406 (PostgREST
+      // rejects .single() with zero rows as "Not Acceptable").
+      const bySlug = await supabase.from('artists').select('*').eq('slug', slug).maybeSingle();
       if (bySlug.data) {
         artistData = bySlug.data;
       } else {
         // Try numeric id (backward compat)
-        const byId = await supabase.from('artists').select('*').eq('id', slug).single();
+        const byId = await supabase.from('artists').select('*').eq('id', slug).maybeSingle();
         if (byId.data) {
           artistData = byId.data;
         } else {
           // Fall back to profiles by username
-          const { data: profileData } = await supabase.from('profiles').select('*').eq('username', slug).single();
+          const { data: profileData } = await supabase.from('profiles').select('*').eq('username', slug).maybeSingle();
           if (profileData) artistData = mapProfileToArtist(profileData);
         }
+      }
+
+      // Apply deterministic placeholder fallbacks for missing artwork — the
+      // list page does this via mapArtistRow, but the detail page reads raw
+      // rows (to keep tracks/albums JSONB), so empty image_url/cover_url would
+      // otherwise render as broken images.
+      if (artistData) {
+        artistData = {
+          ...artistData,
+          image_url: artistData.image_url || avatarPlaceholder(artistData.name || 'Artiest'),
+          cover_url: artistData.cover_url || coverPlaceholder(String(artistData.id ?? artistData.name ?? 'cover')),
+        };
       }
 
       // Artist rows aren't kept in sync with the owner's profile social links
@@ -63,7 +78,7 @@ export default function ArtistDetailPage() {
           .from('profiles')
           .select('social')
           .eq('id', artistData.profile_id)
-          .single();
+          .maybeSingle();
         if (linkedProfile?.social) {
           artistData = { ...artistData, social: { ...(artistData.social || {}), ...linkedProfile.social } };
         }
@@ -168,7 +183,13 @@ export default function ArtistDetailPage() {
     <div>
       {/* Header */}
       <div className="relative h-64 lg:h-80 overflow-hidden">
-        <img src={artist.cover_url} alt={artist.name} fetchPriority="high" className="w-full h-full object-cover" />
+        <img
+          src={artist.cover_url}
+          alt={artist.name}
+          fetchPriority="high"
+          className="w-full h-full object-cover"
+          onError={(e) => { (e.currentTarget as HTMLImageElement).src = coverPlaceholder(String(artist.id ?? artist.name)); }}
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-[#1a1528] via-[#1a1528]/40 to-transparent" />
         <Link
           to="/artists"
@@ -185,6 +206,7 @@ export default function ArtistDetailPage() {
             src={artist.image_url}
             alt={artist.name}
             className="w-24 h-24 lg:w-32 lg:h-32 rounded-full object-cover ring-4 ring-[#1a1528] shrink-0"
+            onError={(e) => { (e.currentTarget as HTMLImageElement).src = avatarPlaceholder(artist.name || 'Artiest'); }}
           />
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
