@@ -1,0 +1,852 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>H-Orbit · House Style Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1a1528; --floor:#0c0916; --card:#231d3a; --elev:#2d2750; --line700:#38325f;
+    --fg:#ede8f5; --muted:#94a3b8;
+    --violet400:#a78bfa; --violet500:#8b5cf6; --violet600:#7c3aed; --violet700:#6d28d9;
+    --success:#22c55e; --warning:#f59e0b; --error:#dc2626;
+    --border:rgba(255,255,255,.10); --input:rgba(255,255,255,.05);
+    --radius:.75rem; --radius-card:1rem;
+    --mono:"JetBrains Mono",ui-monospace,monospace;
+    --sans:"Space Grotesk",system-ui,sans-serif;
+    --maxw:1120px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto} *{animation:none!important;transition:none!important}}
+  body{
+    margin:0; font-family:var(--sans); color:var(--fg); background:var(--bg);
+    -webkit-font-smoothing:antialiased; line-height:1.5; font-size:16px;
+  }
+  body::before{
+    content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background:
+      radial-gradient(60% 50% at 12% 8%, rgba(139,92,246,.22), transparent 60%),
+      radial-gradient(50% 45% at 90% 6%, rgba(245,158,11,.10), transparent 55%),
+      radial-gradient(70% 60% at 50% 108%, rgba(109,40,217,.14), transparent 60%);
+  }
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-track{background:var(--card)}
+  ::-webkit-scrollbar-thumb{background:var(--elev);border-radius:9999px}
+  ::-webkit-scrollbar-thumb:hover{background:var(--violet500)}
+  a{color:var(--violet400);text-decoration:none}
+  a:hover{color:var(--violet500)}
+
+  /* ---------- Layout ---------- */
+  .shell{display:grid;grid-template-columns:240px 1fr;max-width:1360px;margin:0 auto;gap:0}
+  .toc{
+    position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;
+    padding:32px 20px;border-right:1px solid var(--border);
+  }
+  .toc .brand{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  .toc .mark{width:34px;height:34px;flex:none;filter:drop-shadow(0 0 14px rgba(139,92,246,.5))}
+  .toc .wordmark{font-weight:700;letter-spacing:-.02em;font-size:18px}
+  .toc .sub{color:var(--muted);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;margin:0 0 22px 44px}
+  .toc nav{display:flex;flex-direction:column;gap:1px}
+  .toc nav a{
+    color:var(--muted);font-size:13.5px;font-weight:500;padding:7px 12px;border-radius:9px;
+    display:flex;gap:10px;align-items:baseline;transition:background .2s,color .2s;
+  }
+  .toc nav a .n{font-family:var(--mono);font-size:11px;color:var(--violet600);width:18px;flex:none}
+  .toc nav a:hover{background:var(--input);color:var(--fg)}
+  .toc nav a.active{background:rgba(124,58,237,.16);color:#fff}
+
+  main{min-width:0;padding:0 clamp(20px,4vw,56px) 120px}
+  .wrap{max-width:var(--maxw);margin:0 auto}
+
+  /* ---------- Hero ---------- */
+  header.hero{padding:84px 0 56px;border-bottom:1px solid var(--border)}
+  .eyebrow{font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--violet400);font-weight:600;margin:0 0 18px}
+  header.hero h1{
+    font-size:clamp(2.6rem,7vw,4.6rem);line-height:.98;font-weight:700;letter-spacing:-.04em;margin:0;
+    background:linear-gradient(120deg,#fff 30%,var(--violet400) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  header.hero .tag{font-size:clamp(1rem,2vw,1.25rem);color:var(--muted);margin:20px 0 0;max-width:60ch}
+  header.hero .tagline{margin-top:28px;font-size:14px;letter-spacing:.22em;text-transform:uppercase;color:var(--violet500);font-weight:600}
+  .meta-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:34px}
+  .pill{font-size:12px;font-family:var(--mono);color:var(--muted);border:1px solid var(--border);background:var(--input);padding:6px 12px;border-radius:9999px}
+  .pill b{color:var(--fg);font-weight:500}
+
+  /* ---------- Sections ---------- */
+  section{padding:64px 0;border-bottom:1px solid var(--border);scroll-margin-top:20px}
+  .sec-head{display:flex;align-items:baseline;gap:16px;margin:0 0 8px}
+  .sec-head .num{font-family:var(--mono);font-size:14px;color:var(--violet600);font-weight:500}
+  h2{font-size:clamp(1.7rem,3.4vw,2.25rem);font-weight:700;letter-spacing:-.03em;color:#fff;margin:0}
+  .lead{color:var(--muted);max-width:70ch;margin:14px 0 0;font-size:15.5px}
+  h3{font-size:1.05rem;font-weight:600;letter-spacing:-.01em;color:#fff;margin:40px 0 16px;display:flex;align-items:center;gap:10px}
+  h3 .dot{width:7px;height:7px;border-radius:9999px;background:var(--violet500);box-shadow:0 0 10px var(--violet500)}
+
+  /* ---------- Cards / generic surface ---------- */
+  .surface{background:linear-gradient(160deg,rgba(124,58,237,.05),rgba(12,9,22,.5));border:1px solid var(--border);border-radius:var(--radius-card);padding:24px;box-shadow:inset 0 1px 0 0 rgba(255,255,255,.04)}
+  .grid{display:grid;gap:14px}
+  .cols-2{grid-template-columns:repeat(2,1fr)}
+  .cols-3{grid-template-columns:repeat(3,1fr)}
+  .cols-4{grid-template-columns:repeat(4,1fr)}
+  @media(max-width:900px){.cols-3,.cols-4{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:560px){.cols-2,.cols-3,.cols-4{grid-template-columns:1fr}}
+
+  /* ---------- Swatches ---------- */
+  .swatch{border:1px solid var(--border);border-radius:14px;overflow:hidden;background:var(--card);cursor:pointer;transition:transform .2s var(--eo),box-shadow .2s;box-shadow:inset 0 1px 0 0 rgba(255,255,255,.04)}
+  --eo:cubic-bezier(0,0,.2,1);
+  .swatch:hover{transform:translateY(-3px)}
+  .swatch .chip{height:84px;position:relative;border-bottom:1px solid var(--border)}
+  .swatch .body{padding:12px 14px}
+  .swatch .name{font-weight:600;font-size:13.5px;color:#fff}
+  .swatch .hex{font-family:var(--mono);font-size:12px;color:var(--violet400);margin-top:3px}
+  .swatch .rgb{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:1px}
+  .swatch .use{font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.4}
+  .swatch .copy{position:absolute;top:8px;right:8px;font-size:10px;font-family:var(--mono);color:#fff;background:rgba(0,0,0,.4);border:1px solid var(--border);padding:3px 7px;border-radius:7px;opacity:0;transition:opacity .15s}
+  .swatch:hover .copy{opacity:1}
+  .checker{background-image:linear-gradient(45deg,#2d2750 25%,transparent 25%),linear-gradient(-45deg,#2d2750 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#2d2750 75%),linear-gradient(-45deg,transparent 75%,#2d2750 75%);background-size:14px 14px;background-position:0 0,0 7px,7px -7px,-7px 0}
+
+  /* genre dots */
+  .genre-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .genre{display:flex;align-items:center;gap:11px;border:1px solid var(--border);border-radius:12px;padding:11px 13px;background:var(--input)}
+  .genre .gd{width:14px;height:14px;border-radius:9999px;flex:none}
+  .genre .gn{font-size:13px;font-weight:500;text-transform:capitalize}
+  .genre .gh{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-left:auto}
+
+  /* ---------- Type specimens ---------- */
+  .specimen{border-bottom:1px solid var(--border);padding:18px 0;display:grid;grid-template-columns:1fr auto;gap:18px;align-items:baseline}
+  .specimen:last-child{border-bottom:0}
+  .specimen .sample{color:#fff;min-width:0}
+  .specimen .spec{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:right;white-space:nowrap;line-height:1.7}
+  .specimen .spec b{color:var(--violet400);font-weight:500}
+  @media(max-width:640px){.specimen{grid-template-columns:1fr}.specimen .spec{text-align:left}}
+
+  /* ---------- Spacing / radius viz ---------- */
+  .scale-row{display:flex;align-items:center;gap:16px;padding:9px 0}
+  .scale-row .label{font-family:var(--mono);font-size:12px;width:130px;flex:none;color:var(--muted)}
+  .scale-row .label b{color:#fff;font-weight:500}
+  .scale-bar{height:18px;background:linear-gradient(90deg,var(--violet600),var(--violet400));border-radius:5px;box-shadow:0 0 18px rgba(124,58,237,.35)}
+  .radii{display:flex;gap:18px;flex-wrap:wrap}
+  .radii .r{text-align:center}
+  .radii .box{width:78px;height:78px;background:var(--elev);border:1px solid var(--border);display:grid;place-items:center;color:var(--violet400);font-family:var(--mono);font-size:11px}
+  .radii .cap{font-size:11px;color:var(--muted);margin-top:8px;font-family:var(--mono)}
+
+  /* ---------- Elevation ---------- */
+  .elev-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:18px}
+  .elev-card{height:96px;background:var(--card);border:1px solid var(--border);border-radius:12px;display:grid;place-items:end center;padding-bottom:12px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+  /* ---------- Live components ---------- */
+  .btn{font-family:var(--sans);font-size:14px;border-radius:var(--radius);cursor:pointer;border:1px solid transparent;transition:all .2s var(--eo);display:inline-flex;align-items:center;gap:8px;padding:8px 16px}
+  .btn:active{transform:scale(.97)}
+  .btn-primary{background:var(--violet600);color:#fff;font-weight:600}
+  .btn-primary:hover{filter:brightness(1.08);box-shadow:0 0 26px rgba(124,58,237,.45)}
+  .btn-ghost{background:transparent;color:var(--muted);font-weight:500}
+  .btn-ghost:hover{background:var(--input);color:var(--fg)}
+  .btn-secondary{background:var(--elev);color:var(--fg);font-weight:500}
+  .btn-secondary:hover{background:var(--line700)}
+  .btn-destructive{background:var(--error);color:#fff;font-weight:600}
+  .btn-destructive:hover{filter:brightness(1.08);box-shadow:0 0 26px rgba(220,38,38,.4)}
+  .btn-icon{padding:8px;color:var(--muted);background:transparent}
+  .btn-icon:hover{background:var(--input);color:var(--fg)}
+  .btn[disabled]{opacity:.5;cursor:not-allowed;pointer-events:none}
+  .btn-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+  .field label{font-size:12.5px;color:var(--muted);font-weight:500}
+  .field input,.field textarea{font-family:var(--sans);font-size:14px;color:var(--fg);background:var(--input);border:1px solid var(--border);border-radius:var(--radius);padding:10px 13px;outline:none;transition:border .2s,box-shadow .2s}
+  .field input::placeholder{color:var(--muted)}
+  .field input:focus{border-color:var(--violet600);box-shadow:0 0 0 3px rgba(124,58,237,.3)}
+  .field.err input{border-color:var(--error);box-shadow:0 0 0 3px rgba(220,38,38,.25)}
+  .field .msg{font-size:11.5px;color:var(--error)}
+
+  /* bento preview */
+  .bento{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:120px;gap:14px}
+  @media(max-width:720px){.bento{grid-template-columns:repeat(2,1fr)}}
+  .bento-card{position:relative;border-radius:16px;padding:18px;border:1px solid;overflow:hidden;box-shadow:inset 0 1px 0 0 rgba(255,255,255,.04);transition:transform .25s var(--eo),box-shadow .25s;cursor:default}
+  .bento-card:hover{transform:translateY(-3px) scale(1.012)}
+  .bento-card .ico{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:9px;display:grid;place-items:center}
+  .bento-card .lbl{position:absolute;left:18px;bottom:16px;font-weight:700;color:#fff;font-size:15px}
+  .bento-card.tall{grid-row:span 2}
+
+  /* ---------- Code blocks ---------- */
+  .code{position:relative;background:var(--floor);border:1px solid var(--border);border-radius:14px;margin:16px 0 0}
+  .code .bar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border)}
+  .code .bar .fn{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+  .code .bar .cp{font-family:var(--mono);font-size:11px;color:var(--violet400);background:var(--input);border:1px solid var(--border);padding:4px 10px;border-radius:7px;cursor:pointer}
+  .code .bar .cp:hover{color:#fff;background:rgba(124,58,237,.2)}
+  .code pre{margin:0;padding:16px 18px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.65;color:#cdc6e0}
+  .code pre .k{color:var(--violet400)} .code pre .s{color:#8fd6b0} .code pre .c{color:#6c6385}
+
+  /* ---------- Tables ---------- */
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:top}
+  th{color:var(--muted);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+  tbody tr:hover{background:var(--input)}
+  code.inline{font-family:var(--mono);font-size:12px;background:var(--input);border:1px solid var(--border);padding:2px 6px;border-radius:6px;color:var(--violet400)}
+
+  /* status badges */
+  .badge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:9999px;white-space:nowrap;display:inline-block}
+  .b-obs{background:rgba(34,197,94,.16);color:#4ade80;border:1px solid rgba(34,197,94,.3)}
+  .b-inf{background:rgba(245,158,11,.16);color:#fbbf24;border:1px solid rgba(245,158,11,.3)}
+  .b-est{background:rgba(124,58,237,.16);color:var(--violet400);border:1px solid rgba(124,58,237,.3)}
+  .conf{display:flex;align-items:center;gap:8px}
+  .conf .track{flex:1;height:6px;background:var(--elev);border-radius:9999px;overflow:hidden;min-width:54px}
+  .conf .fill{height:100%;background:linear-gradient(90deg,var(--violet600),var(--violet400))}
+  .conf .pct{font-family:var(--mono);font-size:11px;color:var(--muted);width:34px}
+
+  .note{border-left:2px solid var(--violet600);background:rgba(124,58,237,.07);padding:14px 18px;border-radius:0 12px 12px 0;margin-top:18px;font-size:14px;color:var(--fg)}
+  .note b{color:var(--violet400)}
+  .warn{border-left-color:var(--warning);background:rgba(245,158,11,.08)}
+  .warn b{color:var(--warning)}
+  ul.clean{margin:14px 0 0;padding-left:0;list-style:none}
+  ul.clean li{padding:8px 0 8px 24px;position:relative;border-bottom:1px solid var(--border);font-size:14px;color:var(--fg)}
+  ul.clean li:last-child{border-bottom:0}
+  ul.clean li::before{content:"";position:absolute;left:4px;top:15px;width:6px;height:6px;border-radius:9999px;background:var(--violet500)}
+  ul.clean li b{color:#fff}
+
+  /* toast */
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--elev);border:1px solid var(--border);color:#fff;font-size:13px;padding:10px 18px;border-radius:10px;box-shadow:0 10px 40px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:99}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* mobile toc */
+  .toc-toggle{display:none}
+  @media(max-width:980px){
+    .shell{grid-template-columns:1fr}
+    .toc{position:sticky;top:0;height:auto;border-right:0;border-bottom:1px solid var(--border);padding:16px 20px;background:rgba(26,21,40,.85);backdrop-filter:blur(12px);z-index:50}
+    .toc nav{display:none;margin-top:14px}
+    .toc.open nav{display:flex}
+    .toc .sub{display:none}
+    .toc-toggle{display:block;margin-left:auto;background:var(--input);border:1px solid var(--border);color:var(--fg);border-radius:9px;padding:7px 12px;font-family:var(--sans);font-size:13px;cursor:pointer}
+    .toc .brand{margin-bottom:0}
+  }
+</style>
+</head>
+<body>
+<div id="toast"></div>
+<div class="shell">
+
+  <!-- ============ TOC ============ -->
+  <aside class="toc" id="toc">
+    <div class="brand">
+      <img class="mark" src="/favicon.svg" alt="h-orbit" width="34" height="34">
+      <span class="wordmark">h-orbit</span>
+      <button class="toc-toggle" onclick="document.getElementById('toc').classList.toggle('open')">Sections</button>
+    </div>
+    <p class="sub">House Style Guide</p>
+    <nav id="nav">
+      <a href="#overview"><span class="n">01</span>Brand Overview</a>
+      <a href="#colour"><span class="n">02</span>Colour Palette</a>
+      <a href="#type"><span class="n">03</span>Typography</a>
+      <a href="#layout"><span class="n">04</span>Layout System</a>
+      <a href="#spacing"><span class="n">05</span>Spacing</a>
+      <a href="#radius"><span class="n">06</span>Border Radius</a>
+      <a href="#shadow"><span class="n">07</span>Shadows &amp; Elevation</a>
+      <a href="#components"><span class="n">08</span>Components</a>
+      <a href="#imagery"><span class="n">09</span>Imagery &amp; Style</a>
+      <a href="#tokens"><span class="n">10</span>Design Tokens</a>
+      <a href="#cssvars"><span class="n">11</span>CSS Variables</a>
+      <a href="#tailwind"><span class="n">12</span>Tailwind Config</a>
+      <a href="#rules"><span class="n">13</span>Developer Rules</a>
+      <a href="#confidence"><span class="n">14</span>Confidence Report</a>
+    </nav>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main>
+    <div class="wrap">
+
+      <header class="hero" id="top">
+        <p class="eyebrow">Brand &amp; House Style · v1.0</p>
+        <h1>H-Orbit<br>House Style Guide</h1>
+        <p class="tag">Official documentation for recreating <a href="https://h-orbit.nl">h-orbit.nl</a> and maintaining visual consistency across future products — the platform for Dutch music, artists and fans.</p>
+        <p class="tagline">Ontdek · Luister · Beleef</p>
+        <div class="meta-row">
+          <span class="pill"><b>Stack</b> Vite · React · Tailwind v3</span>
+          <span class="pill"><b>UI</b> shadcn/ui · Radix</span>
+          <span class="pill"><b>Theme</b> Dark-only</span>
+          <span class="pill"><b>Type</b> Space Grotesk</span>
+          <span class="pill"><b>Accent</b> #7c3aed</span>
+        </div>
+      </header>
+
+      <!-- 01 OVERVIEW -->
+      <section id="overview">
+        <div class="sec-head"><span class="num">01</span><h2>Brand Overview</h2></div>
+        <p class="lead">H-Orbit is a cosmic, community-driven music universe for the Dutch scene. The "orbit" metaphor runs through everything: a deep space-violet canvas, an orbital-ring logo, and a bento grid of glowing category cards that read like planets in a system the user navigates.</p>
+
+        <div class="grid cols-2" style="margin-top:28px">
+          <div class="surface">
+            <h3 style="margin-top:0"><span class="dot"></span>Personality</h3>
+            <p style="color:var(--muted);font-size:14px;margin:0">Modern, energetic, scene-native and slightly underground — closer to a creative collective or a music magazine than a corporate streaming service. It speaks to artists, bands and fans as insiders.</p>
+          </div>
+          <div class="surface">
+            <h3 style="margin-top:0"><span class="dot"></span>Tone of voice</h3>
+            <p style="color:var(--muted);font-size:14px;margin:0">Dutch, informal, direct, second-person (<i>je / jouw</i>). Short, verb-led labels paired with a one-line promise. Inviting and participatory — never clinical, never corporate.</p>
+          </div>
+          <div class="surface">
+            <h3 style="margin-top:0"><span class="dot"></span>Key design characteristics</h3>
+            <ul class="clean" style="margin-top:0">
+              <li>Dark cosmic canvas with <b>three ambient radial glows</b></li>
+              <li><b>Bento grid</b> of genre-coloured category cards</li>
+              <li>A single <b>violet</b> action colour; everything else is structural neutral</li>
+              <li><b>Colour as taxonomy</b> — 17 genre hues code content categories</li>
+              <li>Glassy low-contrast surfaces, hairline borders, glow shadows</li>
+            </ul>
+          </div>
+          <div class="surface">
+            <h3 style="margin-top:0"><span class="dot"></span>Visual identity summary</h3>
+            <p style="color:var(--muted);font-size:14px;margin:0">A dark-violet, glow-lit, grid-first interface that feels like an interactive constellation. Bold white geometric headings, a single electric-violet CTA, thin-line uniform icons, restrained motion. The impression: <b style="color:var(--fg)">premium-indie, nocturnal, music-forward.</b></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 02 COLOUR -->
+      <section id="colour">
+        <div class="sec-head"><span class="num">02</span><h2>Colour Palette</h2></div>
+        <p class="lead">Authored as HSL component triplets in CSS custom properties (shadcn model), consumed via <code class="inline">hsl(var(--token))</code>. Click any swatch to copy its hex.</p>
+
+        <h3><span class="dot"></span>Primary &amp; Accent</h3>
+        <div class="grid cols-4" id="grid-primary"></div>
+
+        <h3><span class="dot"></span>Surface &amp; Background — the Orbit ramp</h3>
+        <div class="grid cols-4" id="grid-surface"></div>
+
+        <h3><span class="dot"></span>Text &amp; Neutrals</h3>
+        <div class="grid cols-4" id="grid-text"></div>
+
+        <h3><span class="dot"></span>Semantic — Success · Warning · Error</h3>
+        <div class="grid cols-4" id="grid-semantic"></div>
+
+        <div class="note warn"><b>Background drift, flagged:</b> the <code class="inline">--background</code> HSL token <code class="inline">222 21% 13%</code> mathematically renders <code class="inline">#1a1e28</code> (blue-grey), but the brand scale, <code class="inline">theme-color</code> and <code class="inline">orbit-950</code> all define it as <code class="inline">#1a1528</code> (purple). Treat <code class="inline">#1a1528</code> as canonical and correct the token at source.</div>
+
+        <h3><span class="dot"></span>Genre palette — content taxonomy (17 hues + slate fallback)</h3>
+        <p style="color:var(--muted);font-size:13.5px;margin:0 0 16px">Each genre exposes four roles: <code class="inline">bg</code> = hue/20 · <code class="inline">text</code> = hue-400 · <code class="inline">border</code> = hue/30 · <code class="inline">dot</code> = hue-500. Dot shown below.</p>
+        <div class="genre-grid" id="genre-grid"></div>
+
+        <div class="grid cols-2" style="margin-top:24px">
+          <div class="surface">
+            <h3 style="margin-top:0"><span class="dot"></span>Ambient gradients</h3>
+            <table style="margin-top:0">
+              <tr><td>Top-left</td><td><code class="inline">rgba(139,92,246,.22)</code> violet</td></tr>
+              <tr><td>Top-right</td><td><code class="inline">rgba(245,158,11,.10)</code> amber</td></tr>
+              <tr><td style="border:0">Bottom-center</td><td style="border:0"><code class="inline">rgba(109,40,217,.14)</code> deep violet</td></tr>
+            </table>
+          </div>
+          <div class="surface">
+            <h3 style="margin-top:0"><span class="dot"></span>Scrollbar</h3>
+            <table style="margin-top:0">
+              <tr><td>Width</td><td><code class="inline">6px</code></td></tr>
+              <tr><td>Track</td><td><code class="inline">#231d3a</code></td></tr>
+              <tr><td>Thumb</td><td><code class="inline">#2d2750</code></td></tr>
+              <tr><td style="border:0">Thumb hover</td><td style="border:0"><code class="inline">#8b5cf6</code></td></tr>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 03 TYPE -->
+      <section id="type">
+        <div class="sec-head"><span class="num">03</span><h2>Typography</h2></div>
+        <p class="lead">One typeface product-wide: <b style="color:var(--fg)">Space Grotesk</b> (Google Fonts, weights 300–700), fallback <code class="inline">system-ui, sans-serif</code>, antialiased. Geometric grotesque with a slightly technical, "orbital" character.</p>
+
+        <div class="surface" style="margin-top:24px">
+          <div class="specimen">
+            <div class="sample" style="font-size:clamp(2rem,5vw,3rem);font-weight:700;letter-spacing:-.035em;line-height:1.02">Ontdek de scene</div>
+            <div class="spec">H1 · Display<br><b>2.25–3.75rem</b> / 700<br>tracking <b>-0.025em</b> · #fff</div>
+          </div>
+          <div class="specimen">
+            <div class="sample" style="font-size:1.875rem;font-weight:700;letter-spacing:-.025em;line-height:1.2">Vind je nieuwe favorieten</div>
+            <div class="spec">H2 · Section<br><b>1.875rem</b>/36px · 700<br>tracking -0.025em · #fff</div>
+          </div>
+          <div class="specimen">
+            <div class="sample" style="font-size:1.25rem;font-weight:600;letter-spacing:-.01em">Praat mee met de community</div>
+            <div class="spec">H3<br><b>1.25rem</b>/20px · 600</div>
+          </div>
+          <div class="specimen">
+            <div class="sample" style="font-size:1.125rem;font-weight:600">Jouw band, jouw werkruimte</div>
+            <div class="spec">H4<br><b>1.125rem</b>/18px · 600</div>
+          </div>
+          <div class="specimen">
+            <div class="sample" style="font-size:1rem;font-weight:400;color:var(--fg)">Beluister live radio, ontdek Nederlandse artiesten en sluit je aan bij een gemeenschap van makers en fans.</div>
+            <div class="spec">Body<br><b>1rem</b>/16px · 400<br>line-height 1.5 · #ede8f5</div>
+          </div>
+          <div class="specimen">
+            <div class="sample" style="font-size:.875rem;font-weight:400;color:var(--muted)">Verhalen uit de scene · 4 min leestijd</div>
+            <div class="spec">Small / caption<br><b>0.875rem</b>/14px · 400<br>slate-400 #94a3b8</div>
+          </div>
+          <div class="specimen">
+            <div class="sample" style="font-size:.875rem;font-weight:600">Aanmelden</div>
+            <div class="spec">Button<br><b>0.875rem</b> · 600 (500 ghost)</div>
+          </div>
+          <div class="specimen">
+            <div class="sample" style="font-size:.75rem;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--violet400)">Nederlandse Scene</div>
+            <div class="spec">Eyebrow / overline<br><b>0.75rem</b> · 600 · tracking 0.22em</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 04 LAYOUT -->
+      <section id="layout">
+        <div class="sec-head"><span class="num">04</span><h2>Layout System</h2></div>
+        <p class="lead">A responsive bento grid built on Tailwind grid/flex utilities, centred in a max-width container. Standard Tailwind breakpoints are active.</p>
+        <div class="grid cols-2" style="margin-top:24px">
+          <div class="surface">
+            <h3 style="margin-top:0"><span class="dot"></span>Container &amp; grid</h3>
+            <table style="margin-top:0">
+              <tr><td>Content max-width</td><td><code class="inline">max-w-7xl</code> · 80rem / 1280px</td></tr>
+              <tr><td>Alignment</td><td><code class="inline">mx-auto</code> centred</td></tr>
+              <tr><td>Grid gutters</td><td>16–24px (<code class="inline">gap-4</code>/<code class="inline">gap-6</code>)</td></tr>
+              <tr><td style="border:0">Hero card</td><td style="border:0">spans 2 rows (tall cell)</td></tr>
+            </table>
+          </div>
+          <div class="surface">
+            <h3 style="margin-top:0"><span class="dot"></span>Breakpoints</h3>
+            <table style="margin-top:0">
+              <tr><td><code class="inline">sm</code></td><td>640px</td></tr>
+              <tr><td><code class="inline">md</code></td><td>768px → 2-col grid</td></tr>
+              <tr><td><code class="inline">lg</code></td><td>1024px → multi-col bento</td></tr>
+              <tr><td style="border:0"><code class="inline">xl</code></td><td style="border:0">1280px</td></tr>
+            </table>
+          </div>
+        </div>
+        <div class="grid cols-3" style="margin-top:14px">
+          <div class="surface"><h3 style="margin-top:0"><span class="dot"></span>Desktop ≥1024px</h3><p style="color:var(--muted);font-size:13.5px;margin:0">Multi-column bento; tall hero card left. Header: logo · search · Inloggen (ghost) · Aanmelden (primary) · menu.</p></div>
+          <div class="surface"><h3 style="margin-top:0"><span class="dot"></span>Tablet 768–1023px</h3><p style="color:var(--muted);font-size:13.5px;margin:0">Grid collapses to 2 columns; spacing tightens; header keeps inline actions.</p></div>
+          <div class="surface"><h3 style="margin-top:0"><span class="dot"></span>Mobile &lt;768px</h3><p style="color:var(--muted);font-size:13.5px;margin:0">Single-column stack; fixed bottom nav <code class="inline">--bottom-nav-h: 4.5rem</code>, safe-area aware. PWA-installable.</p></div>
+        </div>
+      </section>
+
+      <!-- 05 SPACING -->
+      <section id="spacing">
+        <div class="sec-head"><span class="num">05</span><h2>Spacing System</h2></div>
+        <p class="lead">Default Tailwind 4px-based scale (confirmed from compiled gap/padding values). Compose in multiples of 4, with 2px for fine tuning.</p>
+        <div class="surface" style="margin-top:24px" id="spacing-scale"></div>
+      </section>
+
+      <!-- 06 RADIUS -->
+      <section id="radius">
+        <div class="sec-head"><span class="num">06</span><h2>Border Radius</h2></div>
+        <p class="lead">Driven by <code class="inline">--radius: 0.75rem</code>. Controls and icon tiles round to 12px; cards to 16px; pills and avatars are fully round.</p>
+        <div class="surface" style="margin-top:24px">
+          <div class="radii">
+            <div class="r"><div class="box" style="border-radius:8px">8px</div><div class="cap">sm · −4px</div></div>
+            <div class="r"><div class="box" style="border-radius:10px">10px</div><div class="cap">md · −2px</div></div>
+            <div class="r"><div class="box" style="border-radius:12px">12px</div><div class="cap">xl · controls</div></div>
+            <div class="r"><div class="box" style="border-radius:16px">16px</div><div class="cap">2xl · cards</div></div>
+            <div class="r"><div class="box" style="border-radius:24px">24px</div><div class="cap">3xl · panels</div></div>
+            <div class="r"><div class="box" style="border-radius:9999px">full</div><div class="cap">pills · dots</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 07 SHADOW -->
+      <section id="shadow">
+        <div class="sec-head"><span class="num">07</span><h2>Shadows &amp; Elevation</h2></div>
+        <p class="lead">Standard Tailwind neutral ramp plus coloured "glow" shadows for brand emphasis. Cards carry a subtle inset top-highlight.</p>
+        <h3><span class="dot"></span>Neutral elevation</h3>
+        <div class="elev-row">
+          <div class="elev-card" style="box-shadow:0 1px 2px 0 rgba(0,0,0,.05)">shadow-sm</div>
+          <div class="elev-card" style="box-shadow:0 1px 3px 0 rgba(0,0,0,.1),0 1px 2px -1px rgba(0,0,0,.1)">shadow</div>
+          <div class="elev-card" style="box-shadow:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1)">shadow-md</div>
+          <div class="elev-card" style="box-shadow:0 10px 15px -3px rgba(0,0,0,.3),0 4px 6px -4px rgba(0,0,0,.3)">shadow-lg</div>
+          <div class="elev-card" style="box-shadow:0 25px 50px -12px rgba(0,0,0,.5)">shadow-2xl</div>
+        </div>
+        <h3><span class="dot"></span>Brand glows</h3>
+        <div class="elev-row">
+          <div class="elev-card" style="box-shadow:0 0 30px rgba(124,58,237,.4)">violet glow</div>
+          <div class="elev-card" style="box-shadow:0 0 30px rgba(139,92,246,.5)">logo halo</div>
+          <div class="elev-card" style="box-shadow:0 0 30px rgba(245,158,11,.35)">amber glow</div>
+          <div class="elev-card" style="box-shadow:0 0 30px rgba(220,38,38,.35)">red glow</div>
+          <div class="elev-card" style="box-shadow:inset 0 1px 0 0 rgba(255,255,255,.18)">card inset</div>
+        </div>
+        <div class="note"><b>Hover motion:</b> gentle <code class="inline">scale(1.012)</code> + <code class="inline">translateY(-2px)</code> lift + colour glow fade-in. Transitions 0.2–0.3s with <code class="inline">cubic-bezier(0,0,.2,1)</code> ease-out. Radix menus use fade + scale (0.95→1) + slide.</div>
+      </section>
+
+      <!-- 08 COMPONENTS -->
+      <section id="components">
+        <div class="sec-head"><span class="num">08</span><h2>Components</h2></div>
+        <p class="lead">Live previews built from the real tokens — these render exactly as the system specifies.</p>
+
+        <h3><span class="dot"></span>Buttons</h3>
+        <div class="surface">
+          <div class="btn-row">
+            <button class="btn btn-primary">Aanmelden</button>
+            <button class="btn btn-ghost">Inloggen</button>
+            <button class="btn btn-secondary">Volg artiest</button>
+            <button class="btn btn-destructive">Verwijderen</button>
+            <button class="btn btn-icon" aria-label="Search">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            </button>
+            <button class="btn btn-primary" disabled>Disabled</button>
+          </div>
+          <table style="margin-top:22px">
+            <thead><tr><th>Variant</th><th>Background</th><th>Text</th><th>Radius</th><th>Padding</th><th>Weight</th></tr></thead>
+            <tbody>
+              <tr><td>Primary</td><td><code class="inline">#7c3aed</code></td><td>#fff</td><td>12px</td><td>8px 16px</td><td>600</td></tr>
+              <tr><td>Ghost</td><td>transparent</td><td>#94a3b8</td><td>12px</td><td>8px 12px</td><td>500</td></tr>
+              <tr><td>Secondary</td><td><code class="inline">#2d2750</code></td><td>#ede8f5</td><td>12px</td><td>8px 16px</td><td>500</td></tr>
+              <tr><td>Destructive</td><td><code class="inline">#dc2626</code></td><td>#fff</td><td>12px</td><td>8px 16px</td><td>600</td></tr>
+              <tr><td>Icon</td><td>transparent</td><td>#94a3b8</td><td>12px</td><td>8px (square)</td><td>—</td></tr>
+            </tbody>
+          </table>
+          <p style="font-size:12.5px;color:var(--muted);margin:14px 0 0">Focus: 2px violet ring + 2px offset on every interactive element. Disabled: opacity 0.5, pointer-events none.</p>
+        </div>
+
+        <h3><span class="dot"></span>Forms</h3>
+        <div class="grid cols-2">
+          <div class="surface">
+            <div class="field"><label>E-mailadres</label><input type="text" placeholder="jij@voorbeeld.nl"></div>
+            <div class="field"><label>Artiestnaam</label><input type="text" value="Focus state — try tabbing" ></div>
+            <div class="field err"><label>Wachtwoord</label><input type="password" value="123"><span class="msg">Minimaal 8 tekens vereist.</span></div>
+          </div>
+          <div class="surface">
+            <table style="margin-top:0">
+              <tr><td>Fill</td><td><code class="inline">white / 5%</code></td></tr>
+              <tr><td>Border</td><td><code class="inline">white / 10%</code></td></tr>
+              <tr><td>Radius</td><td>10–12px</td></tr>
+              <tr><td>Text / placeholder</td><td>#ede8f5 / #94a3b8</td></tr>
+              <tr><td>Focus</td><td>violet ring #7c3aed</td></tr>
+              <tr><td style="border:0">Error</td><td style="border:0">border + ring #dc2626</td></tr>
+            </table>
+            <p style="font-size:12px;color:var(--muted);margin:14px 0 0"><span class="badge b-inf">Inferred</span> from tokens + Radix model — authenticated forms not exposed on the public shell.</p>
+          </div>
+        </div>
+
+        <h3><span class="dot"></span>Cards — the bento recipe</h3>
+        <div class="surface">
+          <div class="bento">
+            <div class="bento-card tall" style="border-color:rgba(124,58,237,.16);background:linear-gradient(145deg,rgba(124,58,237,.12) 0%,rgba(12,9,22,.88) 65%)">
+              <span class="ico" style="background:rgba(124,58,237,.2)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
+              <span class="lbl">Muziek</span>
+            </div>
+            <div class="bento-card" style="border-color:rgba(59,130,246,.16);background:linear-gradient(145deg,rgba(59,130,246,.12) 0%,rgba(12,9,22,.88) 65%)">
+              <span class="ico" style="background:rgba(59,130,246,.2)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><circle cx="9" cy="7" r="3"/><path d="M2 21v-2a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v2"/></svg></span>
+              <span class="lbl">Artiesten</span>
+            </div>
+            <div class="bento-card" style="border-color:rgba(245,158,11,.16);background:linear-gradient(145deg,rgba(245,158,11,.12) 0%,rgba(12,9,22,.88) 65%)">
+              <span class="ico" style="background:rgba(245,158,11,.2)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+              <span class="lbl">Evenementen</span>
+            </div>
+            <div class="bento-card" style="border-color:rgba(239,68,68,.16);background:linear-gradient(145deg,rgba(239,68,68,.12) 0%,rgba(12,9,22,.88) 65%)">
+              <span class="ico" style="background:rgba(239,68,68,.2)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2"><circle cx="12" cy="12" r="2"/><path d="M4.9 19.1a10 10 0 0 1 0-14.2M7.8 16.2a6 6 0 0 1 0-8.4M16.2 7.8a6 6 0 0 1 0 8.4M19.1 4.9a10 10 0 0 1 0 14.2"/></svg></span>
+              <span class="lbl">Radio</span>
+            </div>
+            <div class="bento-card" style="border-color:rgba(20,184,166,.16);background:linear-gradient(145deg,rgba(20,184,166,.12) 0%,rgba(12,9,22,.88) 65%)">
+              <span class="ico" style="background:rgba(20,184,166,.2)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2dd4bf" stroke-width="2"><path d="M2 7v12a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V7M2 7l10 6 10-6M2 7l10-4 10 4"/></svg></span>
+              <span class="lbl">Tutorials</span>
+            </div>
+            <div class="bento-card" style="border-color:rgba(34,197,94,.16);background:linear-gradient(145deg,rgba(34,197,94,.12) 0%,rgba(12,9,22,.88) 65%)">
+              <span class="ico" style="background:rgba(34,197,94,.2)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1 2.7 2 6 2s6-1 6-2v-5"/></svg></span>
+              <span class="lbl">Masterclass</span>
+            </div>
+          </div>
+          <table style="margin-top:22px">
+            <tr><td>Radius</td><td>16px (rounded-2xl)</td></tr>
+            <tr><td>Padding</td><td>20px (p-5)</td></tr>
+            <tr><td>Border</td><td><code class="inline">1px solid rgba(genre, .16)</code></td></tr>
+            <tr><td>Background</td><td><code class="inline">linear-gradient(145deg, rgba(genre,.12) 0%, rgba(12,9,22,.88) 65%)</code></td></tr>
+            <tr><td style="border:0">Highlight + hover</td><td style="border:0"><code class="inline">inset 0 1px 0 rgba(255,255,255,.04)</code> · hover lift + scale + genre glow</td></tr>
+          </table>
+        </div>
+
+        <h3><span class="dot"></span>Navigation</h3>
+        <div class="grid cols-2">
+          <div class="surface"><h3 style="margin-top:0"><span class="dot"></span>Header</h3><p style="color:var(--muted);font-size:13.5px;margin:0">Logo (left) · search · Inloggen (ghost) · Aanmelden (primary) · hamburger. Transparent over canvas → blurred translucent dark on scroll. Links 14px/500, slate-400 → #ede8f5 hover.</p></div>
+          <div class="surface"><h3 style="margin-top:0"><span class="dot"></span>Mobile bottom nav</h3><p style="color:var(--muted);font-size:13.5px;margin:0">Fixed, height <code class="inline">4.5rem</code>, runtime safe-area inset. Translucent dark, backdrop blur, white/10 top border. Active item violet, inactive slate-400. Acts as the global footer on mobile.</p></div>
+        </div>
+      </section>
+
+      <!-- 09 IMAGERY -->
+      <section id="imagery">
+        <div class="sec-head"><span class="num">09</span><h2>Imagery &amp; Visual Style</h2></div>
+        <div class="grid cols-3" style="margin-top:24px">
+          <div class="surface"><h3 style="margin-top:0"><span class="dot"></span>Iconography</h3><p style="color:var(--muted);font-size:13.5px;margin:0">Thin-line, uniform-stroke (Lucide-style). Monochrome, tinted to each card's genre colour, set in a 12px rounded tile.</p></div>
+          <div class="surface"><h3 style="margin-top:0"><span class="dot"></span>Illustration</h3><p style="color:var(--muted);font-size:13.5px;margin:0">Abstract cosmic / orbital motifs — concentric rings, faint dotted constellation graphics. Geometric, low-opacity, decorative.</p></div>
+          <div class="surface"><h3 style="margin-top:0"><span class="dot"></span>Image treatment</h3><p style="color:var(--muted);font-size:13.5px;margin:0">Dark, low-key. Genre-coloured 145° gradient washes over a near-black floor. Heavy translucency and backdrop blur (glassmorphism-lite).</p></div>
+          <div class="surface"><h3 style="margin-top:0"><span class="dot"></span>Graphic elements</h3><p style="color:var(--muted);font-size:13.5px;margin:0">Glowing radial ambient fields, hairline white/10 borders, coloured glow shadows, pill / dot indicators in genre colours.</p></div>
+          <div class="surface"><h3 style="margin-top:0"><span class="dot"></span>Decorative pattern</h3><p style="color:var(--muted);font-size:13.5px;margin:0">Orbital rings and dotted node motifs. The "orbit" metaphor is the unifying decorative language.</p></div>
+          <div class="surface"><h3 style="margin-top:0"><span class="dot"></span>Logo</h3><p style="color:var(--muted);font-size:13.5px;margin:0">Clustered overlapping orbital-ring mark in a violet gradient with a violet halo, paired with the lowercase wordmark <b style="color:var(--fg)">h-orbit</b>.</p></div>
+        </div>
+      </section>
+
+      <!-- 10 TOKENS -->
+      <section id="tokens">
+        <div class="sec-head"><span class="num">10</span><h2>Design Tokens</h2></div>
+        <p class="lead">Complete token object — drop into your theme layer.</p>
+        <div class="code">
+          <div class="bar"><span class="fn">tokens.json</span><button class="cp" data-copy="#code-tokens">Copy</button></div>
+<pre id="code-tokens">{
+  <span class="k">"colors"</span>: {
+    <span class="k">"background"</span>: <span class="s">"#1a1528"</span>, <span class="k">"foreground"</span>: <span class="s">"#ede8f5"</span>,
+    <span class="k">"card"</span>: <span class="s">"#231d3a"</span>, <span class="k">"popover"</span>: <span class="s">"#231d3a"</span>, <span class="k">"cardFloor"</span>: <span class="s">"#0c0916"</span>,
+    <span class="k">"primary"</span>: <span class="s">"#7c3aed"</span>, <span class="k">"primaryForeground"</span>: <span class="s">"#ffffff"</span>,
+    <span class="k">"secondary"</span>: <span class="s">"#2d2750"</span>, <span class="k">"muted"</span>: <span class="s">"#2d2750"</span>, <span class="k">"mutedForeground"</span>: <span class="s">"#94a3b8"</span>,
+    <span class="k">"accent"</span>: <span class="s">"#7c3aed"</span>, <span class="k">"ring"</span>: <span class="s">"#7c3aed"</span>,
+    <span class="k">"destructive"</span>: <span class="s">"#dc2626"</span>, <span class="k">"success"</span>: <span class="s">"#22c55e"</span>, <span class="k">"warning"</span>: <span class="s">"#f59e0b"</span>,
+    <span class="k">"border"</span>: <span class="s">"rgba(255,255,255,0.10)"</span>, <span class="k">"input"</span>: <span class="s">"rgba(255,255,255,0.05)"</span>,
+    <span class="k">"orbit"</span>: { <span class="k">"950"</span>: <span class="s">"#1a1528"</span>, <span class="k">"900"</span>: <span class="s">"#231d3a"</span>, <span class="k">"800"</span>: <span class="s">"#2d2750"</span>, <span class="k">"700"</span>: <span class="s">"#38325f"</span> },
+    <span class="k">"violet"</span>: { <span class="k">"400"</span>: <span class="s">"#a78bfa"</span>, <span class="k">"500"</span>: <span class="s">"#8b5cf6"</span>, <span class="k">"600"</span>: <span class="s">"#7c3aed"</span>, <span class="k">"700"</span>: <span class="s">"#6d28d9"</span> }
+  },
+  <span class="k">"typography"</span>: {
+    <span class="k">"fontFamily"</span>: <span class="s">"\"Space Grotesk\", system-ui, sans-serif"</span>, <span class="k">"weights"</span>: [300,400,500,600,700],
+    <span class="k">"sizes"</span>: { <span class="k">"xs"</span>:<span class="s">".75rem"</span>,<span class="k">"sm"</span>:<span class="s">".875rem"</span>,<span class="k">"base"</span>:<span class="s">"1rem"</span>,<span class="k">"lg"</span>:<span class="s">"1.125rem"</span>,<span class="k">"xl"</span>:<span class="s">"1.25rem"</span>,<span class="k">"2xl"</span>:<span class="s">"1.5rem"</span>,<span class="k">"3xl"</span>:<span class="s">"1.875rem"</span>,<span class="k">"4xl"</span>:<span class="s">"2.25rem"</span>,<span class="k">"5xl"</span>:<span class="s">"3rem"</span>,<span class="k">"6xl"</span>:<span class="s">"3.75rem"</span> },
+    <span class="k">"tracking"</span>: { <span class="k">"tight"</span>:<span class="s">"-0.025em"</span>, <span class="k">"normal"</span>:<span class="s">"0"</span>, <span class="k">"widest"</span>:<span class="s">"0.1em"</span> }
+  },
+  <span class="k">"spacing"</span>: { <span class="k">"base"</span>:<span class="s">"4px"</span>,<span class="k">"xs"</span>:<span class="s">".25rem"</span>,<span class="k">"s"</span>:<span class="s">".5rem"</span>,<span class="k">"m"</span>:<span class="s">".75rem"</span>,<span class="k">"l"</span>:<span class="s">"1rem"</span>,<span class="k">"xl"</span>:<span class="s">"1.25rem"</span>,<span class="k">"xxl"</span>:<span class="s">"1.5rem"</span>,<span class="k">"bottomNav"</span>:<span class="s">"4.5rem"</span> },
+  <span class="k">"radius"</span>: { <span class="k">"base"</span>:<span class="s">".75rem"</span>,<span class="k">"sm"</span>:<span class="s">".5rem"</span>,<span class="k">"md"</span>:<span class="s">".625rem"</span>,<span class="k">"card"</span>:<span class="s">"1rem"</span>,<span class="k">"3xl"</span>:<span class="s">"1.5rem"</span>,<span class="k">"full"</span>:<span class="s">"9999px"</span> },
+  <span class="k">"shadows"</span>: {
+    <span class="k">"sm"</span>:<span class="s">"0 1px 2px 0 rgba(0,0,0,.05)"</span>, <span class="k">"lg"</span>:<span class="s">"0 10px 15px -3px rgba(0,0,0,.1)"</span>, <span class="k">"2xl"</span>:<span class="s">"0 25px 50px -12px rgba(0,0,0,.4)"</span>,
+    <span class="k">"glow"</span>:<span class="s">"0 0 30px rgba(124,58,237,.30)"</span>, <span class="k">"cardInset"</span>:<span class="s">"inset 0 1px 0 0 rgba(255,255,255,.04)"</span>
+  },
+  <span class="k">"breakpoints"</span>: { <span class="k">"sm"</span>:<span class="s">"640px"</span>,<span class="k">"md"</span>:<span class="s">"768px"</span>,<span class="k">"lg"</span>:<span class="s">"1024px"</span>,<span class="k">"xl"</span>:<span class="s">"1280px"</span> }
+}</pre>
+        </div>
+      </section>
+
+      <!-- 11 CSS VARS -->
+      <section id="cssvars">
+        <div class="sec-head"><span class="num">11</span><h2>CSS Variables</h2></div>
+        <p class="lead">Production-ready, faithful to the shipped HSL-token model with the corrected canonical background.</p>
+        <div class="code">
+          <div class="bar"><span class="fn">globals.css</span><button class="cp" data-copy="#code-css">Copy</button></div>
+<pre id="code-css"><span class="c">/* Dark-only theme — :root === .dark */</span>
+<span class="k">:root</span> {
+  --background: <span class="s">222 21% 13%</span>;        <span class="c">/* canonical: #1a1528 */</span>
+  --foreground: <span class="s">270 33% 92%</span>;        <span class="c">/* #ede8f5 */</span>
+  --card: <span class="s">248 29% 17%</span>;              <span class="c">/* #231d3a */</span>
+  --primary: <span class="s">263 69% 57%</span>;           <span class="c">/* #7c3aed */</span>
+  --primary-foreground: <span class="s">0 0% 100%</span>;
+  --secondary: <span class="s">248 25% 25%</span>;         <span class="c">/* #2d2750 */</span>
+  --muted-foreground: <span class="s">215 16% 47%</span>;   <span class="c">/* slate-400 */</span>
+  --destructive: <span class="s">0 72% 51%</span>;         <span class="c">/* #dc2626 */</span>
+  --border: <span class="s">0 0% 100% / .10</span>;
+  --input: <span class="s">0 0% 100% / .05</span>;
+  --ring: <span class="s">263 69% 57%</span>;
+  --radius: <span class="s">.75rem</span>;
+
+  --orbit-950:<span class="s">#1a1528</span>; --orbit-900:<span class="s">#231d3a</span>; --orbit-800:<span class="s">#2d2750</span>; --orbit-700:<span class="s">#38325f</span>;
+  --bottom-nav-h:<span class="s">4.5rem</span>;
+  --glow-violet:<span class="s">0 0 30px rgba(124,58,237,.30)</span>;
+  --card-inset:<span class="s">inset 0 1px 0 0 rgba(255,255,255,.04)</span>;
+  --font-sans:<span class="s">"Space Grotesk", system-ui, sans-serif</span>;
+}
+<span class="k">body</span>{ background:var(--orbit-950); color:hsl(var(--foreground)); font-family:var(--font-sans); -webkit-font-smoothing:antialiased; }
+<span class="k">body::before</span>{ <span class="c">/* ambient field */</span>
+  content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background:
+    radial-gradient(circle at top left, rgba(139,92,246,.22), transparent 55%),
+    radial-gradient(circle at top right, rgba(245,158,11,.10), transparent 50%),
+    radial-gradient(circle at bottom center, rgba(109,40,217,.14), transparent 60%);
+}</pre>
+        </div>
+      </section>
+
+      <!-- 12 TAILWIND -->
+      <section id="tailwind">
+        <div class="sec-head"><span class="num">12</span><h2>Tailwind Configuration</h2></div>
+        <p class="lead">shadcn-compatible theme reconstructed from the build.</p>
+        <div class="code">
+          <div class="bar"><span class="fn">tailwind.config.js</span><button class="cp" data-copy="#code-tw">Copy</button></div>
+<pre id="code-tw"><span class="k">module.exports</span> = {
+  darkMode: [<span class="s">"class"</span>],
+  theme: {
+    container: { center: <span class="k">true</span>, padding: <span class="s">"1rem"</span>, screens: { <span class="s">"2xl"</span>: <span class="s">"80rem"</span> } },
+    extend: {
+      colors: {
+        border: <span class="s">"hsl(var(--border))"</span>, input: <span class="s">"hsl(var(--input))"</span>, ring: <span class="s">"hsl(var(--ring))"</span>,
+        background: <span class="s">"hsl(var(--background))"</span>, foreground: <span class="s">"hsl(var(--foreground))"</span>,
+        primary: { DEFAULT: <span class="s">"hsl(var(--primary))"</span>, foreground: <span class="s">"hsl(var(--primary-foreground))"</span> },
+        secondary: { DEFAULT: <span class="s">"hsl(var(--secondary))"</span>, foreground: <span class="s">"hsl(var(--secondary-foreground))"</span> },
+        destructive: { DEFAULT: <span class="s">"hsl(var(--destructive))"</span>, foreground: <span class="s">"hsl(var(--destructive-foreground))"</span> },
+        muted: { DEFAULT: <span class="s">"hsl(var(--muted))"</span>, foreground: <span class="s">"hsl(var(--muted-foreground))"</span> },
+        card: { DEFAULT: <span class="s">"hsl(var(--card))"</span>, foreground: <span class="s">"hsl(var(--card-foreground))"</span> },
+        orbit: { <span class="s">700</span>:<span class="s">"#38325f"</span>, <span class="s">800</span>:<span class="s">"#2d2750"</span>, <span class="s">900</span>:<span class="s">"#231d3a"</span>, <span class="s">950</span>:<span class="s">"#1a1528"</span> },
+        success:<span class="s">"#22c55e"</span>, warning:<span class="s">"#f59e0b"</span>, error:<span class="s">"#dc2626"</span>
+      },
+      fontFamily: { sans: [<span class="s">'"Space Grotesk"'</span>, <span class="s">"system-ui"</span>, <span class="s">"sans-serif"</span>] },
+      borderRadius: { lg:<span class="s">"var(--radius)"</span>, md:<span class="s">"calc(var(--radius) - 2px)"</span>, sm:<span class="s">"calc(var(--radius) - 4px)"</span>, <span class="s">"2xl"</span>:<span class="s">"1rem"</span> },
+      boxShadow: { glow:<span class="s">"0 0 30px rgba(124,58,237,.30)"</span>, <span class="s">"card-inset"</span>:<span class="s">"inset 0 1px 0 0 rgba(255,255,255,.04)"</span> }
+    }
+  },
+  plugins: [require(<span class="s">"tailwindcss-animate"</span>)]
+};</pre>
+        </div>
+      </section>
+
+      <!-- 13 RULES -->
+      <section id="rules">
+        <div class="sec-head"><span class="num">13</span><h2>Developer Rules</h2></div>
+        <div class="grid cols-2" style="margin-top:24px">
+          <div class="surface">
+            <h3 style="margin-top:0"><span class="dot"></span>Typography</h3>
+            <ul class="clean" style="margin-top:0">
+              <li><b>One typeface only</b> — Space Grotesk, always with the fallback stack.</li>
+              <li>Headings: <b>700</b>, pure white, tracking <b>-0.025em</b>.</li>
+              <li>Body 400 <code class="inline">#ede8f5</code>; secondary copy slate-400.</li>
+              <li>Use scale steps only — never invent sizes.</li>
+            </ul>
+          </div>
+          <div class="surface">
+            <h3 style="margin-top:0"><span class="dot"></span>Colour</h3>
+            <ul class="clean" style="margin-top:0">
+              <li><b>Violet #7c3aed is the only action colour</b> — one primary CTA per view.</li>
+              <li>Structure with the orbit ramp; avoid arbitrary greys.</li>
+              <li>Use canonical <code class="inline">#1a1528</code> background.</li>
+              <li>Genre colour is taxonomy — match icon, border, gradient, dot.</li>
+              <li>Always white text on violet / genre fills.</li>
+            </ul>
+          </div>
+          <div class="surface">
+            <h3 style="margin-top:0"><span class="dot"></span>Spacing</h3>
+            <ul class="clean" style="margin-top:0">
+              <li><b>4px base</b> — scale steps only (2px for fine tuning).</li>
+              <li>Card padding <code class="inline">p-5</code> (20px); gutters 16–24px.</li>
+              <li>Compose with gap / space-*, not manual margins.</li>
+              <li>Reserve <code class="inline">--bottom-nav-h</code> on mobile.</li>
+            </ul>
+          </div>
+          <div class="surface">
+            <h3 style="margin-top:0"><span class="dot"></span>Component consistency</h3>
+            <ul class="clean" style="margin-top:0">
+              <li>Radii: controls <b>12px</b>, cards <b>16px</b>, pills full.</li>
+              <li>Use defined button variants; visible violet focus ring on all.</li>
+              <li>Cards follow the genre-gradient recipe exactly.</li>
+              <li>Build on Radix primitives — don't hand-roll a11y.</li>
+              <li>Motion restrained: 0.2–0.3s ease-out, subtle lift + glow.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="surface" style="margin-top:14px">
+          <h3 style="margin-top:0"><span class="dot"></span>Accessibility</h3>
+          <ul class="clean" style="margin-top:0">
+            <li><b>Audit slate-400 <code class="inline">#94a3b8</code></b> on dark surfaces — near the AA threshold for small text. Reserve for ≥14px / non-critical copy; step up to <code class="inline">#ede8f5</code> for anything essential.</li>
+            <li>Verify each genre <code class="inline">-400</code> text colour against its card floor for body-sized text; prefer them for labels/icons.</li>
+            <li>Never remove the violet focus ring (2px + offset); keep ≥44×44px tap targets in the bottom nav.</li>
+            <li>Respect <code class="inline">prefers-reduced-motion</code>; keep <code class="inline">lang="nl"</code> and real heading hierarchy; label icon-only buttons.</li>
+            <li>Disabled at 0.5 opacity can fail contrast — pair with <code class="inline">cursor:not-allowed</code> + supporting text.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 14 CONFIDENCE -->
+      <section id="confidence" style="border-bottom:0">
+        <div class="sec-head"><span class="num">14</span><h2>Confidence Report</h2></div>
+        <p class="lead">Every major finding rated <span class="badge b-obs">Observed</span> (read from CSS/DOM/source), <span class="badge b-inf">Inferred</span> (derived from tokens + conventions), or <span class="badge b-est">Estimated</span> (reasoned reconstruction).</p>
+        <div class="surface" style="padding:6px 24px;margin-top:24px">
+          <table>
+            <thead><tr><th>Finding</th><th>Status</th><th style="width:130px">Confidence</th></tr></thead>
+            <tbody id="conf-body"></tbody>
+          </table>
+        </div>
+        <div class="note"><b>Re-validate before sign-off:</b> the authenticated form fields (§8), the tablet grid (§4), and the H1 spec (§3) were not exposed on the public shell — those carry the lowest confidence. Point me at an authenticated/inner page to convert them from estimates to measured values.</div>
+      </section>
+
+      <p style="text-align:center;color:var(--muted);font-size:12.5px;margin-top:56px">
+        Reverse-engineered from <a href="https://h-orbit.nl">h-orbit.nl</a> · compiled CSS, rendered DOM (1440px &amp; 390px) and confirmed source tokens.<br>
+        H-Orbit House Style Guide · rendered in the product's own design language.
+      </p>
+    </div>
+  </main>
+</div>
+
+<script>
+  /* ---------- data ---------- */
+  const primary=[
+    {n:"Primary / Accent / Ring",hex:"#7c3aed",rgb:"124, 58, 237",use:"Primary CTA, active states, focus rings, links — the one true brand colour."},
+    {n:"Primary Foreground",hex:"#ffffff",rgb:"255, 255, 255",use:"Text & icons on violet surfaces."},
+    {n:"Violet 500 (glow)",hex:"#8b5cf6",rgb:"139, 92, 246",use:"Ambient glow, halos, scrollbar hover, ring tints."},
+    {n:"Violet 700 (deep)",hex:"#6d28d9",rgb:"109, 40, 217",use:"Bottom ambient glow, deep gradient stops."},
+  ];
+  const surface=[
+    {n:"orbit-950 · Background",hex:"#1a1528",rgb:"26, 21, 40",use:"App canvas, theme-color, deepest surface."},
+    {n:"orbit-900 · Card / Popover",hex:"#231d3a",rgb:"35, 29, 58",use:"Cards, popovers, dialogs, scrollbar track."},
+    {n:"orbit-800 · Elevated / Muted",hex:"#2d2750",rgb:"45, 39, 80",use:"Hover/raised surfaces, secondary, scrollbar thumb."},
+    {n:"orbit-700",hex:"#38325f",rgb:"56, 50, 95",use:"Highest neutral surface, hairline accents."},
+  ];
+  const text=[
+    {n:"Foreground",hex:"#ede8f5",rgb:"237, 232, 245",use:"Default body text — near-white lavender."},
+    {n:"Heading white",hex:"#ffffff",rgb:"255, 255, 255",use:"All headings render pure white."},
+    {n:"Muted (slate-400)",hex:"#94a3b8",rgb:"148, 163, 184",use:"Secondary copy, nav, metadata."},
+    {n:"Card floor",hex:"#0c0916",rgb:"12, 9, 22",use:"Dark terminal stop inside card gradients."},
+  ];
+  const semantic=[
+    {n:"Success",hex:"#22c55e",rgb:"34, 197, 94",use:"Positive/confirm (green genre; no dedicated token)."},
+    {n:"Warning",hex:"#f59e0b",rgb:"245, 158, 11",use:"Warnings, events accent, ambient top-right glow."},
+    {n:"Error / Destructive",hex:"#dc2626",rgb:"220, 38, 38",use:"Errors & destructive actions — the one semantic token."},
+    {n:"Radio red",hex:"#ef4444",rgb:"239, 68, 68",use:"Radio category accent, error glow shadows."},
+  ];
+  const genres=[
+    ["purple","#c084fc"],["violet","#8b5cf6"],["fuchsia","#d946ef"],["pink","#ec4899"],
+    ["rose","#f43f5e"],["red","#ef4444"],["orange","#f97316"],["amber","#f59e0b"],
+    ["yellow","#eab308"],["lime","#84cc16"],["green","#22c55e"],["emerald","#10b981"],
+    ["teal","#14b8a6"],["cyan","#06b6d4"],["sky","#0ea5e9"],["blue","#3b82f6"],
+    ["indigo","#6366f1"],["slate ·fallback","#64748b"]
+  ];
+  const spacing=[
+    ["XXS · 0.5","2px",2],["XS · 1","4px",4],["S · 2","8px",8],["M · 3","12px",12],
+    ["L · 4","16px",16],["XL · 5  (card)","20px",20],["XXL · 6","24px",24],["XXXL · 8","32px",32],["XXXXL · 10","40px",40]
+  ];
+  const conf=[
+    ["Font = Space Grotesk (300–700)","obs",100],["Dark-only theme",":root===.dark","obs",100],
+    ["Core HSL tokens","obs",100],["Primary action = #7c3aed","obs",100],
+    ["Background canonical #1a1528 (vs HSL drift)","obs",95],["Orbit neutral ramp","obs",100],
+    ["Foreground #ede8f5 · muted slate-400","obs",95],["17-hue genre palette + roles","obs",98],
+    ["Genre −400/−500 hex values","inf",95],["Ambient triple radial gradient","obs",100],
+    ["Scrollbar spec","obs",100],["Type scale (xs–6xl)","obs",98],
+    ["Heading roles (H2 30px/700)","obs",95],["H1 / H3 / H4 exact specs","est",65],
+    ["Button specs","obs",95],["Card recipe (16px, 145° gradient)","obs",98],
+    ["Genre→category mapping","obs",95],["Border-radius scale","obs",100],
+    ["Shadow ramp","obs",95],["Coloured glows / logo halo","obs",90],
+    ["Spacing scale (4px base)","obs",95],["Breakpoints (640–1280)","obs",100],
+    ["Container max-w-7xl","inf",85],["Desktop / mobile layout","obs",95],
+    ["Tablet layout (2-col)","est",70],["Mobile bottom nav (4.5rem)","obs",90],
+    ["Header scroll/blur","inf",80],["Form/input specs","inf",75],
+    ["Footer","inf",70],["Iconography (Lucide-style)","obs",85],
+    ["Motion (durations/easings)","obs",90],["Tailwind config reconstruction","inf",85],
+    ["Brand voice / Dutch content","obs",95]
+  ].map(r=>r.length===4?[r[0]+" — "+r[1],r[2],r[3]]:r);
+
+  /* ---------- render ---------- */
+  const toast=(m)=>{const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1400);};
+  const copy=(txt)=>{navigator.clipboard?.writeText(txt).then(()=>toast('Copied  '+txt)).catch(()=>toast('Copy failed'));};
+
+  function swatchHTML(c){
+    const dark = ["#1a1528","#231d3a","#0c0916","#2d2750","#38325f"].includes(c.hex);
+    const checker = c.hex==="#ffffff" ? "checker" : "";
+    return `<div class="swatch" data-hex="${c.hex}">
+      <div class="chip ${checker}" style="background:${c.hex}"><span class="copy">copy</span></div>
+      <div class="body"><div class="name">${c.n}</div><div class="hex">${c.hex}</div><div class="rgb">rgb(${c.rgb})</div><div class="use">${c.use}</div></div>
+    </div>`;
+  }
+  const put=(id,arr)=>document.getElementById(id).innerHTML=arr.map(swatchHTML).join('');
+  put('grid-primary',primary);put('grid-surface',surface);put('grid-text',text);put('grid-semantic',semantic);
+
+  document.getElementById('genre-grid').innerHTML=genres.map(([n,hex])=>
+    `<div class="genre" data-hex="${hex}"><span class="gd" style="background:${hex};box-shadow:0 0 10px ${hex}"></span><span class="gn">${n}</span><span class="gh">${hex}</span></div>`).join('');
+
+  document.getElementById('spacing-scale').innerHTML=spacing.map(([l,px,w])=>
+    `<div class="scale-row"><div class="label"><b>${l}</b></div><div class="scale-bar" style="width:${Math.max(w*5,12)}px"></div><div class="label" style="width:auto">${px}</div></div>`).join('');
+
+  document.getElementById('conf-body').innerHTML=conf.map(([f,s,p])=>{
+    const cls=s==='obs'?'b-obs':s==='inf'?'b-inf':'b-est';
+    const lbl=s==='obs'?'Observed':s==='inf'?'Inferred':'Estimated';
+    return `<tr><td>${f}</td><td><span class="badge ${cls}">${lbl}</span></td>
+      <td><div class="conf"><div class="track"><div class="fill" style="width:${p}%"></div></div><span class="pct">${p}%</span></div></td></tr>`;
+  }).join('');
+
+  /* clicks */
+  document.querySelectorAll('.swatch,.genre').forEach(el=>el.addEventListener('click',()=>copy(el.dataset.hex)));
+  document.querySelectorAll('.cp').forEach(b=>b.addEventListener('click',()=>{
+    const pre=document.querySelector(b.dataset.copy);copy('snippet');navigator.clipboard?.writeText(pre.innerText);toast('Copied snippet');
+  }));
+
+  /* scrollspy */
+  const links=[...document.querySelectorAll('#nav a')];
+  const map=Object.fromEntries(links.map(a=>[a.getAttribute('href').slice(1),a]));
+  const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){links.forEach(l=>l.classList.remove('active'));map[e.target.id]?.classList.add('active');}});},{rootMargin:'-20% 0px -70% 0px'});
+  document.querySelectorAll('section').forEach(s=>obs.observe(s));
+  document.querySelectorAll('#nav a').forEach(a=>a.addEventListener('click',()=>document.getElementById('toc').classList.remove('open')));
+</script>
+</body>
+</html>

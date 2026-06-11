@@ -14,4 +14,7 @@ Disallow: /hub
 Disallow: /bandspace
 Disallow: /admin
 
+# Internal — house style guide, not for indexing
+Disallow: /style-guide.html
+
 Sitemap: https://h-orbit.nl/sitemap.xml
