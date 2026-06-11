@@ -248,7 +248,6 @@
       <a href="#cssvars"><span class="n">11</span>CSS-variabelen</a>
       <a href="#tailwind"><span class="n">12</span>Tailwind-configuratie</a>
       <a href="#rules"><span class="n">13</span>Ontwikkelaarsregels</a>
-      <a href="#confidence"><span class="n">14</span>Betrouwbaarheidsrapport</a>
     </nav>
   </aside>
 
@@ -259,7 +258,7 @@
       <header class="hero" id="top">
         <p class="eyebrow">Merk &amp; Huisstijl · v1.0</p>
         <h1>H-Orbit<br>Huisstijlgids</h1>
-        <p class="tag">Officiële documentatie voor het herbouwen van <a href="https://h-orbit.nl">h-orbit.nl</a> en het bewaken van visuele consistentie in toekomstige producten — het platform voor Nederlandse muziek, artiesten en fans.</p>
+        <p class="tag">Designsysteem van <a href="https://h-orbit.nl">h-orbit.nl</a> — kleuren, typografie, componenten en tokens. Referentie voor development en marketing.</p>
         <p class="tagline">Ontdek · Luister · Beleef</p>
         <div class="meta-row">
           <span class="pill"><b>Stack</b> Vite · React · Tailwind v3</span>
@@ -273,16 +272,16 @@
       <!-- 01 OVERZICHT -->
       <section id="overview">
         <div class="sec-head"><span class="num">01</span><h2>Merkoverzicht</h2></div>
-        <p class="lead">H-Orbit is een kosmisch, community-gedreven muziekuniversum voor de Nederlandse scene. De "orbit"-metafoor loopt overal doorheen: een diep ruimteviolet canvas, een logo met baanringen, en een bento-raster van gloeiende categoriekaarten die aanvoelen als planeten in een systeem waar de gebruiker doorheen navigeert.</p>
+        <p class="lead">H-Orbit is een platform voor Nederlandse muziek, artiesten en fans. De stijl is donker en violet, met een bento-raster van categoriekaarten in genrekleuren.</p>
 
         <div class="grid cols-2" style="margin-top:28px">
           <div class="surface">
             <h3 style="margin-top:0"><span class="dot"></span>Persoonlijkheid</h3>
-            <p style="color:var(--muted);font-size:14px;margin:0">Modern, energiek, scene-eigen en licht underground — dichter bij een creatief collectief of muziekblad dan bij een zakelijke streamingdienst. Het spreekt artiesten, bands en fans aan als insiders.</p>
+            <p style="color:var(--muted);font-size:14px;margin:0">Modern en informeel, dichter bij een muziekblad dan bij een zakelijke streamingdienst. Voor artiesten, bands en fans.</p>
           </div>
           <div class="surface">
             <h3 style="margin-top:0"><span class="dot"></span>Tone of voice</h3>
-            <p style="color:var(--muted);font-size:14px;margin:0">Nederlands, informeel, direct, in de je-vorm (<i>je / jouw</i>). Korte, werkwoord-gedreven labels met een belofte van één regel. Uitnodigend en participatief — nooit klinisch, nooit corporate.</p>
+            <p style="color:var(--muted);font-size:14px;margin:0">Nederlands, informeel, in de je-vorm (<i>je / jouw</i>). Korte labels, actieve werkwoorden. Geen corporate taal.</p>
           </div>
           <div class="surface">
             <h3 style="margin-top:0"><span class="dot"></span>Belangrijkste ontwerpkenmerken</h3>
@@ -296,7 +295,7 @@
           </div>
           <div class="surface">
             <h3 style="margin-top:0"><span class="dot"></span>Visuele identiteit in het kort</h3>
-            <p style="color:var(--muted);font-size:14px;margin:0">Een donkerviolette, gloeiende, raster-eerste interface die aanvoelt als een interactieve sterrenhemel. Vette witte geometrische koppen, één elektrisch-violette CTA, dunne uniforme lijn-iconen, ingetogen beweging. De indruk: <b style="color:var(--fg)">premium-indie, nachtelijk, muziekgedreven.</b></p>
+            <p style="color:var(--muted);font-size:14px;margin:0">Donker violet, rastergedreven. Witte koppen, één violette CTA, dunne lijn-iconen, ingetogen beweging.</p>
           </div>
         </div>
       </section>
@@ -304,7 +303,7 @@
       <!-- 02 KLEUR -->
       <section id="colour">
         <div class="sec-head"><span class="num">02</span><h2>Kleurenpalet</h2></div>
-        <p class="lead">Opgezet als HSL-component-tripletten in CSS custom properties (shadcn-model), gebruikt via <code class="inline">hsl(var(--token))</code>. Klik op een staal om de hex te kopiëren.</p>
+        <p class="lead">HSL-tokens in CSS custom properties (shadcn-model), gebruikt via <code class="inline">hsl(var(--token))</code>. Klik op een staal om de hex te kopiëren.</p>
 
         <h3><span class="dot"></span>Primair &amp; Accent</h3>
         <div class="grid cols-4" id="grid-primary"></div>
@@ -318,7 +317,7 @@
         <h3><span class="dot"></span>Semantisch — Succes · Waarschuwing · Fout</h3>
         <div class="grid cols-4" id="grid-semantic"></div>
 
-        <div class="note warn"><b>Achtergrondafwijking, gemarkeerd:</b> de <code class="inline">--background</code> HSL-token <code class="inline">222 21% 13%</code> levert wiskundig <code class="inline">#1a1e28</code> op (blauwgrijs), maar de merkschaal, <code class="inline">theme-color</code> en <code class="inline">orbit-950</code> definiëren hem allemaal als <code class="inline">#1a1528</code> (paars). Behandel <code class="inline">#1a1528</code> als canoniek en corrigeer de token bij de bron.</div>
+        <div class="note warn"><b>Let op — achtergrondafwijking:</b> de <code class="inline">--background</code> token <code class="inline">222 21% 13%</code> rendert als <code class="inline">#1a1e28</code> (blauwgrijs), terwijl <code class="inline">orbit-950</code> en <code class="inline">theme-color</code> <code class="inline">#1a1528</code> (paars) gebruiken. Gebruik <code class="inline">#1a1528</code> en corrigeer de token.</div>
 
         <h3><span class="dot"></span>Genrepalet — inhoudstaxonomie (17 tinten + slate-fallback)</h3>
         <p style="color:var(--muted);font-size:13.5px;margin:0 0 16px">Elk genre kent vier rollen: <code class="inline">bg</code> = tint/20 · <code class="inline">text</code> = tint-400 · <code class="inline">border</code> = tint/30 · <code class="inline">dot</code> = tint-500. Hieronder de dot.</p>
@@ -348,7 +347,7 @@
       <!-- 03 TYPE -->
       <section id="type">
         <div class="sec-head"><span class="num">03</span><h2>Typografie</h2></div>
-        <p class="lead">Eén lettertype door het hele product: <b style="color:var(--fg)">Space Grotesk</b> (Google Fonts, gewichten 300–700), fallback <code class="inline">system-ui, sans-serif</code>, antialiased. Geometrische grotesk met een licht technisch, "orbitaal" karakter.</p>
+        <p class="lead">Eén lettertype: <b style="color:var(--fg)">Space Grotesk</b> (Google Fonts, gewichten 300–700), fallback <code class="inline">system-ui, sans-serif</code>.</p>
 
         <div class="surface" style="margin-top:24px">
           <div class="specimen">
@@ -389,7 +388,7 @@
       <!-- 04 LAY-OUT -->
       <section id="layout">
         <div class="sec-head"><span class="num">04</span><h2>Lay-outsysteem</h2></div>
-        <p class="lead">Een responsief bento-raster gebouwd op Tailwind grid/flex-utilities, gecentreerd in een container met maximale breedte. Standaard Tailwind-breekpunten zijn actief.</p>
+        <p class="lead">Responsief bento-raster op Tailwind grid/flex, gecentreerd in een max-width container. Standaard Tailwind-breekpunten.</p>
         <div class="grid cols-2" style="margin-top:24px">
           <div class="surface">
             <h3 style="margin-top:0"><span class="dot"></span>Container &amp; raster</h3>
@@ -420,7 +419,7 @@
       <!-- 05 WITRUIMTE -->
       <section id="spacing">
         <div class="sec-head"><span class="num">05</span><h2>Witruimtesysteem</h2></div>
-        <p class="lead">Standaard Tailwind-schaal op 4px-basis (bevestigd uit gecompileerde gap/padding-waarden). Stel samen in veelvouden van 4, met 2px voor fijnafstemming.</p>
+        <p class="lead">Tailwind-schaal op 4px-basis. Werk in veelvouden van 4, met 2px voor fijnafstemming.</p>
         <div class="surface" style="margin-top:24px" id="spacing-scale"></div>
       </section>
 
@@ -466,7 +465,7 @@
       <!-- 08 COMPONENTEN -->
       <section id="components">
         <div class="sec-head"><span class="num">08</span><h2>Componenten</h2></div>
-        <p class="lead">Live previews opgebouwd uit de echte tokens — deze renderen precies zoals het systeem voorschrijft.</p>
+        <p class="lead">Live previews van de echte componenten.</p>
 
         <h3><span class="dot"></span>Knoppen</h3>
         <div class="surface">
@@ -509,7 +508,6 @@
               <tr><td>Focus</td><td>violette ring #7c3aed</td></tr>
               <tr><td style="border:0">Fout</td><td style="border:0">rand + ring #dc2626</td></tr>
             </table>
-            <p style="font-size:12px;color:var(--muted);margin:14px 0 0"><span class="badge b-inf">Afgeleid</span> uit tokens + Radix-model — ingelogde formulieren niet zichtbaar op de publieke schil.</p>
           </div>
         </div>
 
@@ -561,12 +559,11 @@
       <section id="imagery">
         <div class="sec-head"><span class="num">09</span><h2>Beeld &amp; Visuele Stijl</h2></div>
         <div class="grid cols-3" style="margin-top:24px">
-          <div class="surface"><h3 style="margin-top:0"><span class="dot"></span>Iconografie</h3><p style="color:var(--muted);font-size:13.5px;margin:0">Dunne lijn, uniforme streekdikte (Lucide-stijl). Monochroom, getint naar de genrekleur van elke kaart, in een afgeronde tegel van 12px.</p></div>
-          <div class="surface"><h3 style="margin-top:0"><span class="dot"></span>Illustratie</h3><p style="color:var(--muted);font-size:13.5px;margin:0">Abstracte kosmische / orbitale motieven — concentrische ringen, vage gestippelde sterrenbeelden. Geometrisch, lage dekking, decoratief.</p></div>
-          <div class="surface"><h3 style="margin-top:0"><span class="dot"></span>Beeldbewerking</h3><p style="color:var(--muted);font-size:13.5px;margin:0">Donker, low-key. Genre-gekleurd 145°-verloop over een bijna-zwarte bodem. Sterke doorschijnendheid en backdrop blur (glassmorphism-light).</p></div>
-          <div class="surface"><h3 style="margin-top:0"><span class="dot"></span>Grafische elementen</h3><p style="color:var(--muted);font-size:13.5px;margin:0">Gloeiende radiale sfeervelden, haarlijn witte/10 randen, gekleurde gloeischaduwen, pil-/dot-indicatoren in genrekleuren.</p></div>
-          <div class="surface"><h3 style="margin-top:0"><span class="dot"></span>Decoratief patroon</h3><p style="color:var(--muted);font-size:13.5px;margin:0">Baanringen en gestippelde knooppuntmotieven. De "orbit"-metafoor is de verbindende decoratieve taal.</p></div>
-          <div class="surface"><h3 style="margin-top:0"><span class="dot"></span>Logo</h3><p style="color:var(--muted);font-size:13.5px;margin:0">Geclusterd, overlappend merkteken van baanringen in een violet verloop met een violette halo, gecombineerd met het kleine-letters woordmerk <b style="color:var(--fg)">h-orbit</b>.</p></div>
+          <div class="surface"><h3 style="margin-top:0"><span class="dot"></span>Iconografie</h3><p style="color:var(--muted);font-size:13.5px;margin:0">Dunne lijn-iconen (Lucide). Getint naar de genrekleur, in een afgeronde tegel van 12px.</p></div>
+          <div class="surface"><h3 style="margin-top:0"><span class="dot"></span>Illustratie</h3><p style="color:var(--muted);font-size:13.5px;margin:0">Concentrische ringen en gestippelde patronen. Geometrisch, lage dekking, decoratief.</p></div>
+          <div class="surface"><h3 style="margin-top:0"><span class="dot"></span>Beeldbewerking</h3><p style="color:var(--muted);font-size:13.5px;margin:0">Donker. Genre-gekleurd 145°-verloop over een bijna-zwarte bodem, met backdrop blur.</p></div>
+          <div class="surface"><h3 style="margin-top:0"><span class="dot"></span>Grafische elementen</h3><p style="color:var(--muted);font-size:13.5px;margin:0">Radiale sfeervelden, haarlijnranden (wit/10), gekleurde gloeischaduwen, dot-indicatoren in genrekleuren.</p></div>
+          <div class="surface"><h3 style="margin-top:0"><span class="dot"></span>Logo</h3><p style="color:var(--muted);font-size:13.5px;margin:0">Violet merkteken met halo, met het kleine-letters woordmerk <b style="color:var(--fg)">h-orbit</b>.</p></div>
         </div>
       </section>
 
@@ -607,7 +604,7 @@
       <!-- 11 CSS VARS -->
       <section id="cssvars">
         <div class="sec-head"><span class="num">11</span><h2>CSS-variabelen</h2></div>
-        <p class="lead">Productieklaar, trouw aan het geleverde HSL-token-model met de gecorrigeerde canonieke achtergrond.</p>
+        <p class="lead">Het HSL-token-model met de gecorrigeerde achtergrond.</p>
         <div class="code">
           <div class="bar"><span class="fn">globals.css</span><button class="cp" data-copy="#code-css">Kopiëren</button></div>
 <pre id="code-css"><span class="c">/* Alleen-donker thema — :root === .dark */</span>
@@ -645,7 +642,7 @@
       <!-- 12 TAILWIND -->
       <section id="tailwind">
         <div class="sec-head"><span class="num">12</span><h2>Tailwind-configuratie</h2></div>
-        <p class="lead">shadcn-compatibel thema, gereconstrueerd uit de build.</p>
+        <p class="lead">shadcn-compatibel thema.</p>
         <div class="code">
           <div class="bar"><span class="fn">tailwind.config.js</span><button class="cp" data-copy="#code-tw">Kopiëren</button></div>
 <pre id="code-tw"><span class="k">module.exports</span> = {
@@ -729,22 +726,8 @@
         </div>
       </section>
 
-      <!-- 14 BETROUWBAARHEID -->
-      <section id="confidence" style="border-bottom:0">
-        <div class="sec-head"><span class="num">14</span><h2>Betrouwbaarheidsrapport</h2></div>
-        <p class="lead">Elke belangrijke bevinding beoordeeld als <span class="badge b-obs">Waargenomen</span> (uit CSS/DOM/broncode), <span class="badge b-inf">Afgeleid</span> (uit tokens + conventies), of <span class="badge b-est">Geschat</span> (beredeneerde reconstructie).</p>
-        <div class="surface" style="padding:6px 24px;margin-top:24px">
-          <table>
-            <thead><tr><th>Bevinding</th><th>Status</th><th style="width:130px">Betrouwbaarheid</th></tr></thead>
-            <tbody id="conf-body"></tbody>
-          </table>
-        </div>
-        <div class="note"><b>Hervalideer vóór oplevering:</b> de ingelogde formuliervelden (§8), het tablet-raster (§4) en de H1-specificatie (§3) waren niet zichtbaar op de publieke schil — die hebben de laagste betrouwbaarheid. Wijs me een ingelogde/interne pagina aan om ze van schattingen naar gemeten waarden om te zetten.</div>
-      </section>
-
       <p style="text-align:center;color:var(--muted);font-size:12.5px;margin-top:56px">
-        Gereconstrueerd vanaf <a href="https://h-orbit.nl">h-orbit.nl</a> · gecompileerde CSS, gerenderde DOM (1440px &amp; 390px) en bevestigde brontokens.<br>
-        H-Orbit Huisstijlgids · weergegeven in de eigen ontwerptaal van het product.
+        H-Orbit Huisstijlgids · intern document voor development en marketing.
       </p>
     </div>
   </main>
@@ -787,25 +770,6 @@
     ["XXS · 0.5","2px",2],["XS · 1","4px",4],["S · 2","8px",8],["M · 3","12px",12],
     ["L · 4","16px",16],["XL · 5  (kaart)","20px",20],["XXL · 6","24px",24],["XXXL · 8","32px",32],["XXXXL · 10","40px",40]
   ];
-  const conf=[
-    ["Lettertype = Space Grotesk (300–700)","obs",100],["Alleen-donker thema",":root===.dark","obs",100],
-    ["Kern-HSL-tokens","obs",100],["Primaire actie = #7c3aed","obs",100],
-    ["Achtergrond canoniek #1a1528 (vs HSL-afwijking)","obs",95],["Orbit neutrale schaal","obs",100],
-    ["Voorgrond #ede8f5 · gedempt slate-400","obs",95],["Genrepalet van 17 tinten + rollen","obs",98],
-    ["Genre −400/−500 hex-waarden","inf",95],["Drievoudig radiaal sfeerverloop","obs",100],
-    ["Scrollbalk-spec","obs",100],["Typeschaal (xs–6xl)","obs",98],
-    ["Koprollen (H2 30px/700)","obs",95],["H1 / H3 / H4 exacte specs","est",65],
-    ["Knop-specs","obs",95],["Kaartrecept (16px, 145°-verloop)","obs",98],
-    ["Genre→categorie-koppeling","obs",95],["Hoekafrondingsschaal","obs",100],
-    ["Schaduwschaal","obs",95],["Gekleurde gloeden / logo-halo","obs",90],
-    ["Witruimteschaal (4px-basis)","obs",95],["Breekpunten (640–1280)","obs",100],
-    ["Container max-w-7xl","inf",85],["Desktop / mobiele lay-out","obs",95],
-    ["Tablet-lay-out (2-koloms)","est",70],["Mobiele onderbalk (4.5rem)","obs",90],
-    ["Header scroll/blur","inf",80],["Formulier/invoer-specs","inf",75],
-    ["Footer","inf",70],["Iconografie (Lucide-stijl)","obs",85],
-    ["Beweging (duur/easings)","obs",90],["Tailwind-config-reconstructie","inf",85],
-    ["Merkstem / Nederlandse content","obs",95]
-  ].map(r=>r.length===4?[r[0]+" — "+r[1],r[2],r[3]]:r);
 
   /* ---------- render ---------- */
   const toast=(m)=>{const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1400);};
@@ -827,13 +791,6 @@
 
   document.getElementById('spacing-scale').innerHTML=spacing.map(([l,px,w])=>
     `<div class="scale-row"><div class="label"><b>${l}</b></div><div class="scale-bar" style="width:${Math.max(w*5,12)}px"></div><div class="label" style="width:auto">${px}</div></div>`).join('');
-
-  document.getElementById('conf-body').innerHTML=conf.map(([f,s,p])=>{
-    const cls=s==='obs'?'b-obs':s==='inf'?'b-inf':'b-est';
-    const lbl=s==='obs'?'Waargenomen':s==='inf'?'Afgeleid':'Geschat';
-    return `<tr><td>${f}</td><td><span class="badge ${cls}">${lbl}</span></td>
-      <td><div class="conf"><div class="track"><div class="fill" style="width:${p}%"></div></div><span class="pct">${p}%</span></div></td></tr>`;
-  }).join('');
 
   /* clicks */
   document.querySelectorAll('.swatch,.genre').forEach(el=>el.addEventListener('click',()=>copy(el.dataset.hex)));
