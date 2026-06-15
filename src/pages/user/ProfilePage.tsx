@@ -6,7 +6,7 @@ import { useAuth } from '@context/AuthContext';
 import UserAvatar from '@components/UserAvatar';
 import { useAppState } from '@context/AppStateContext';
 import { supabase } from '@/lib/supabase';
-import { mapProfileToArtist } from '@utils/artistHelpers';
+import { mapProfileToArtist, countFollowing } from '@utils/artistHelpers';
 import { getUploadedTracks, type UploadedTrack } from '@services/uploadService';
 import { getOrCreateConversation } from '@services/chatService';
 import { shareContent, buildShareUrl } from '@utils/share';
@@ -47,6 +47,8 @@ export default function ProfilePage() {
   const [otherProfile, setOtherProfile] = useState<any>(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [followerList, setFollowerList] = useState<any[]>([]);
+  // Following count for *other* profiles (own-profile following = followedArtists.length).
+  const [otherFollowingCount, setOtherFollowingCount] = useState(0);
 
   const isOwnProfile = !username || username === currentUser?.username;
   const navigate = useNavigate();
@@ -155,6 +157,42 @@ export default function ProfilePage() {
     })();
   }, [isOwnProfile, currentUser?.id, otherProfile?.id]);
 
+  // For other profiles, fetch how many entities they follow (own-profile following
+  // is just followedArtists.length, which is always live). Source of truth is the
+  // user_following_artists junction table, not the drift-prone cached columns.
+  useEffect(() => {
+    if (isOwnProfile || !otherProfile?.id) { setOtherFollowingCount(0); return; }
+    let active = true;
+    countFollowing(otherProfile.id).then((c) => { if (active) setOtherFollowingCount(c); });
+    return () => { active = false; };
+  }, [isOwnProfile, otherProfile?.id]);
+
+  // Follow/unfollow another profile, updating their follower list optimistically so
+  // the count reflects instantly without racing the insert in toggleFollow.
+  function handleFollowOther() {
+    if (!otherProfile) return;
+    const willFollow = !isFollowingOther;
+    toggleFollow(otherProfile.id);
+    setFollowerList((prev) => {
+      if (willFollow) {
+        if (!currentUser?.id || prev.some((f) => f.id === currentUser.id)) return prev;
+        return [...prev, {
+          id: currentUser.id,
+          username: currentUser.username,
+          display_name: currentUser.displayName,
+          avatar_url: currentUser.avatar,
+          role: currentUser.role,
+        }];
+      }
+      return prev.filter((f) => f.id !== currentUser?.id);
+    });
+  }
+
+  // Follower count = the live follower list length (loaded from the junction table
+  // above); following count = own follows, or the queried count for other profiles.
+  const followersCount = followerList.length;
+  const followingCount = isOwnProfile ? followedArtists.length : otherFollowingCount;
+
   const profileUser = isOwnProfile ? currentUser : otherProfile;
 
   if (profileLoading || !profileUser) return (
@@ -165,8 +203,8 @@ export default function ProfilePage() {
     { key: 'nummers', label: 'Nummers', count: uploadedTracks.length },
     { key: 'geliked', label: 'Geliked', count: likedTrackList.length },
     { key: 'evenementen', label: 'Evenementen', count: attendingEventList.length },
-    ...(isOwnProfile ? [{ key: 'volgend', label: 'Volgend', count: followedArtists.length }] : []),
-    { key: 'volgers', label: 'Volgers', count: profileUser.followers ?? 0 },
+    ...(isOwnProfile ? [{ key: 'volgend', label: 'Volgend', count: followingCount }] : []),
+    { key: 'volgers', label: 'Volgers', count: followersCount },
     ...(isOwnProfile && profileUser.role === 'Artiest' ? [{ key: 'dashboard', label: 'Dashboard' }] : []),
     { key: 'over', label: 'Over' },
   ];
@@ -211,7 +249,7 @@ export default function ProfilePage() {
             ) : (
               <>
                 <button
-                  onClick={() => otherProfile && toggleFollow(otherProfile.id)}
+                  onClick={handleFollowOther}
                   className={`font-semibold px-4 py-2 rounded-xl transition-colors border text-sm ${
                     isFollowingOther
                       ? 'border-violet-500 text-violet-400'
@@ -250,11 +288,11 @@ export default function ProfilePage() {
         {/* Statistieken */}
         <div className="flex items-center gap-6 mb-6 flex-wrap">
           <div>
-            <span className="text-white font-bold">{formatNum(profileUser.followers)}</span>
+            <span className="text-white font-bold">{formatNum(followersCount)}</span>
             <span className="text-slate-400 text-sm ml-1.5">volgers</span>
           </div>
           <div>
-            <span className="text-white font-bold">{formatNum(profileUser.following)}</span>
+            <span className="text-white font-bold">{formatNum(followingCount)}</span>
             <span className="text-slate-400 text-sm ml-1.5">volgend</span>
           </div>
           <div className="flex items-center gap-1.5 bg-white/5 text-slate-300 text-xs px-3 py-1.5 rounded-full border border-white/10">
@@ -480,7 +518,7 @@ export default function ProfilePage() {
             <div className="grid sm:grid-cols-3 gap-4">
               {[
                 { label: 'Totale streams', value: formatNum(totalStreams), icon: Play },
-                { label: 'Volgers', value: formatNum(profileUser.followers ?? 0), icon: TrendingUp },
+                { label: 'Volgers', value: formatNum(followersCount), icon: TrendingUp },
                 { label: 'Gepubliceerde nummers', value: String(approvedTracks.length), icon: BarChart2 },
               ].map(({ label, value, icon: Icon }) => (
                 <div key={label} className="bg-white/3 border border-white/5 rounded-2xl p-5">

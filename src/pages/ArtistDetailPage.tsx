@@ -14,7 +14,7 @@ import { getWaveform } from '@components/Waveform';
 import { formatPlays } from '@utils/format';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@components/ui/tabs';
 import { supabase } from '@/lib/supabase';
-import { mapProfileToArtist } from '@utils/artistHelpers';
+import { mapProfileToArtist, countFollowers } from '@utils/artistHelpers';
 import { avatarPlaceholder, coverPlaceholder } from '@utils/placeholder';
 import { normalizeDonationUrl, isTikkieUrl } from '@utils/donation';
 import { getOrCreateConversation } from '@services/chatService';
@@ -29,6 +29,7 @@ export default function ArtistDetailPage() {
   const [uploadedTracks, setUploadedTracks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [startingChat, setStartingChat] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
 
   const { followedArtists, toggleFollow, likedTracks, toggleLike } = useAppState();
   const { user } = useAuth();
@@ -105,6 +106,16 @@ export default function ArtistDetailPage() {
     load();
     return () => { active = false; };
   }, [slug]);
+
+  // Live follower count from the junction table — counts follows recorded under
+  // either the numeric artist id or the linked profile UUID. The follow button
+  // applies an optimistic delta on top of this for instant feedback.
+  useEffect(() => {
+    if (!artist?.id && !artist?.profile_id) return;
+    let active = true;
+    countFollowers([artist?.id, artist?.profile_id]).then((c) => { if (active) setFollowerCount(c); });
+    return () => { active = false; };
+  }, [artist?.id, artist?.profile_id]);
 
   if (loading) return null;
 
@@ -216,7 +227,7 @@ export default function ArtistDetailPage() {
             <div className="flex items-center gap-3 text-sm text-slate-400 flex-wrap">
               <GenreBadge genre={artist.genre} size="md" />
               <span className="flex items-center gap-1"><MapPin size={12} />{artist.location}</span>
-              <span className="flex items-center gap-1"><Users size={12} />{formatPlays(artist.followers_count)} volgers</span>
+              <span className="flex items-center gap-1"><Users size={12} />{formatPlays(followerCount)} volgers</span>
               <span className="flex items-center gap-1"><Music size={12} />{formatPlays(totalPlays)} maandelijkse luisteraars</span>
             </div>
           </div>
@@ -231,10 +242,8 @@ export default function ArtistDetailPage() {
               onClick={() => {
                 const willFollow = !following;
                 toggleFollow(artist.id);
-                setArtist((prev: any) => ({
-                  ...prev,
-                  followers_count: Math.max(0, (prev.followers_count || 0) + (willFollow ? 1 : -1)),
-                }));
+                // Optimistic bump; the junction-table effect reconciles to the real count.
+                setFollowerCount((c) => Math.max(0, c + (willFollow ? 1 : -1)));
                 addToast(following ? `Je volgt ${artist.name} niet meer` : `Je volgt nu ${artist.name}`, following ? 'info' : 'success');
               }}
               className={`font-semibold px-4 py-2 rounded-xl transition-colors border ${

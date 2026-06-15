@@ -59,6 +59,36 @@ export function mapProfileToArtist(p: any) {
   };
 }
 
+// Live follower/following counts read straight from the user_following_artists
+// junction table — the source of truth. The cached *_count columns on profiles
+// and artists drift (they depend on RPCs that may not be deployed), so we never
+// trust them for display.
+
+// Count how many users follow any of the given entity ids. Pass both the artist
+// row id and the linked profile id, since a musician can be followed via either
+// (numeric artist id from the artist page, or profile UUID from the profile page).
+export async function countFollowers(ids: (string | number | null | undefined)[]): Promise<number> {
+  const keys = Array.from(new Set(ids.filter((v) => v !== null && v !== undefined && v !== '').map(String)));
+  if (keys.length === 0) return 0;
+  const { count, error } = await supabase
+    .from('user_following_artists')
+    .select('*', { count: 'exact', head: true })
+    .in('artist_id', keys);
+  if (error) { console.warn('[follows] follower count failed:', error.message); return 0; }
+  return count ?? 0;
+}
+
+// Count how many entities this user follows.
+export async function countFollowing(userId: string | null | undefined): Promise<number> {
+  if (!userId) return 0;
+  const { count, error } = await supabase
+    .from('user_following_artists')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId);
+  if (error) { console.warn('[follows] following count failed:', error.message); return 0; }
+  return count ?? 0;
+}
+
 export async function fetchArtistProfiles(limit = 50): Promise<any[]> {
   const { data, error } = await supabase
     .from('artists')
