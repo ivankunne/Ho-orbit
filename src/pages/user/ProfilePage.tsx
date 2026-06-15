@@ -6,7 +6,7 @@ import { useAuth } from '@context/AuthContext';
 import UserAvatar from '@components/UserAvatar';
 import { useAppState } from '@context/AppStateContext';
 import { supabase } from '@/lib/supabase';
-import { mapProfileToArtist, countFollowing } from '@utils/artistHelpers';
+import { fetchFollowedArtists, countFollowing } from '@utils/artistHelpers';
 import { getUploadedTracks, type UploadedTrack } from '@services/uploadService';
 import { getOrCreateConversation } from '@services/chatService';
 import { shareContent, buildShareUrl } from '@utils/share';
@@ -133,7 +133,9 @@ export default function ProfilePage() {
         supabase.from('events').select('*').in('id', rsvpEvents).then(({ data }) => setAttendingEventList(data ?? []));
       }
       if (followedArtists.length > 0) {
-        supabase.from('profiles').select('*').in('id', followedArtists).then(({ data }) => setFollowedArtistList((data ?? []).map(mapProfileToArtist)));
+        fetchFollowedArtists(followedArtists).then(setFollowedArtistList);
+      } else {
+        setFollowedArtistList([]);
       }
     }
   }, [isOwnProfile, likedTracks.join(','), rsvpEvents.join(','), followedArtists.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps

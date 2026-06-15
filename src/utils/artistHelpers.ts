@@ -89,6 +89,49 @@ export async function countFollowing(userId: string | null | undefined): Promise
   return count ?? 0;
 }
 
+// Resolve a list of followed ids into artist-shaped objects. A follow can be
+// stored as a numeric artists-table id (followed from an artist page) or as a
+// profile UUID (followed from a profile page), so we resolve against both tables
+// and dedupe. Without this, profile-resolution alone silently drops every
+// artist-page follow, leaving the following count and list out of sync.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function fetchFollowedArtists(
+  ids: (string | number | null | undefined)[]
+): Promise<any[]> {
+  const keys = Array.from(
+    new Set(ids.filter((v) => v !== null && v !== undefined && v !== '').map(String))
+  );
+  if (keys.length === 0) return [];
+
+  const profileIds = keys.filter((v) => UUID_RE.test(v));
+  const artistIds = keys.filter((v) => !UUID_RE.test(v));
+
+  const results: any[] = [];
+  const seen = new Set<string>();
+
+  if (artistIds.length > 0) {
+    const { data, error } = await supabase.from('artists').select('*').in('id', artistIds);
+    if (error) console.warn('[follows] artist resolve failed:', error.message);
+    for (const a of data ?? []) {
+      results.push(mapArtistRow(a));
+      seen.add(String(a.id));
+      if (a.profile_id) seen.add(String(a.profile_id));
+    }
+  }
+
+  if (profileIds.length > 0) {
+    const remaining = profileIds.filter((id) => !seen.has(id));
+    if (remaining.length > 0) {
+      const { data, error } = await supabase.from('profiles').select('*').in('id', remaining);
+      if (error) console.warn('[follows] profile resolve failed:', error.message);
+      for (const p of data ?? []) results.push(mapProfileToArtist(p));
+    }
+  }
+
+  return results;
+}
+
 export async function fetchArtistProfiles(limit = 50): Promise<any[]> {
   const { data, error } = await supabase
     .from('artists')
