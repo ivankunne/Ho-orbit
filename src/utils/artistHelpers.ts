@@ -173,6 +173,35 @@ export async function fetchFollowedArtists(
   return results;
 }
 
+// Live follower counts for a batch of numeric artist ids, tallied from the
+// junction table in one query. Used to override the drift-prone cached
+// artists.followers_count so list views match the detail page (which uses
+// countFollowers). Returns a map of artist id (string) -> count.
+export async function fetchFollowerCounts(
+  artistIds: (string | number | null | undefined)[]
+): Promise<Record<string, number>> {
+  const ids = Array.from(
+    new Set(
+      artistIds
+        .filter((v) => v !== null && v !== undefined && v !== '')
+        .map(String)
+        .filter((v) => /^\d+$/.test(v))
+    )
+  );
+  if (ids.length === 0) return {};
+  const { data, error } = await supabase
+    .from('user_following_artists')
+    .select('artist_id')
+    .in('artist_id', ids);
+  if (error) { console.warn('[follows] batch follower count failed:', error.message); return {}; }
+  const counts: Record<string, number> = {};
+  for (const row of data ?? []) {
+    const key = String((row as any).artist_id);
+    counts[key] = (counts[key] ?? 0) + 1;
+  }
+  return counts;
+}
+
 export async function fetchArtistProfiles(limit = 50): Promise<any[]> {
   const { data, error } = await supabase
     .from('artists')
@@ -184,9 +213,16 @@ export async function fetchArtistProfiles(limit = 50): Promise<any[]> {
     return [];
   }
 
-  return (data ?? [])
-    .map(mapArtistRow)
-    .sort((a, b) => b.followers_count - a.followers_count);
+  const artists = (data ?? []).map(mapArtistRow);
+
+  // Override the cached followers_count with the live junction-table count so
+  // every list view is consistent with the detail page and sorts correctly.
+  const counts = await fetchFollowerCounts(artists.map((a) => a.id));
+  for (const a of artists) {
+    a.followers_count = counts[String(a.id)] ?? 0;
+  }
+
+  return artists.sort((a, b) => b.followers_count - a.followers_count);
 }
 
 // Upsert a profile into the artists table whenever they upload or get approved
