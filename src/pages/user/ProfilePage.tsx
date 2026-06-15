@@ -6,7 +6,7 @@ import { useAuth } from '@context/AuthContext';
 import UserAvatar from '@components/UserAvatar';
 import { useAppState } from '@context/AppStateContext';
 import { supabase } from '@/lib/supabase';
-import { fetchFollowedArtists, countFollowing } from '@utils/artistHelpers';
+import { fetchFollowedArtists, fetchFollowerProfiles, countFollowing } from '@utils/artistHelpers';
 import { getUploadedTracks, type UploadedTrack } from '@services/uploadService';
 import { getOrCreateConversation } from '@services/chatService';
 import { shareContent, buildShareUrl } from '@utils/share';
@@ -140,23 +140,17 @@ export default function ProfilePage() {
     }
   }, [isOwnProfile, likedTracks.join(','), rsvpEvents.join(','), followedArtists.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Load the list of users that follow this profile
+  // Load the list of users that follow this profile. Followers are recorded
+  // against the numeric artists.id, not the profile UUID, so resolution happens
+  // in fetchFollowerProfiles (a direct .eq('artist_id', <uuid>) errors — the
+  // column is a bigint).
   useEffect(() => {
     const pid = isOwnProfile ? currentUser?.id : otherProfile?.id;
     if (!pid) { setFollowerList([]); return; }
-    (async () => {
-      const { data: rows } = await supabase
-        .from('user_following_artists')
-        .select('user_id')
-        .eq('artist_id', pid);
-      const ids = (rows ?? []).map((r: any) => r.user_id).filter(Boolean);
-      if (ids.length === 0) { setFollowerList([]); return; }
-      const { data: profs } = await supabase
-        .from('profiles')
-        .select('id, username, display_name, avatar_url, role')
-        .in('id', ids);
-      setFollowerList(profs ?? []);
-    })();
+    let active = true;
+    fetchFollowerProfiles(typeof pid === 'string' ? pid : String(pid))
+      .then((profs) => { if (active) setFollowerList(profs); });
+    return () => { active = false; };
   }, [isOwnProfile, currentUser?.id, otherProfile?.id]);
 
   // For other profiles, fetch how many entities they follow (own-profile following
