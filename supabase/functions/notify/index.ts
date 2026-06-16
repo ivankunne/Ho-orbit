@@ -18,6 +18,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 import { sendEmail } from '../_shared/resend.ts';
 import { newFollowerEmail, newMessageEmail } from '../_shared/emails.ts';
+import { sendPushToUser } from '../_shared/push.ts';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -113,18 +114,35 @@ async function handleMessage(
   ]);
 
   const senderName = displayName(sender);
+  const preview = message.content.length > 120 ? `${message.content.slice(0, 120)}…` : message.content;
+  const title = `Nieuw bericht van ${senderName}`;
+  const link = `/berichten/${conversationId}`;
 
   // In-app notification (always — fixes recipients previously getting nothing).
   await admin.from('notifications').insert({
     user_id: recipientId,
     type: 'message',
-    title: `Nieuw bericht van ${senderName}`,
-    body: message.content.length > 120 ? `${message.content.slice(0, 120)}…` : message.content,
-    link: `/berichten/${conversationId}`,
+    title,
+    body: preview,
+    link,
   });
 
+  // Push + email share the "Nieuw bericht" preference (opt-out model).
+  const wantsMessage = prefEnabled(recipient?.notification_prefs ?? null, 'Nieuw bericht');
+
+  let pushed = 0;
+  if (wantsMessage) {
+    const res = await sendPushToUser(admin, recipientId, {
+      title,
+      body: preview,
+      url: link,
+      tag: `conv-${conversationId}`,
+    });
+    pushed = res.sent;
+  }
+
   let emailed = false;
-  if (recipient?.email && prefEnabled(recipient.notification_prefs, 'Nieuw bericht')) {
+  if (recipient?.email && wantsMessage) {
     const { subject, html } = newMessageEmail({
       recipientName: displayName(recipient),
       senderName,
@@ -136,7 +154,7 @@ async function handleMessage(
     if (!res.ok) console.warn('[notify] message email failed:', res.error);
   }
 
-  return json({ ok: true, emailed });
+  return json({ ok: true, emailed, pushed });
 }
 
 async function handleFollow(
@@ -158,17 +176,33 @@ async function handleFollow(
 
   const followerName = displayName(follower);
   const followerUsername = follower?.username ?? '';
+  const link = followerUsername ? `/profiel/${followerUsername}` : '/profiel';
+  const body = `${followerName} volgt je nu`;
 
   await admin.from('notifications').insert({
     user_id: targetUserId,
     type: 'follow',
     title: 'Nieuwe volger',
-    body: `${followerName} volgt je nu`,
-    link: followerUsername ? `/profiel/${followerUsername}` : '/profiel',
+    body,
+    link,
   });
 
+  // Push + email share the "Nieuwe volger" preference (opt-out model).
+  const wantsFollow = prefEnabled(target.notification_prefs, 'Nieuwe volger');
+
+  let pushed = 0;
+  if (wantsFollow) {
+    const res = await sendPushToUser(admin, targetUserId, {
+      title: 'Nieuwe volger',
+      body,
+      url: link,
+      tag: 'follow',
+    });
+    pushed = res.sent;
+  }
+
   let emailed = false;
-  if (target.email && prefEnabled(target.notification_prefs, 'Nieuwe volger')) {
+  if (target.email && wantsFollow) {
     const { subject, html } = newFollowerEmail({
       recipientName: displayName(target),
       followerName,
@@ -179,5 +213,5 @@ async function handleFollow(
     if (!res.ok) console.warn('[notify] follow email failed:', res.error);
   }
 
-  return json({ ok: true, emailed });
+  return json({ ok: true, emailed, pushed });
 }

@@ -7,6 +7,7 @@
 #   - Supabase CLI installed   (brew install supabase/tap/supabase)
 #   - Logged in                (supabase login)
 #   - supabase/functions/.env  created from .env.example with your RESEND_API_KEY
+#                              and the VAPID_* keys for Web Push (see PUSH_SETUP.md)
 
 set -euo pipefail
 

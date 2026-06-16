@@ -1,6 +1,7 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { User, Bell, Lock, Palette, Check, LogOut, Camera, AlertTriangle, Eye, EyeOff, Sun, Moon, Loader, Mail, Phone, Briefcase, HandHeart } from 'lucide-react';
+import { User, Bell, Lock, Palette, Check, LogOut, Camera, AlertTriangle, Eye, EyeOff, Sun, Moon, Loader, Mail, Phone, Briefcase, HandHeart, BellRing, Smartphone } from 'lucide-react';
+import { pushSupported, pushPermission, isPushEnabled, enablePush, disablePush, type PushState } from '@services/pushService';
 import UserAvatar from '@components/UserAvatar';
 import { useAuth } from '@context/AuthContext';
 import { changePassword, deleteAccount, updateEmail, updateProfile as persistProfile, updatePreferences, uploadAvatar, uploadBanner } from '@services/userService';
@@ -425,6 +426,10 @@ function MeldingenSection({ user, updateProfile }: { user: any; updateProfile: (
   return (
     <div className="bg-white/3 border border-white/5 rounded-2xl p-6">
       <h2 className="text-lg font-semibold text-white mb-6">Meldingen</h2>
+
+      <PushToggle userId={user?.id} />
+
+      <h3 className="text-sm font-semibold text-slate-300 mb-3">E-mail &amp; in-app</h3>
       <div className="space-y-4">
         {ITEMS.map(item => (
           <NotificationToggle
@@ -703,6 +708,76 @@ function WeergaveSection() {
 }
 
 /* ─── Notification Toggle ─────────────────────────────────── */
+/* ─── Pushmeldingen op dit apparaat ───────────────────────── */
+function PushToggle({ userId }: { userId?: string }) {
+  const [state, setState] = useState<PushState>('unsupported');
+  const [enabled, setEnabled] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setState(pushPermission());
+    isPushEnabled().then(setEnabled);
+  }, []);
+
+  const toggle = async () => {
+    if (!userId || busy) return;
+    setBusy(true);
+    setError(null);
+    const res = enabled ? await disablePush(userId) : await enablePush(userId);
+    if (res.ok) {
+      setEnabled(!enabled);
+      setState(pushPermission());
+    } else {
+      setError(res.error ?? 'Er ging iets mis.');
+    }
+    setBusy(false);
+  };
+
+  // Only meaningful on devices that support push.
+  if (!pushSupported()) return null;
+
+  const blocked = state === 'denied';
+  const unconfigured = state === 'unconfigured';
+
+  return (
+    <div className="mb-6 p-4 bg-violet-500/8 border border-violet-500/20 rounded-xl">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-start gap-3 min-w-0">
+          <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-600/20 text-violet-300">
+            <BellRing size={18} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-white">Pushmeldingen op dit apparaat</p>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Ontvang meldingen direct op je toestel — ook als h-orbit dicht is.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={toggle}
+          disabled={busy || blocked || unconfigured || !userId}
+          className={`relative w-11 h-6 rounded-full transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed ${enabled ? 'bg-violet-600' : 'bg-white/10'}`}
+          aria-pressed={enabled}
+          aria-label="Pushmeldingen op dit apparaat aan/uit"
+        >
+          <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${enabled ? 'left-6' : 'left-1'}`} />
+        </button>
+      </div>
+
+      {blocked && (
+        <p className="mt-3 flex items-center gap-1.5 text-xs text-amber-400">
+          <Smartphone size={13} /> Meldingen zijn geblokkeerd. Sta ze toe in je browser- of systeeminstellingen.
+        </p>
+      )}
+      {unconfigured && (
+        <p className="mt-3 text-xs text-slate-500">Pushmeldingen zijn nog niet beschikbaar.</p>
+      )}
+      {error && <p className="mt-3 text-xs text-red-400">{error}</p>}
+    </div>
+  );
+}
+
 function NotificationToggle({ label, desc, on, onChange }) {
   return (
     <div className="flex items-center justify-between p-4 bg-white/2 rounded-xl">

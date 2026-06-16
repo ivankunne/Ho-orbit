@@ -2,7 +2,7 @@
    Keep it conservative: only same-origin GET requests are touched so Supabase
    API/auth/storage calls (and any other cross-origin traffic) pass straight through. */
 
-const CACHE = 'horbit-v2';
+const CACHE = 'horbit-v3';
 
 self.addEventListener('install', (event) => {
   // Precache the app shell so navigations have an offline fallback to serve.
@@ -71,6 +71,58 @@ self.addEventListener('fetch', (event) => {
       } catch {
         return Response.error();
       }
+    })()
+  );
+});
+
+/* ── Web Push ─────────────────────────────────────────────────────────────
+   The `notify` Edge Function sends an encrypted JSON payload:
+     { title, body, url?, tag? }
+   We surface it as an OS notification and, on tap, focus an existing tab
+   (navigating it to `url`) or open a new one. */
+
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { body: event.data ? event.data.text() : '' };
+  }
+
+  const title = data.title || 'h-orbit';
+  const options = {
+    body: data.body || '',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    lang: 'nl',
+    data: { url: data.url || '/' },
+    // A tag collapses repeat notifications from the same source (e.g. one
+    // conversation) instead of stacking; renotify still alerts the user.
+    tag: data.tag || undefined,
+    renotify: data.tag ? true : undefined,
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || '/';
+  const absolute = new URL(target, self.location.origin).href;
+
+  event.waitUntil(
+    (async () => {
+      const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      for (const client of all) {
+        if ('focus' in client) {
+          await client.focus();
+          if ('navigate' in client) {
+            try { await client.navigate(absolute); } catch { /* cross-origin guard */ }
+          }
+          return;
+        }
+      }
+      if (self.clients.openWindow) await self.clients.openWindow(absolute);
     })()
   );
 });
