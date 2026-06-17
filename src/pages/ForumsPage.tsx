@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MessageSquare, Sliders, Users, Calendar, Coffee, Pin, ChevronLeft, X, Send } from 'lucide-react';
-import { getCategories, getThreadsByCategory, createThread } from '@services/forumService';
+import { MessageSquare, Sliders, Users, Calendar, Coffee, Pin, ChevronLeft, X, Send, Trash2 } from 'lucide-react';
+import { getCategories, getThreadsByCategory, createThread, deleteThread } from '@services/forumService';
 import { useAuth } from '@context/AuthContext';
 import { useToast } from '@components/Toast';
 import { avatarPlaceholder } from '@utils/placeholder';
@@ -48,7 +48,7 @@ function CategoryCard({ cat, onClick }) {
   );
 }
 
-function ThreadRow({ thread }) {
+function ThreadRow({ thread, canManage, onDelete }) {
   return (
     <Link
       to={`/forums/thread/${thread.id}`}
@@ -76,6 +76,15 @@ function ThreadRow({ thread }) {
         <p className="text-xs text-slate-500">{thread.lastPost?.user}</p>
         <p className="text-xs text-slate-600">{thread.lastPost?.time}</p>
       </div>
+      {canManage && (
+        <button
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(thread); }}
+          title="Verwijderen"
+          className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-white/8 rounded-lg transition-colors shrink-0"
+        >
+          <Trash2 size={14} />
+        </button>
+      )}
     </Link>
   );
 }
@@ -202,7 +211,7 @@ function NewThreadModal({ defaultCategory, categories, onSubmit, onClose }) {
   );
 }
 
-function ThreadList({ category, onBack, dbThreads, localThreads, onNewThread }) {
+function ThreadList({ category, onBack, dbThreads, localThreads, onNewThread, canManageThread, onDeleteThread }) {
   const threads = [...localThreads, ...dbThreads].filter(t => t.categoryId === category.id);
 
   return (
@@ -226,7 +235,14 @@ function ThreadList({ category, onBack, dbThreads, localThreads, onNewThread }) 
         {threads.length === 0 ? (
           <div className="text-center py-12 text-slate-400">Nog geen discussies in deze categorie.</div>
         ) : (
-          threads.map(thread => <ThreadRow key={thread.id} thread={thread} />)
+          threads.map(thread => (
+            <ThreadRow
+              key={thread.id}
+              thread={thread}
+              canManage={canManageThread(thread)}
+              onDelete={onDeleteThread}
+            />
+          ))
         )}
       </div>
     </div>
@@ -269,6 +285,20 @@ export default function ForumsPage() {
       if (cat) { setSelectedCategory(cat); setView('threads'); }
     } catch {
       addToast('Er is iets misgegaan. Probeer het opnieuw.', 'error');
+    }
+  };
+
+  const canManageThread = (thread) => !!user && (thread.author?.id === user.id || user.isAdmin);
+
+  const handleDeleteThread = async (thread) => {
+    if (!window.confirm('Weet je zeker dat je deze discussie wilt verwijderen?')) return;
+    try {
+      await deleteThread(thread.id);
+      setThreads(prev => prev.filter(t => t.id !== thread.id));
+      setLocalThreads(prev => prev.filter(t => t.id !== thread.id));
+      addToast('Discussie verwijderd.', 'success');
+    } catch {
+      addToast('Verwijderen mislukt. Probeer het opnieuw.', 'error');
     }
   };
 
@@ -321,6 +351,15 @@ export default function ForumsPage() {
                       <p className="text-xs text-slate-500">{thread.author.name} · {thread.lastPost?.time}</p>
                     </div>
                     <span className="text-xs text-slate-500 shrink-0">{thread.replies} reacties</span>
+                    {canManageThread(thread) && (
+                      <button
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteThread(thread); }}
+                        title="Verwijderen"
+                        className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-white/8 rounded-lg transition-colors shrink-0"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </Link>
                 ))}
               </div>
@@ -336,6 +375,8 @@ export default function ForumsPage() {
           dbThreads={threads}
           localThreads={localThreads}
           onNewThread={openNewThread}
+          canManageThread={canManageThread}
+          onDeleteThread={handleDeleteThread}
         />
       )}
 

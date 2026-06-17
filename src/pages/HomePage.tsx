@@ -10,6 +10,7 @@ import GenreBadge from '@components/GenreBadge';
 import { useAuth } from '@context/AuthContext';
 import { usePlayer } from '@context/PlayerContext';
 import { useAppState } from '@context/AppStateContext';
+import { useToast } from '@components/Toast';
 import { formatPlays } from '@utils/format';
 import { TrendingRow } from '@components/TrendingRow';
 import { supabase } from '@/lib/supabase';
@@ -41,6 +42,7 @@ export default function HomePage() {
   const { user } = useAuth();
   const { playTrack } = usePlayer();
   const { followedArtists, toggleFollow } = useAppState();
+  const addToast = useToast();
   const { isLive, isRadioPlaying, liveStations, currentStation, playStation, stopRadio } = useRadio();
   const navigate = useNavigate();
   const preferredGenres = user?.preferredGenres || [];
@@ -78,6 +80,40 @@ export default function HomePage() {
   );
 
   const featuredArtist = artists[0];
+
+  // Tracks link to an artist by the uploader's profile id (uploaded_by) or by
+  // artist_name — never by tracks.artist_id, which is null for user uploads.
+  // Artist names in the DB can carry trailing spaces, so compare trimmed.
+  function findArtistTrack(artist: any) {
+    if (!artist) return undefined;
+    const name = (artist.name || '').trim().toLowerCase();
+    return tracks.find(t =>
+      (artist.profile_id && t.uploaded_by === artist.profile_id) ||
+      (name && (t.artist_name || '').trim().toLowerCase() === name)
+    );
+  }
+
+  // Play an artist's own music. Tries the in-memory top tracks first, then
+  // queries the artist's approved uploads directly so a clicked artist always
+  // plays THEIR song (never an unrelated fallback track). Shows a clear message
+  // only when the artist genuinely has no playable songs yet.
+  async function playArtist(artist: any) {
+    const inMemory = findArtistTrack(artist);
+    if (inMemory) { playTrack(inMemory, tracks); return; }
+
+    let query = supabase.from('tracks').select('*').eq('upload_status', 'approved');
+    query = artist?.profile_id
+      ? query.eq('uploaded_by', artist.profile_id)
+      : query.ilike('artist_name', (artist?.name || '').trim());
+    const { data } = await query.order('plays', { ascending: false }).limit(20);
+
+    const own = (data ?? []).map(t => ({ ...t, artist: t.artist_name || artist?.name }));
+    if (own.length > 0) {
+      playTrack(own[0], own);
+    } else {
+      addToast(`${(artist?.name || 'Deze artiest').trim()} heeft nog geen nummers`, 'info');
+    }
+  }
 
   return (
     <div className="min-h-screen">
@@ -128,10 +164,7 @@ export default function HomePage() {
                     <p className="text-slate-400 text-xs">{featuredArtist.genre} · {featuredArtist.location?.split(',')[0]}</p>
                   </div>
                   <button
-                    onClick={() => {
-                      const firstTrack = tracks.find(t => t.artist_id === featuredArtist.id) || tracks[0];
-                      if (firstTrack) playTrack(firstTrack, tracks);
-                    }}
+                    onClick={() => playArtist(featuredArtist)}
                     className="shrink-0 w-10 h-10 bg-violet-600 hover:bg-violet-500 rounded-full flex items-center justify-center transition-colors"
                   >
                     <Play size={16} className="text-white ml-0.5" fill="white" />
@@ -222,9 +255,13 @@ export default function HomePage() {
                       <span className="text-[9px] font-bold text-amber-300">#{i + 1}</span>
                     </div>
                     <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                      <div className="w-10 h-10 bg-violet-600 rounded-full flex items-center justify-center">
+                      <button
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); playArtist(artist); }}
+                        className="w-10 h-10 bg-violet-600 hover:bg-violet-500 rounded-full flex items-center justify-center transition-colors"
+                        aria-label={`Speel ${artist.name?.trim()}`}
+                      >
                         <Play size={14} className="text-white ml-0.5" fill="white" />
-                      </div>
+                      </button>
                     </div>
                   </div>
                   <div className="p-3">
@@ -258,7 +295,8 @@ export default function HomePage() {
           ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {risingArtists.map(artist => {
-              const isFollowing = followedArtists.includes(artist.id);
+              const isFollowing = followedArtists.includes(String(artist.id));
+              const isOwnArtist = !!user && !!artist.profile_id && artist.profile_id === user.id;
               return (
                 <div
                   key={artist.id}
@@ -275,12 +313,9 @@ export default function HomePage() {
                       </div>
                       <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                         <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            const firstTrack = tracks.find(t => t.artist_id === artist.id) || tracks[0];
-                            if (firstTrack) playTrack(firstTrack, tracks);
-                          }}
-                          className="w-10 h-10 bg-violet-600 rounded-full flex items-center justify-center"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); playArtist(artist); }}
+                          className="w-10 h-10 bg-violet-600 hover:bg-violet-500 rounded-full flex items-center justify-center transition-colors"
+                          aria-label={`Speel ${artist.name?.trim()}`}
                         >
                           <Play size={14} className="text-white ml-0.5" fill="white" />
                         </button>
@@ -295,17 +330,19 @@ export default function HomePage() {
                       <p className="text-sm font-semibold text-white truncate">{artist.name}</p>
                     </Link>
                     <GenreBadge genre={artist.genre?.split(' / ')[0]} className="text-[10px] px-1.5 mt-1" />
-                    <button
-                      onClick={() => toggleFollow(artist.id)}
-                      className={`mt-2 w-full flex items-center justify-center gap-1.5 text-xs font-medium py-1.5 rounded-lg transition-colors ${
-                        isFollowing
-                          ? 'bg-violet-600/20 text-violet-400 border border-violet-500/30'
-                          : 'bg-white/5 text-slate-300 hover:bg-violet-600 hover:text-white border border-white/10'
-                      }`}
-                    >
-                      <UserPlus size={11} />
-                      {isFollowing ? 'Volgend' : 'Volgen'}
-                    </button>
+                    {!isOwnArtist && (
+                      <button
+                        onClick={() => toggleFollow(artist.id)}
+                        className={`mt-2 w-full flex items-center justify-center gap-1.5 text-xs font-medium py-1.5 rounded-lg transition-colors ${
+                          isFollowing
+                            ? 'bg-violet-600/20 text-violet-400 border border-violet-500/30'
+                            : 'bg-white/5 text-slate-300 hover:bg-violet-600 hover:text-white border border-white/10'
+                        }`}
+                      >
+                        <UserPlus size={11} />
+                        {isFollowing ? 'Volgend' : 'Volgen'}
+                      </button>
+                    )}
                   </div>
                 </div>
               );

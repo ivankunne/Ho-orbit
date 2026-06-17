@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   MessageCircle, Home, Users, Send, X, Plus, Zap,
   Clock, MapPin, ExternalLink, Search, Music2, Megaphone,
-  ChevronRight, Loader2, Eye, MessageSquare,
+  ChevronRight, Loader2, Eye, MessageSquare, Pencil, Trash2,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useToast } from '@components/Toast';
@@ -13,6 +13,7 @@ import SceneMap from '@components/SceneMap';
 import UserAvatar from '@components/UserAvatar';
 import GenrePicker from '@components/GenrePicker';
 import GenreBadge from '@components/GenreBadge';
+import CommentSection from '@components/CommentSection';
 import { FILTER_GENRES } from '@data/genres';
 import { avatarPlaceholder } from '@utils/placeholder';
 
@@ -174,10 +175,12 @@ function HubThreadRow({ thread, onClick }: { thread: HubThread; onClick: () => v
 
 // ─── Thread detail modal ──────────────────────────────────────────────────────
 
-function HubThreadDetailModal({ thread, onClose, onReplyPosted }: {
+function HubThreadDetailModal({ thread, onClose, onReplyPosted, onUpdated, onDeleted }: {
   thread: HubThread;
   onClose: () => void;
   onReplyPosted?: () => void;
+  onUpdated?: (title: string) => void;
+  onDeleted?: () => void;
 }) {
   const { user } = useAuth();
   const { open: openAuthModal } = useAuthModal();
@@ -186,6 +189,50 @@ function HubThreadDetailModal({ thread, onClose, onReplyPosted }: {
   const [replies, setReplies] = useState<HubReply[]>([]);
   const [loadingReplies, setLoadingReplies] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(thread.title);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+
+  const canManage = !!user && (user.id === thread.author.id || user.isAdmin);
+
+  const handleSaveEdit = async () => {
+    if (!editTitle.trim()) return;
+    setSavingEdit(true);
+    try {
+      const { error } = await supabase
+        .from('hub_posts')
+        .update({ title: editTitle.trim() })
+        .eq('id', thread.id);
+      if (error) throw error;
+      onUpdated?.(editTitle.trim());
+      setEditing(false);
+      addToast('Post bijgewerkt!', 'success');
+    } catch {
+      addToast('Bijwerken mislukt. Probeer het opnieuw.', 'error');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm('Weet je zeker dat je deze post wilt verwijderen?')) return;
+    setDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('hub_posts')
+        .delete()
+        .eq('id', thread.id);
+      if (error) throw error;
+      addToast('Post verwijderd.', 'success');
+      onDeleted?.();
+      onClose();
+    } catch {
+      addToast('Verwijderen mislukt. Probeer het opnieuw.', 'error');
+      setDeleting(false);
+    }
+  };
 
   useEffect(() => {
     supabase
@@ -226,7 +273,7 @@ function HubThreadDetailModal({ thread, onClose, onReplyPosted }: {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end lg:items-center justify-center p-0 lg:p-4">
+    <div className="fixed inset-0 z-[90] bg-black/70 backdrop-blur-sm flex items-end lg:items-center justify-center p-0 lg:p-4">
       <div className="w-full lg:max-w-2xl bg-[#1e1833] border border-white/10 rounded-t-3xl lg:rounded-3xl max-h-[92vh] flex flex-col shadow-2xl shadow-black/60">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/8 shrink-0">
@@ -242,7 +289,56 @@ function HubThreadDetailModal({ thread, onClose, onReplyPosted }: {
         <div className="overflow-y-auto flex-1">
           {/* Thread */}
           <div className="p-6 pb-4">
-            <h3 className="text-xl font-bold text-white mb-4 leading-snug">{thread.title}</h3>
+            {editing ? (
+              <div className="mb-4 space-y-3">
+                <input
+                  autoFocus
+                  type="text"
+                  value={editTitle}
+                  onChange={e => setEditTitle(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 focus:border-violet-500/50 rounded-xl px-4 py-3 text-base text-slate-200 placeholder-slate-500 focus:outline-none transition-colors"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setEditing(false); setEditTitle(thread.title); }}
+                    className="px-4 py-2 rounded-xl border border-white/10 text-sm text-slate-400 hover:text-white transition-colors"
+                  >
+                    Annuleren
+                  </button>
+                  <button
+                    onClick={handleSaveEdit}
+                    disabled={!editTitle.trim() || savingEdit}
+                    className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
+                  >
+                    {savingEdit ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+                    Opslaan
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-start justify-between gap-3 mb-4">
+                <h3 className="text-xl font-bold text-white leading-snug">{thread.title}</h3>
+                {canManage && (
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => setEditing(true)}
+                      title="Bewerken"
+                      className="p-2 rounded-lg text-slate-400 hover:text-violet-300 hover:bg-white/8 transition-colors"
+                    >
+                      <Pencil size={15} />
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      disabled={deleting}
+                      title="Verwijderen"
+                      className="p-2 rounded-lg text-slate-400 hover:text-red-400 hover:bg-white/8 transition-colors disabled:opacity-50"
+                    >
+                      {deleting ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
             <div className="flex items-center gap-3">
               <UserAvatar src={thread.author.avatar} name={thread.author.name} size={38} />
               <div>
@@ -253,7 +349,22 @@ function HubThreadDetailModal({ thread, onClose, onReplyPosted }: {
             <div className="flex items-center gap-4 mt-4 pt-4 border-t border-white/6 text-xs text-slate-500">
               <span className="flex items-center gap-1.5"><MessageSquare size={12} />{thread.replies} reacties</span>
               <span className="flex items-center gap-1.5"><Eye size={12} />{thread.views} weergaven</span>
+              <button
+                onClick={() => setShowComments(s => !s)}
+                className={`flex items-center gap-1.5 ml-auto px-3 py-1.5 rounded-lg border transition-colors ${
+                  showComments
+                    ? 'border-violet-500/30 text-violet-300 bg-violet-600/10'
+                    : 'border-white/10 text-slate-400 hover:text-white'
+                }`}
+              >
+                <MessageSquare size={12} /> Reacties
+              </button>
             </div>
+            {showComments && (
+              <div className="mt-4 pt-4 border-t border-white/6">
+                <CommentSection resourceType="hub_post" resourceId={thread.id} resourceTitle={thread.title} />
+              </div>
+            )}
           </div>
 
           {/* Replies */}
@@ -444,6 +555,15 @@ function SectionContent({ sectionId, postBarPlaceholder, postTags }: {
               t.id === selectedThread.id ? { ...t, replies: t.replies + 1 } : t
             ));
           }}
+          onUpdated={(title) => {
+            setThreads(prev => prev.map(t =>
+              t.id === selectedThread.id ? { ...t, title } : t
+            ));
+            setSelectedThread(prev => prev ? { ...prev, title } : prev);
+          }}
+          onDeleted={() => {
+            setThreads(prev => prev.filter(t => t.id !== selectedThread.id));
+          }}
         />
       )}
     </div>
@@ -539,7 +659,7 @@ function NetworkCreateModal({ onClose, onCreated }: { onClose: () => void; onCre
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+    <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
       <div className="bg-[#201c30] border border-white/10 rounded-2xl p-6 w-full max-w-lg shadow-2xl my-4">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-white">Post plaatsen</h2>

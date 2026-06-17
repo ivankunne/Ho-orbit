@@ -7,7 +7,7 @@ import {
   Image as ImageIcon, FileText as FileIcon, ShieldCheck,
   Calendar, Plus, MessageSquare, PenLine, AtSign, MapPin,
   CheckSquare, Square, Share2, Copy, ListTodo,
-  FolderKanban, Handshake,
+  FolderKanban, Handshake, Pencil,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@context/AuthContext';
@@ -19,7 +19,7 @@ import {
   type BandTodo,
   getChannelPreviews, markChannelRead,
   uploadBandMedia, setPinned, deleteBandMessage,
-  getBandPosts, createBandPost, deleteBandPost,
+  getBandPosts, createBandPost, updateBandPost, deleteBandPost,
   getBandEvents, getUpcomingEvents, createBandEvent, deleteBandEvent,
   getPinnedEvents, pinBandEvent,
   getBandTodos, createBandTodo, toggleBandTodo, deleteBandTodo,
@@ -125,6 +125,7 @@ export default function BandSpaceDetailPage() {
   const [postImageUrl, setPostImageUrl] = useState('');
   const [submittingPost, setSubmittingPost] = useState(false);
   const [uploadingPostImg, setUploadingPostImg] = useState(false);
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [upcomingEvents, setUpcomingEvents] = useState<BandEvent[]>([]);
 
   // Chat
@@ -329,13 +330,37 @@ export default function BandSpaceDetailPage() {
   async function handleCreatePost() {
     if (!postContent.trim() || !user || !id) return;
     setSubmittingPost(true);
-    const post = await createBandPost(id, user.id, postContent.trim(), postTitle.trim() || undefined, postImageUrl || undefined);
-    if (!post) { addToast('Plaatsen mislukt', 'error'); }
-    else { setPosts(prev => [post, ...prev]); setPostContent(''); setPostTitle(''); setPostImageUrl(''); setShowPostTitle(false); }
+    if (editingPostId) {
+      const updated = await updateBandPost(editingPostId, postContent.trim(), postTitle.trim() || undefined);
+      if (!updated) { addToast('Bijwerken mislukt', 'error'); }
+      else { setPosts(prev => prev.map(p => p.id === editingPostId ? updated : p)); cancelEditPost(); }
+    } else {
+      const post = await createBandPost(id, user.id, postContent.trim(), postTitle.trim() || undefined, postImageUrl || undefined);
+      if (!post) { addToast('Plaatsen mislukt', 'error'); }
+      else { setPosts(prev => [post, ...prev]); setPostContent(''); setPostTitle(''); setPostImageUrl(''); setShowPostTitle(false); }
+    }
     setSubmittingPost(false);
   }
 
+  function startEditPost(post: BandPost) {
+    setEditingPostId(post.id);
+    setPostContent(post.content || '');
+    setPostTitle(post.title || '');
+    setShowPostTitle(!!post.title);
+    // Scroll the composer into view so the edit is obvious.
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function cancelEditPost() {
+    setEditingPostId(null);
+    setPostContent('');
+    setPostTitle('');
+    setShowPostTitle(false);
+    setPostImageUrl('');
+  }
+
   async function handleDeletePost(postId: string, imageUrl?: string | null) {
+    if (!window.confirm('Weet je zeker dat je deze update wilt verwijderen?')) return;
     const ok = await deleteBandPost(postId, imageUrl);
     if (!ok) { addToast('Verwijderen mislukt', 'error'); return; }
     setPosts(prev => prev.filter(p => p.id !== postId));
@@ -958,10 +983,18 @@ export default function BandSpaceDetailPage() {
                             {uploadingPostImg ? <Loader2 size={15} className="animate-spin" /> : <ImageIcon size={15} />}
                           </button>
                         </div>
-                        <button onClick={handleCreatePost} disabled={!postContent.trim() || submittingPost}
-                          className="flex items-center gap-1.5 text-sm font-semibold px-4 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white transition-colors disabled:opacity-40">
-                          {submittingPost ? <Loader2 size={13} className="animate-spin" /> : null} Plaatsen
-                        </button>
+                        <div className="flex items-center gap-2">
+                          {editingPostId && (
+                            <button onClick={cancelEditPost}
+                              className="text-sm font-medium px-3 py-1.5 rounded-xl border border-white/10 text-slate-300 hover:text-white transition-colors">
+                              Annuleren
+                            </button>
+                          )}
+                          <button onClick={handleCreatePost} disabled={!postContent.trim() || submittingPost}
+                            className="flex items-center gap-1.5 text-sm font-semibold px-4 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white transition-colors disabled:opacity-40">
+                            {submittingPost ? <Loader2 size={13} className="animate-spin" /> : null} {editingPostId ? 'Bijwerken' : 'Plaatsen'}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -986,11 +1019,17 @@ export default function BandSpaceDetailPage() {
                                 <p className="text-[11px] text-slate-500">{formatTime(post.created_at)}</p>
                               </div>
                             </div>
-                            {isAdmin && (
-                              <button onClick={() => handleDeletePost(post.id, post.image_url)}
-                                className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 text-slate-600 hover:text-red-400 transition-all p-1 shrink-0">
-                                <Trash2 size={14} />
-                              </button>
+                            {(isAdmin || post.author_id === user?.id) && (
+                              <div className="flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all shrink-0">
+                                <button onClick={() => startEditPost(post)}
+                                  className="text-slate-600 hover:text-violet-400 transition-colors p-1" title="Bewerken">
+                                  <Pencil size={14} />
+                                </button>
+                                <button onClick={() => handleDeletePost(post.id, post.image_url)}
+                                  className="text-slate-600 hover:text-red-400 transition-colors p-1" title="Verwijderen">
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
                             )}
                           </div>
                           {post.title && <h3 className="text-base font-bold text-white mb-1.5">{post.title}</h3>}
@@ -1628,7 +1667,7 @@ export default function BandSpaceDetailPage() {
 
       {/* ── Add event modal ───────────────────────────────────────────────────── */}
       {showAddEvent && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/70 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center sm:p-4 bg-black/70 backdrop-blur-sm">
           <div className="bg-[#1e1a30] border border-white/10 rounded-t-2xl sm:rounded-2xl p-6 w-full sm:max-w-md shadow-2xl max-h-[90dvh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-base font-semibold text-white">Evenement toevoegen</h2>
@@ -1700,7 +1739,7 @@ export default function BandSpaceDetailPage() {
 
       {/* ── Share / invite modal ──────────────────────────────────────────────── */}
       {showShareModal && band && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/70 backdrop-blur-sm" onClick={() => setShowShareModal(false)}>
+        <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center sm:p-4 bg-black/70 backdrop-blur-sm" onClick={() => setShowShareModal(false)}>
           <div className="bg-[#1e1a30] border border-white/10 rounded-t-2xl sm:rounded-2xl p-6 w-full sm:max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-base font-semibold text-white">Band delen</h2>

@@ -128,7 +128,7 @@ export default function ArtistDetailPage() {
     );
   }
 
-  const following = followedArtists.includes(artist.id);
+  const following = followedArtists.includes(String(artist.id));
   const canMessage = !!user && !!artist.profile_id && artist.profile_id !== user.id;
 
   const totalPlays = [...(Array.isArray(artist.tracks) ? artist.tracks : []), ...uploadedTracks]
@@ -238,22 +238,24 @@ export default function ArtistDetailPage() {
             >
               <Play size={16} fill="white" /> Afspelen
             </button>
-            <button
-              onClick={() => {
-                const willFollow = !following;
-                toggleFollow(artist.id);
-                // Optimistic bump; the junction-table effect reconciles to the real count.
-                setFollowerCount((c) => Math.max(0, c + (willFollow ? 1 : -1)));
-                addToast(following ? `Je volgt ${artist.name} niet meer` : `Je volgt nu ${artist.name}`, following ? 'info' : 'success');
-              }}
-              className={`font-semibold px-4 py-2 rounded-xl transition-colors border ${
-                following
-                  ? 'border-violet-500 text-violet-400 hover:border-violet-400'
-                  : 'border-white/20 text-slate-300 hover:border-white/40 hover:text-white'
-              }`}
-            >
-              {following ? 'Volgend' : 'Volgen'}
-            </button>
+            {!isOwner && (
+              <button
+                onClick={() => {
+                  const willFollow = !following;
+                  toggleFollow(artist.id);
+                  // Optimistic bump; the junction-table effect reconciles to the real count.
+                  setFollowerCount((c) => Math.max(0, c + (willFollow ? 1 : -1)));
+                  addToast(following ? `Je volgt ${artist.name} niet meer` : `Je volgt nu ${artist.name}`, following ? 'info' : 'success');
+                }}
+                className={`font-semibold px-4 py-2 rounded-xl transition-colors border ${
+                  following
+                    ? 'border-violet-500 text-violet-400 hover:border-violet-400'
+                    : 'border-white/20 text-slate-300 hover:border-white/40 hover:text-white'
+                }`}
+              >
+                {following ? 'Volgend' : 'Volgen'}
+              </button>
+            )}
             {canMessage && (
               <button
                 onClick={handleMessage}

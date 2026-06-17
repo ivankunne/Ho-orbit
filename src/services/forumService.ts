@@ -84,6 +84,29 @@ export async function createThread({
   return mapThread(data);
 }
 
+export async function updateThread({
+  threadId, title, body, tags = [],
+}: {
+  threadId: string | number; title: string; body: string; tags?: string[];
+}) {
+  const { data, error } = await supabase
+    .from('forum_threads')
+    .update({ title, body, tags })
+    .eq('id', threadId)
+    .select('*, profiles:author_id(username, display_name, avatar_url)')
+    .single();
+  if (error || !data) throw error;
+  return mapThread(data);
+}
+
+export async function deleteThread(threadId: string | number) {
+  // Remove replies first in case the FK does not cascade.
+  await supabase.from('forum_replies').delete().eq('thread_id', threadId);
+  const { error } = await supabase.from('forum_threads').delete().eq('id', threadId);
+  if (error) throw error;
+  return true;
+}
+
 export async function getReplies(threadId: string | number) {
   const { data } = await supabase
     .from('forum_replies')
@@ -110,6 +133,41 @@ export async function createReply({
     .update({ replies_count: ((thread?.replies_count as number) ?? 0) + 1, last_post_at: new Date().toISOString() })
     .eq('id', threadId);
   return mapReply(data);
+}
+
+export async function updateReply({
+  replyId, content,
+}: {
+  replyId: number | string; content: string;
+}) {
+  const { data, error } = await supabase
+    .from('forum_replies')
+    .update({ content })
+    .eq('id', replyId)
+    .select('*, profiles:author_id(username, display_name, avatar_url)')
+    .single();
+  if (error || !data) throw error;
+  return mapReply(data);
+}
+
+export async function deleteReply(replyId: number | string) {
+  // Look up the thread first so we can decrement its reply count (mirror of createReply).
+  const { data: reply } = await supabase
+    .from('forum_replies')
+    .select('thread_id')
+    .eq('id', replyId)
+    .single();
+  const { error } = await supabase.from('forum_replies').delete().eq('id', replyId);
+  if (error) throw error;
+  const threadId = reply?.thread_id;
+  if (threadId) {
+    const { data: thread } = await supabase.from('forum_threads').select('replies_count').eq('id', threadId).single();
+    await supabase
+      .from('forum_threads')
+      .update({ replies_count: Math.max(0, ((thread?.replies_count as number) ?? 1) - 1) })
+      .eq('id', threadId);
+  }
+  return true;
 }
 
 export async function toggleReplyLike(replyId: number, _threadId: string | number, userId: string) {

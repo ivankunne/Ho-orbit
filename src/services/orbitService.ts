@@ -148,6 +148,19 @@ export async function createBandPost(
   return data as BandPost;
 }
 
+export async function updateBandPost(
+  postId: string, content: string, title?: string | null,
+): Promise<BandPost | null> {
+  const { data, error } = await supabase
+    .from('band_posts')
+    .update({ content, title: title || null })
+    .eq('id', postId)
+    .select('*, author:profiles(display_name, username, avatar_url)')
+    .single();
+  if (error) return null;
+  return data as BandPost;
+}
+
 export async function deleteBandPost(postId: string, imageUrl?: string | null): Promise<boolean> {
   if (imageUrl) {
     try { await deleteBandMediaFile(imageUrl); } catch { /* ignore storage cleanup errors */ }

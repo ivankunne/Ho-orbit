@@ -504,7 +504,7 @@ function ForumSection() {
 
       {/* Hide confirm overlay */}
       {hidingItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
           <div className="bg-[#1e1833] border border-white/10 rounded-2xl p-5 w-full max-w-md shadow-2xl">
             <h3 className="font-semibold text-white mb-1">Content verbergen</h3>
             <p className="text-sm text-slate-400 mb-4 line-clamp-2">"{hidingItem.title}"</p>

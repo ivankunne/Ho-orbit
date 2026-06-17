@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   ChevronLeft, Pin, ThumbsUp, MessageSquare, Eye, Flag,
-  Send, Quote, Bold, Italic, Smile,
+  Send, Quote, Bold, Italic, Smile, Pencil, Trash2,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { getThread, getReplies, createReply, toggleReplyLike } from '@services/forumService';
+import {
+  getThread, getReplies, createReply, toggleReplyLike,
+  updateThread, deleteThread, updateReply, deleteReply,
+} from '@services/forumService';
 import { createReport } from '@services/adminService';
 import { addNotification } from '@services/notificationService';
 import { useAuth } from '@context/AuthContext';
@@ -45,7 +48,23 @@ function renderInline(text: string, keyPrefix = '') {
   return nodes;
 }
 
-function ReplyCard({ reply, isOP, isOwn, index, onLike, liked, initialLiked, onReport }) {
+function ReplyCard({ reply, isOP, isOwn, index, onLike, liked, initialLiked, onReport, canManage, onEdit, onDelete }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(reply.content);
+  const [saving, setSaving] = useState(false);
+
+  const startEdit = () => { setDraft(reply.content); setEditing(true); };
+  const cancelEdit = () => { setEditing(false); setDraft(reply.content); };
+
+  const saveEdit = async () => {
+    const value = draft.trim();
+    if (!value || value === reply.content) { cancelEdit(); return; }
+    setSaving(true);
+    const ok = await onEdit(reply.id, value);
+    setSaving(false);
+    if (ok) setEditing(false);
+  };
+
   return (
     <div
       id={`reply-${reply.id}`}
@@ -83,7 +102,31 @@ function ReplyCard({ reply, isOP, isOwn, index, onLike, liked, initialLiked, onR
           <span className="text-xs text-slate-600">#{index + 1}</span>
         </div>
 
-        {reply.content.startsWith('>') ? (
+        {editing ? (
+          <div className="mb-2">
+            <textarea
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              rows={4}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-violet-500/50 resize-none leading-relaxed"
+            />
+            <div className="flex items-center gap-2 mt-2">
+              <button
+                onClick={saveEdit}
+                disabled={saving || !draft.trim()}
+                className="bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+              >
+                Opslaan
+              </button>
+              <button
+                onClick={cancelEdit}
+                className="text-xs text-slate-400 hover:text-white px-3 py-1.5 rounded-lg transition-colors"
+              >
+                Annuleren
+              </button>
+            </div>
+          </div>
+        ) : reply.content.startsWith('>') ? (
           <div className="mb-2">
             {reply.content.split('\n').map((line, i) => (
               line.startsWith('>')
@@ -105,6 +148,22 @@ function ReplyCard({ reply, isOP, isOwn, index, onLike, liked, initialLiked, onR
             <ThumbsUp size={13} fill={liked ? 'currentColor' : 'none'} />
             {(reply.likes || 0) + (liked && !initialLiked ? 1 : !liked && initialLiked ? -1 : 0)}
           </button>
+          {canManage && !editing && (
+            <>
+              <button
+                onClick={startEdit}
+                className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors"
+              >
+                <Pencil size={14} /> Bewerken
+              </button>
+              <button
+                onClick={() => onDelete(reply.id)}
+                className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-red-400 transition-colors"
+              >
+                <Trash2 size={14} /> Verwijderen
+              </button>
+            </>
+          )}
           <button
             onClick={onReport}
             className="flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-400 transition-colors ml-auto"
@@ -121,6 +180,7 @@ export default function ForumThreadPage() {
   const { threadId } = useParams();
   const { user } = useAuth();
   const addToast = useToast();
+  const navigate = useNavigate();
 
   const [thread, setThread]     = useState(null);
   const [replies, setReplies]   = useState([]);
@@ -129,6 +189,12 @@ export default function ForumThreadPage() {
   const [initialLikedReplies, setInitialLikedReplies] = useState(new Set());
   const [loading, setLoading]   = useState(true);
   const [category, setCategory] = useState(null);
+  const [editingThread, setEditingThread] = useState(false);
+  const [threadTitleDraft, setThreadTitleDraft] = useState('');
+  const [threadBodyDraft, setThreadBodyDraft] = useState('');
+  const [savingThread, setSavingThread] = useState(false);
+
+  const canManageThread = !!user && !!thread && (user.id === thread.author?.id || user.isAdmin);
 
   useEffect(() => {
     (async () => {
@@ -215,6 +281,63 @@ export default function ForumThreadPage() {
     }
   }
 
+  function startEditThread() {
+    setThreadTitleDraft(thread.title);
+    setThreadBodyDraft(thread.body ?? '');
+    setEditingThread(true);
+  }
+
+  async function saveThread() {
+    const title = threadTitleDraft.trim();
+    const body = threadBodyDraft.trim();
+    if (!title) { addToast('Titel is verplicht.', 'error'); return; }
+    setSavingThread(true);
+    try {
+      const updated = await updateThread({ threadId, title, body, tags: thread.tags ?? [] });
+      setThread(prev => ({ ...prev, title: updated.title, body: updated.body, tags: updated.tags }));
+      setEditingThread(false);
+      addToast('Discussie bijgewerkt.', 'success');
+    } catch {
+      addToast('Er is iets misgegaan. Probeer het opnieuw.', 'error');
+    } finally {
+      setSavingThread(false);
+    }
+  }
+
+  async function handleDeleteThread() {
+    if (!window.confirm('Weet je zeker dat je deze discussie wilt verwijderen?')) return;
+    try {
+      await deleteThread(threadId);
+      addToast('Discussie verwijderd.', 'success');
+      navigate('/forums');
+    } catch {
+      addToast('Verwijderen mislukt. Probeer het opnieuw.', 'error');
+    }
+  }
+
+  async function handleEditReply(replyId, content) {
+    try {
+      const updated = await updateReply({ replyId, content });
+      setReplies(prev => prev.map(r => (r.id === replyId ? { ...r, content: updated.content } : r)));
+      addToast('Reactie bijgewerkt.', 'success');
+      return true;
+    } catch {
+      addToast('Er is iets misgegaan. Probeer het opnieuw.', 'error');
+      return false;
+    }
+  }
+
+  async function handleDeleteReply(replyId) {
+    if (!window.confirm('Weet je zeker dat je deze reactie wilt verwijderen?')) return;
+    try {
+      await deleteReply(replyId);
+      setReplies(prev => prev.filter(r => r.id !== replyId));
+      addToast('Reactie verwijderd.', 'success');
+    } catch {
+      addToast('Verwijderen mislukt. Probeer het opnieuw.', 'error');
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (!replyText.trim() || !user) return;
@@ -282,10 +405,63 @@ export default function ForumThreadPage() {
 
       {/* Thread header */}
       <div className="mb-6">
-        <div className="flex items-start gap-3 mb-3">
-          {thread.pinned && <Pin size={16} className="text-violet-400 mt-1 shrink-0" />}
-          <h1 className="text-xl lg:text-2xl font-bold text-white leading-snug">{thread.title}</h1>
-        </div>
+        {editingThread ? (
+          <div className="mb-3 space-y-3">
+            <input
+              type="text"
+              value={threadTitleDraft}
+              onChange={e => setThreadTitleDraft(e.target.value)}
+              maxLength={120}
+              placeholder="Titel"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-base font-semibold text-white placeholder-slate-500 focus:outline-none focus:border-violet-500/50"
+            />
+            <textarea
+              value={threadBodyDraft}
+              onChange={e => setThreadBodyDraft(e.target.value)}
+              rows={5}
+              placeholder="Bericht"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-violet-500/50 resize-none leading-relaxed"
+            />
+            <div className="flex items-center gap-2">
+              <button
+                onClick={saveThread}
+                disabled={savingThread || !threadTitleDraft.trim()}
+                className="bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
+              >
+                Opslaan
+              </button>
+              <button
+                onClick={() => setEditingThread(false)}
+                className="text-sm text-slate-400 hover:text-white px-4 py-2 rounded-xl transition-colors"
+              >
+                Annuleren
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-start gap-3 mb-3">
+            {thread.pinned && <Pin size={16} className="text-violet-400 mt-1 shrink-0" />}
+            <h1 className="text-xl lg:text-2xl font-bold text-white leading-snug flex-1">{thread.title}</h1>
+            {canManageThread && (
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  onClick={startEditThread}
+                  title="Bewerken"
+                  className="p-1.5 text-slate-500 hover:text-white hover:bg-white/8 rounded-lg transition-colors"
+                >
+                  <Pencil size={14} />
+                </button>
+                <button
+                  onClick={handleDeleteThread}
+                  title="Verwijderen"
+                  className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-white/8 rounded-lg transition-colors"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 mb-3">
           <span className="flex items-center gap-1.5">
@@ -327,6 +503,9 @@ export default function ForumThreadPage() {
               liked={likedReplies.has(reply.id)}
               initialLiked={initialLikedReplies.has(reply.id)}
               onReport={() => handleReport(reply)}
+              canManage={!!user && (reply.author?.id === user.id || user.isAdmin)}
+              onEdit={handleEditReply}
+              onDelete={handleDeleteReply}
             />
           ))
         )}

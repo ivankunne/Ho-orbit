@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Plus, Search, Music2, Megaphone, MapPin,
-  Clock, X, Loader2, ExternalLink
+  Clock, X, Loader2, ExternalLink, Pencil, Trash2, MessageSquare
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@context/AuthContext';
@@ -10,6 +10,7 @@ import { useToast } from '@components/Toast';
 import UserAvatar from '@components/UserAvatar';
 import GenrePicker from '@components/GenrePicker';
 import GenreBadge from '@components/GenreBadge';
+import CommentSection from '@components/CommentSection';
 
 const TABS = [
   { key: 'all',           label: 'Alles' },
@@ -72,10 +73,47 @@ export default function NetworkingPage() {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<CreateForm>({
     type: 'wanted', title: '', description: '', genre: '',
     location: '', track_title: '', contact_info: '',
   });
+
+  const emptyForm: CreateForm = {
+    type: 'wanted', title: '', description: '', genre: '',
+    location: '', track_title: '', contact_info: '',
+  };
+
+  function openCreate() {
+    setEditingId(null);
+    setForm(emptyForm);
+    setShowCreate(true);
+  }
+
+  function openEdit(post: Post) {
+    setEditingId(post.id);
+    setForm({
+      type: (post.type as CreateForm['type']) || 'wanted',
+      title: post.title || '',
+      description: post.description || '',
+      genre: post.genre || '',
+      location: post.location || '',
+      track_title: post.track_title || '',
+      contact_info: post.contact_info || '',
+    });
+    setShowCreate(true);
+  }
+
+  async function handleDelete(post: Post) {
+    if (!window.confirm('Weet je zeker dat je deze post wilt verwijderen?')) return;
+    const { error } = await supabase.from('networking_posts').delete().eq('id', post.id);
+    if (error) {
+      addToast('Verwijderen mislukt', 'error');
+    } else {
+      addToast('Post verwijderd', 'success');
+      setPosts(prev => prev.filter(p => p.id !== post.id));
+    }
+  }
 
   useEffect(() => { loadPosts(); }, [activeTab]);
 
@@ -100,8 +138,7 @@ export default function NetworkingPage() {
     if (!form.title.trim()) { addToast('Geef je post een titel', 'error'); return; }
     setCreating(true);
 
-    const { error } = await supabase.from('networking_posts').insert({
-      user_id:     user.id,
+    const payload = {
       type:        form.type,
       title:       form.title.trim(),
       description: form.description.trim() || null,
@@ -109,14 +146,19 @@ export default function NetworkingPage() {
       location:    form.location.trim() || null,
       track_title: form.track_title.trim() || null,
       contact_info: form.contact_info.trim() || null,
-    });
+    };
+
+    const { error } = editingId
+      ? await supabase.from('networking_posts').update(payload).eq('id', editingId)
+      : await supabase.from('networking_posts').insert({ user_id: user.id, ...payload });
 
     if (error) {
-      addToast('Plaatsen mislukt, probeer opnieuw', 'error');
+      addToast(editingId ? 'Bijwerken mislukt, probeer opnieuw' : 'Plaatsen mislukt, probeer opnieuw', 'error');
     } else {
-      addToast('Post geplaatst!', 'success');
+      addToast(editingId ? 'Post bijgewerkt!' : 'Post geplaatst!', 'success');
       setShowCreate(false);
-      setForm({ type: 'wanted', title: '', description: '', genre: '', location: '', track_title: '', contact_info: '' });
+      setEditingId(null);
+      setForm(emptyForm);
       loadPosts();
     }
     setCreating(false);
@@ -134,7 +176,7 @@ export default function NetworkingPage() {
         </div>
         {user && (
           <button
-            onClick={() => setShowCreate(true)}
+            onClick={openCreate}
             className="flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white font-semibold px-4 py-2.5 rounded-xl transition-colors shrink-0"
           >
             <Plus size={18} /> Post plaatsen
@@ -170,7 +212,7 @@ export default function NetworkingPage() {
           <p className="font-medium text-slate-400">Nog geen posts</p>
           {user && (
             <button
-              onClick={() => setShowCreate(true)}
+              onClick={openCreate}
               className="mt-4 text-violet-400 hover:underline text-sm"
             >
               Wees de eerste!
@@ -179,7 +221,15 @@ export default function NetworkingPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {posts.map(post => <PostCard key={post.id} post={post} />)}
+          {posts.map(post => (
+            <PostCard
+              key={post.id}
+              post={post}
+              canManage={!!user && (user.id === post.user_id || user.isAdmin)}
+              onEdit={() => openEdit(post)}
+              onDelete={() => handleDelete(post)}
+            />
+          ))}
         </div>
       )}
 
@@ -191,11 +241,11 @@ export default function NetworkingPage() {
 
       {/* Create post modal */}
       {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
           <div className="bg-[#201c30] border border-white/10 rounded-2xl p-6 w-full max-w-lg shadow-2xl my-4">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-white">Post plaatsen</h2>
-              <button onClick={() => setShowCreate(false)} className="text-slate-400 hover:text-white">
+              <h2 className="text-lg font-semibold text-white">{editingId ? 'Post bewerken' : 'Post plaatsen'}</h2>
+              <button onClick={() => { setShowCreate(false); setEditingId(null); }} className="text-slate-400 hover:text-white">
                 <X size={20} />
               </button>
             </div>
@@ -300,7 +350,7 @@ export default function NetworkingPage() {
 
             <div className="flex gap-3 mt-6">
               <button
-                onClick={() => setShowCreate(false)}
+                onClick={() => { setShowCreate(false); setEditingId(null); }}
                 className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-slate-300 hover:text-white transition-colors"
               >
                 Annuleren
@@ -311,7 +361,7 @@ export default function NetworkingPage() {
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold transition-colors disabled:opacity-50"
               >
                 {creating ? <Loader2 size={16} className="animate-spin" /> : null}
-                Plaatsen
+                {editingId ? 'Opslaan' : 'Plaatsen'}
               </button>
             </div>
           </div>
@@ -321,9 +371,17 @@ export default function NetworkingPage() {
   );
 }
 
-function PostCard({ post }: { post: Post }) {
+function PostCard({
+  post, canManage = false, onEdit, onDelete,
+}: {
+  post: Post;
+  canManage?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
+}) {
   const meta = TYPE_META[post.type];
   const Icon = meta?.icon ?? Megaphone;
+  const [showComments, setShowComments] = useState(false);
 
   return (
     <div className="bg-white/3 hover:bg-white/5 border border-white/8 rounded-2xl p-5 transition-all">
@@ -343,7 +401,17 @@ function PostCard({ post }: { post: Post }) {
           </div>
         </div>
         <div className="flex items-center gap-2 text-xs text-slate-500 shrink-0">
-          <Clock size={11} /> {timeAgo(post.created_at)}
+          {canManage && (
+            <>
+              <button onClick={onEdit} className="text-slate-500 hover:text-violet-400 transition-colors" title="Bewerken">
+                <Pencil size={14} />
+              </button>
+              <button onClick={onDelete} className="text-slate-500 hover:text-red-400 transition-colors" title="Verwijderen">
+                <Trash2 size={14} />
+              </button>
+            </>
+          )}
+          <span className="flex items-center gap-1"><Clock size={11} /> {timeAgo(post.created_at)}</span>
         </div>
       </div>
 
@@ -365,15 +433,29 @@ function PostCard({ post }: { post: Post }) {
         )}
       </div>
 
-      {post.poster && (
-        <div className="flex items-center gap-2 mt-4 pt-3 border-t border-white/6">
-          <UserAvatar src={post.poster.avatar_url} name={post.poster.display_name || post.poster.username} size={22} />
-          <Link
-            to={`/profiel/${post.poster.username}`}
-            className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
-          >
-            {post.poster.display_name || post.poster.username}
-          </Link>
+      <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-white/6">
+        {post.poster ? (
+          <div className="flex items-center gap-2">
+            <UserAvatar src={post.poster.avatar_url} name={post.poster.display_name || post.poster.username} size={22} />
+            <Link
+              to={`/profiel/${post.poster.username}`}
+              className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+            >
+              {post.poster.display_name || post.poster.username}
+            </Link>
+          </div>
+        ) : <span />}
+        <button
+          onClick={() => setShowComments(v => !v)}
+          className={`flex items-center gap-1.5 text-xs transition-colors ${showComments ? 'text-violet-400' : 'text-slate-500 hover:text-slate-300'}`}
+        >
+          <MessageSquare size={13} /> Reacties
+        </button>
+      </div>
+
+      {showComments && (
+        <div className="-mt-4">
+          <CommentSection resourceType="networking_post" resourceId={post.id} resourceTitle={post.title} />
         </div>
       )}
     </div>

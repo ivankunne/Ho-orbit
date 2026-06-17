@@ -8,13 +8,16 @@ const isUUID = (id: string | null) => !!id && UUID_RE.test(id);
 
 interface AppStateContextValue {
   likedTracks: (number | string)[];
-  followedArtists: number[];
+  // Follow keys are stored as strings: a numeric artists.id ("1") or a profile
+  // UUID. The junction column user_following_artists.artist_id is text, so both
+  // kinds live in one list. Always compare with String(id).
+  followedArtists: string[];
   rsvpEvents: number[];
   tutorialProgress: Record<number, number>;
   currentUserId: string | null;
   setCurrentUserId: (id: string | null) => void;
   toggleLike: (trackId: number) => Promise<void>;
-  toggleFollow: (artistId: number) => Promise<void>;
+  toggleFollow: (artistId: number | string) => Promise<void>;
   toggleRsvp: (eventId: number) => Promise<void>;
   setTutorialWatched: (id: number) => Promise<void>;
   clearTutorialProgress: (id: number) => Promise<void>;
@@ -24,7 +27,7 @@ const AppStateContext = createContext<AppStateContextValue | null>(null);
 
 export function AppStateProvider({ children }) {
   const [likedTracks,      setLikedTracks]      = useState<(number | string)[]>([]);
-  const [followedArtists,  setFollowedArtists]  = useState<number[]>([]);
+  const [followedArtists,  setFollowedArtists]  = useState<string[]>([]);
   const [rsvpEvents,       setRsvpEvents]       = useState<number[]>([]);
   const [tutorialProgress, setTutorialProgress] = useState<Record<number, number>>({});
   const [currentUserId, setCurrentUserId]       = useState<string | null>(null);
@@ -44,7 +47,7 @@ export function AppStateProvider({ children }) {
         supabase.from('user_attending_events').select('event_id').eq('user_id', currentUserId),
       ]);
       setLikedTracks((liked.data ?? []).map((r) => r.track_id));
-      setFollowedArtists((following.data ?? []).map((r) => r.artist_id));
+      setFollowedArtists((following.data ?? []).map((r) => String(r.artist_id)));
       setRsvpEvents((attending.data ?? []).map((r) => r.event_id));
     })();
   }, [currentUserId]);
@@ -79,74 +82,91 @@ export function AppStateProvider({ children }) {
 
   const toggleFollow = useCallback(async (artistId: number | string) => {
     if (!currentUserId) return;
-    const isFollowing = !followedArtists.includes(artistId as number);
+    const key = String(artistId);
+
+    // You can't follow yourself. Direct profile follows carry the profile UUID,
+    // so a key equal to the current user id is a self-follow attempt. (Self-follow
+    // via an artist page is additionally blocked in the UI by hiding the button.)
+    if (isUUID(key) && key === currentUserId) return;
+
+    const isFollowing = !followedArtists.includes(key);
     const delta = isFollowing ? 1 : -1;
 
     // Optimistic UI update
     setFollowedArtists((prev) =>
-      isFollowing ? [...prev, artistId as number] : prev.filter((id) => id !== artistId)
+      isFollowing ? [...prev, key] : prev.filter((id) => id !== key)
     );
 
     try {
+      // The follow row is the source of truth for the button state. Only this
+      // write can revert the optimistic update — the count RPCs below are
+      // best-effort and never throw, so a missing RPC can't flip the button back.
       if (isFollowing) {
-        const { error } = await supabase.from('user_following_artists').upsert({ user_id: currentUserId, artist_id: artistId });
+        const { error } = await supabase
+          .from('user_following_artists')
+          .upsert({ user_id: currentUserId, artist_id: key }, { onConflict: 'user_id,artist_id' });
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('user_following_artists').delete().eq('user_id', currentUserId).eq('artist_id', artistId);
+        const { error } = await supabase
+          .from('user_following_artists')
+          .delete().eq('user_id', currentUserId).eq('artist_id', key);
         if (error) throw error;
-      }
-
-      // Update current user's following count
-      await supabase.rpc('increment_profile_following', { profile_uuid: currentUserId, delta });
-
-      // Update the followed entity's follower count
-      if (isUUID(String(artistId))) {
-        // Profile-based follow (UUID from ProfilePage)
-        await supabase.rpc('increment_profile_followers', { profile_uuid: String(artistId), delta });
-
-        if (isFollowing) {
-          const { data: profile } = await supabase.from('profiles').select('display_name, username').eq('id', artistId).single();
-          const artistName = profile?.display_name || profile?.username;
-          if (artistName) {
-            addNotification(currentUserId, {
-              type: 'follow', title: 'Gevolgd',
-              body: `Je volgt nu ${artistName}`, link: `/profiel/${profile?.username}`,
-            });
-          }
-          // Notify the followed user (in-app + email).
-          notifyNewFollower(String(artistId));
-        }
-      } else {
-        // Artist table follow (numeric ID from ArtistDetailPage)
-        const { data: artistRow } = await supabase
-          .from('artists').select('followers_count, profile_id, name, slug').eq('id', artistId).single();
-
-        if (artistRow) {
-          await supabase
-            .from('artists')
-            .update({ followers_count: Math.max(0, (artistRow.followers_count || 0) + delta) })
-            .eq('id', artistId);
-
-          if (artistRow.profile_id) {
-            await supabase.rpc('increment_profile_followers', { profile_uuid: artistRow.profile_id, delta });
-          }
-
-          if (isFollowing) {
-            addNotification(currentUserId, {
-              type: 'follow', title: 'Artiest gevolgd',
-              body: `Je volgt nu ${artistRow.name}`,
-              link: `/artists/${artistRow.slug || artistId}`,
-            });
-            // Notify the followed user if this artist is linked to a profile.
-            if (artistRow.profile_id) notifyNewFollower(String(artistRow.profile_id));
-          }
-        }
       }
     } catch {
-      // Revert optimistic update on error
+      // Revert optimistic update only when the follow row itself failed to write.
       setFollowedArtists((prev) =>
-        isFollowing ? prev.filter((id) => id !== artistId) : [...prev, artistId as number]
+        isFollowing ? prev.filter((id) => id !== key) : [...prev, key]
       );
+      return;
+    }
+
+    // --- Best-effort side effects (counts + notifications). Failures here must
+    // never revert the button, so they live outside the try/catch above. ---
+
+    // Update current user's following count
+    await supabase.rpc('increment_profile_following', { profile_uuid: currentUserId, delta });
+
+    if (isUUID(key)) {
+      // Profile-based follow (UUID from ProfilePage / profile-mapped artist page)
+      await supabase.rpc('increment_profile_followers', { profile_uuid: key, delta });
+
+      if (isFollowing) {
+        const { data: profile } = await supabase.from('profiles').select('display_name, username').eq('id', key).maybeSingle();
+        const artistName = profile?.display_name || profile?.username;
+        if (artistName) {
+          addNotification(currentUserId, {
+            type: 'follow', title: 'Gevolgd',
+            body: `Je volgt nu ${artistName}`, link: `/profiel/${profile?.username}`,
+          });
+        }
+        // Notify the followed user (in-app + email).
+        notifyNewFollower(key);
+      }
+    } else {
+      // Artist table follow (numeric ID from ArtistDetailPage)
+      const { data: artistRow } = await supabase
+        .from('artists').select('followers_count, profile_id, name, slug').eq('id', key).maybeSingle();
+
+      if (artistRow) {
+        await supabase
+          .from('artists')
+          .update({ followers_count: Math.max(0, (artistRow.followers_count || 0) + delta) })
+          .eq('id', key);
+
+        if (artistRow.profile_id) {
+          await supabase.rpc('increment_profile_followers', { profile_uuid: artistRow.profile_id, delta });
+        }
+
+        if (isFollowing) {
+          addNotification(currentUserId, {
+            type: 'follow', title: 'Artiest gevolgd',
+            body: `Je volgt nu ${artistRow.name}`,
+            link: `/artists/${artistRow.slug || key}`,
+          });
+          // Notify the followed user if this artist is linked to a profile.
+          if (artistRow.profile_id) notifyNewFollower(String(artistRow.profile_id));
+        }
+      }
     }
   }, [currentUserId, followedArtists]);
 
