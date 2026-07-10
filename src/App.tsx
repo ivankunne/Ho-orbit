@@ -1,7 +1,7 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation, useMatch, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useMatch } from 'react-router-dom';
 import { useEffect, useState, lazy, Suspense, type ReactNode } from 'react';
 import { AuthProvider, useAuth } from '@context/AuthContext';
-import { AuthModalProvider, useAuthModal } from '@context/AuthModalContext';
+import { AuthModalProvider } from '@context/AuthModalContext';
 import AuthModal from '@components/AuthModal';
 import { RadioProvider } from '@context/RadioContext';
 import { AppStateProvider, useAppState } from '@context/AppStateContext';
@@ -60,7 +60,7 @@ const AccountPage = lazy(() => import('@pages/user/AccountPage'));
 const PlaylistDetailPage = lazy(() => import('@pages/PlaylistDetailPage'));
 const NotFoundPage = lazy(() => import('@pages/NotFoundPage'));
 const OnboardingPage = lazy(() => import('@pages/OnboardingPage'));
-const LandingPage = lazy(() => import('@pages/LandingPage'));
+const AuthPage = lazy(() => import('@pages/auth/AuthPage'));
 const HubPage = lazy(() => import('@pages/HubPage'));
 const AdminPage = lazy(() => import('@pages/AdminPage'));
 const AdminLoginPage = lazy(() => import('@pages/AdminLoginPage'));
@@ -139,22 +139,27 @@ function GlobalShortcuts({ onOpenSearch, onToggleShortcutsModal }) {
   return null;
 }
 
-function AuthRedirect({ tab }: { tab: 'login' | 'signup' }) {
-  const { open } = useAuthModal();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    open(tab);
-    navigate('/muziek', { replace: true });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  return null;
+// Root: uitgelogd → inlog-/registratiescherm; ingelogd → door naar de app
+// (of naar de pagina waar de bezoeker oorspronkelijk heen wilde).
+function RootGate({ tab }: { tab?: 'login' | 'signup' }) {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+  if (loading) return <PageLoader />;
+  if (user) {
+    const from = (location.state as { from?: string } | null)?.from;
+    return <Navigate to={from || '/muziek'} replace />;
+  }
+  return <AuthPage initialTab={tab ?? 'login'} />;
 }
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
+  const location = useLocation();
   if (loading) return <PageLoader />;
-  if (!user) return <Navigate to="/muziek" replace />;
+  if (!user) {
+    // Onthoud de bestemming zodat we er na het inloggen naartoe kunnen sturen.
+    return <Navigate to="/" replace state={{ from: location.pathname + location.search }} />;
+  }
   return <>{children}</>;
 }
 
@@ -171,7 +176,8 @@ function ProtectedApp() {
   const [showSearch, setShowSearch] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const isLanding = !!useMatch('/');
+  // Het inlog-/registratiescherm is chroomloos: geen navbar, footer of speler.
+  const isLanding = !!useMatch('/') || !!useMatch('/login') || !!useMatch('/signup');
   // The band workspace is a full-height app shell with its own internal scroll.
   // Drop the page footer + bottom padding here so the window doesn't scroll on
   // top of it (which produced a nested scrollbar).
@@ -198,54 +204,51 @@ function ProtectedApp() {
         <ErrorBoundary>
           <Suspense fallback={<PageLoader />}>
             <Routes>
-              {/* Public landing */}
-              <Route path="/" element={<LandingPage />} />
+              {/* Inlog-/registratiescherm — het startpunt voor uitgelogde bezoekers */}
+              <Route path="/" element={<RootGate />} />
+              <Route path="/login" element={<RootGate tab="login" />} />
+              <Route path="/signup" element={<RootGate tab="signup" />} />
 
-              {/* Auth routes — open modal overlay, redirect to /muziek */}
-              <Route path="/login" element={<AuthRedirect tab="login" />} />
-              <Route path="/signup" element={<AuthRedirect tab="signup" />} />
+              {/* Publiek — nodig zonder account */}
               <Route path="/wachtwoord-herstellen" element={<ResetPasswordPage />} />
-
-              {/* Publicly browsable */}
-              <Route path="/radio" element={<RadioPage />} />
-              <Route path="/muziek" element={<HomePage />} />
-              <Route path="/artists" element={<ArtistsPage />} />
-              <Route path="/artists/:slug" element={<ArtistDetailPage />} />
-              <Route path="/events" element={<EventsPage />} />
-              <Route path="/events/:id" element={<EventDetailPage />} />
-              <Route path="/magazine" element={<MagazinePage />} />
-              <Route path="/magazine/:id" element={<ArticleDetailPage />} />
-              <Route path="/tutorials" element={<TutorialsPage />} />
-              <Route path="/tutorials/:id" element={<TutorialDetailPage />} />
-              <Route path="/dutch-scene" element={<DutchScenePage />} />
-              <Route path="/dutch-scene/:slug" element={<SceneDetailPage />} />
-              <Route path="/venue/:id" element={<VenueDetailPage />} />
-              <Route path="/forums" element={<ForumsPage />} />
-              <Route path="/forums/thread/:threadId" element={<ForumThreadPage />} />
-
-              {/* Band invite link — public; handles its own auth + direct join */}
               <Route path="/bandspace/join/:token" element={<JoinBandPage />} />
-
-              {/* Requires login */}
-              <Route path="/upload" element={<ProtectedRoute><UploadPage /></ProtectedRoute>} />
-              <Route path="/library" element={<ProtectedRoute><LibraryPage /></ProtectedRoute>} />
-              <Route path="/library/playlists/:id" element={<ProtectedRoute><PlaylistDetailPage /></ProtectedRoute>} />
-              <Route path="/hub" element={<ProtectedRoute><HubPage /></ProtectedRoute>} />
-              <Route path="/profiel" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-              <Route path="/profiel/:username" element={<ProfilePage />} />
-              <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
-              <Route path="/berichten" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
-              <Route path="/berichten/:id" element={<ProtectedRoute><ConversationPage /></ProtectedRoute>} />
-              <Route path="/bandspace" element={<ProtectedRoute><BandSpacePage /></ProtectedRoute>} />
-              <Route path="/bandspace/:id" element={<ProtectedRoute><BandSpaceDetailPage /></ProtectedRoute>} />
-              <Route path="/netwerken"   element={<NetworkingPage />} />
-              <Route path="/masterclass" element={<MasterclassPage />} />
               <Route path="/privacy"     element={<PrivacyPage />} />
               <Route path="/voorwaarden" element={<TermsPage />} />
               <Route path="/cookies"     element={<CookiesPage />} />
               <Route path="/admin" element={<AdminGate />} />
 
-              <Route path="*" element={<NotFoundPage />} />
+              {/* Alles hieronder vereist een account */}
+              <Route path="/radio" element={<ProtectedRoute><RadioPage /></ProtectedRoute>} />
+              <Route path="/muziek" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+              <Route path="/artists" element={<ProtectedRoute><ArtistsPage /></ProtectedRoute>} />
+              <Route path="/artists/:slug" element={<ProtectedRoute><ArtistDetailPage /></ProtectedRoute>} />
+              <Route path="/events" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
+              <Route path="/events/:id" element={<ProtectedRoute><EventDetailPage /></ProtectedRoute>} />
+              <Route path="/magazine" element={<ProtectedRoute><MagazinePage /></ProtectedRoute>} />
+              <Route path="/magazine/:id" element={<ProtectedRoute><ArticleDetailPage /></ProtectedRoute>} />
+              <Route path="/tutorials" element={<ProtectedRoute><TutorialsPage /></ProtectedRoute>} />
+              <Route path="/tutorials/:id" element={<ProtectedRoute><TutorialDetailPage /></ProtectedRoute>} />
+              <Route path="/dutch-scene" element={<ProtectedRoute><DutchScenePage /></ProtectedRoute>} />
+              <Route path="/dutch-scene/:slug" element={<ProtectedRoute><SceneDetailPage /></ProtectedRoute>} />
+              <Route path="/venue/:id" element={<ProtectedRoute><VenueDetailPage /></ProtectedRoute>} />
+              <Route path="/forums" element={<ProtectedRoute><ForumsPage /></ProtectedRoute>} />
+              <Route path="/forums/thread/:threadId" element={<ProtectedRoute><ForumThreadPage /></ProtectedRoute>} />
+              <Route path="/upload" element={<ProtectedRoute><UploadPage /></ProtectedRoute>} />
+              <Route path="/library" element={<ProtectedRoute><LibraryPage /></ProtectedRoute>} />
+              <Route path="/library/playlists/:id" element={<ProtectedRoute><PlaylistDetailPage /></ProtectedRoute>} />
+              <Route path="/hub" element={<ProtectedRoute><HubPage /></ProtectedRoute>} />
+              <Route path="/profiel" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+              <Route path="/profiel/:username" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+              <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
+              <Route path="/berichten" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
+              <Route path="/berichten/:id" element={<ProtectedRoute><ConversationPage /></ProtectedRoute>} />
+              <Route path="/bandspace" element={<ProtectedRoute><BandSpacePage /></ProtectedRoute>} />
+              <Route path="/bandspace/:id" element={<ProtectedRoute><BandSpaceDetailPage /></ProtectedRoute>} />
+              <Route path="/netwerken"   element={<ProtectedRoute><NetworkingPage /></ProtectedRoute>} />
+              <Route path="/masterclass" element={<ProtectedRoute><MasterclassPage /></ProtectedRoute>} />
+
+              {/* Onbekende URL's: uitgelogd → inlogscherm, ingelogd → 404 */}
+              <Route path="*" element={<ProtectedRoute><NotFoundPage /></ProtectedRoute>} />
             </Routes>
           </Suspense>
         </ErrorBoundary>

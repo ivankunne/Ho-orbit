@@ -10,7 +10,7 @@ import { Checkbox } from '@components/ui/checkbox';
 
 // ─── Login form ──────────────────────────────────────────────────────────────
 
-function LoginForm({ onSuccess, onSwitch }: { onSuccess: () => void; onSwitch: () => void }) {
+export function LoginForm({ onSuccess, onSwitch }: { onSuccess: () => void; onSwitch: () => void }) {
   const { login, error, setError, requestPasswordReset } = useAuth();
   const [form, setForm] = useState({ identifier: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
@@ -186,7 +186,7 @@ function LoginForm({ onSuccess, onSwitch }: { onSuccess: () => void; onSwitch: (
 
 const STEPS = ['Account', 'Profiel', 'Klaar'];
 
-function SignupForm({ onSuccess, onSwitch }: { onSuccess: () => void; onSwitch: () => void }) {
+export function SignupForm({ onSuccess, onSwitch }: { onSuccess: () => void; onSwitch: () => void }) {
   const { signup, error, setError } = useAuth();
   const [step, setStep] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
