@@ -4,8 +4,19 @@ import { useRadio, type RadioStation } from '@context/RadioContext';
 import { useAuth } from '@context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { EqBars } from '@components/Waveform';
+import { useToast } from '@components/Toast';
 import GenrePicker from '@components/GenrePicker';
 import GenreBadge from '@components/GenreBadge';
+
+// http:// streams are blocked as mixed content on the https site — warn before the DJ finds out the hard way
+function StreamUrlWarning({ url }: { url: string }) {
+  if (!url.trim().toLowerCase().startsWith('http://')) return null;
+  return (
+    <p className="text-xs text-amber-400 mt-1">
+      Deze URL begint met http:// — de browser blokkeert dit op een beveiligde site. Gebruik een https:// stream-URL.
+    </p>
+  );
+}
 
 // ─── Station card (public listener view) ────────────────────────────────────
 
@@ -79,11 +90,21 @@ function StudioRow({ station, onRefresh }: { station: RadioStation; onRefresh: (
   const [saving, setSaving]       = useState(false);
   const [saved, setSaved]         = useState(false);
   const [deleting, setDeleting]   = useState(false);
+  const addToast = useToast();
 
   const save = async () => {
     setSaving(true);
-    await supabase.from('radio_streams').update({ name, description, stream_url: streamUrl, genre, is_live: isLive }).eq('id', station.id);
-    setSaving(false); setSaved(true);
+    // .select() verifies the row was actually updated — an RLS-blocked update returns success with 0 rows
+    const { data, error } = await supabase.from('radio_streams')
+      .update({ name, description, stream_url: streamUrl, genre, is_live: isLive })
+      .eq('id', station.id)
+      .select('id');
+    setSaving(false);
+    if (error || !data?.length) {
+      addToast?.('Opslaan mislukt — de wijziging is niet doorgevoerd.', 'error');
+      return;
+    }
+    setSaved(true);
     setTimeout(() => setSaved(false), 2000);
     onRefresh();
   };
@@ -91,14 +112,24 @@ function StudioRow({ station, onRefresh }: { station: RadioStation; onRefresh: (
   const remove = async () => {
     if (!confirm(`Zender "${station.name}" verwijderen?`)) return;
     setDeleting(true);
-    await supabase.from('radio_streams').delete().eq('id', station.id);
+    const { data, error } = await supabase.from('radio_streams').delete().eq('id', station.id).select('id');
+    if (error || !data?.length) {
+      setDeleting(false);
+      addToast?.('Verwijderen mislukt.', 'error');
+      return;
+    }
     onRefresh();
   };
 
   const quickToggleLive = async () => {
     const next = !isLive;
     setIsLive(next);
-    await supabase.from('radio_streams').update({ is_live: next }).eq('id', station.id);
+    const { data, error } = await supabase.from('radio_streams').update({ is_live: next }).eq('id', station.id).select('id');
+    if (error || !data?.length) {
+      setIsLive(!next);
+      addToast?.('Live-status wijzigen mislukt.', 'error');
+      return;
+    }
     onRefresh();
   };
 
@@ -149,6 +180,7 @@ function StudioRow({ station, onRefresh }: { station: RadioStation; onRefresh: (
             <input type="url" value={streamUrl} onChange={e => setStreamUrl(e.target.value)} placeholder="https://stream.example.com/live.mp3"
               className="w-full bg-white/[0.04] border border-white/8 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500/40 transition-colors" />
             <p className="text-xs text-slate-600 mt-1">MP3 stream URL of HLS (.m3u8)</p>
+            <StreamUrlWarning url={streamUrl} />
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-400 mb-1.5">Omschrijving</label>
@@ -177,15 +209,21 @@ function AddStationForm({ onRefresh, onClose, userId }: { onRefresh: () => void;
   const [streamUrl, setStreamUrl] = useState('');
   const [description, setDesc]    = useState('');
   const [saving, setSaving]       = useState(false);
+  const addToast = useToast();
 
   const save = async () => {
     if (!name.trim() || !streamUrl.trim()) return;
     setSaving(true);
-    await supabase.from('radio_streams').insert({
+    const { error } = await supabase.from('radio_streams').insert({
       name, genre, stream_url: streamUrl, description, is_live: false,
       ...(userId ? { owner_id: userId } : {}),
     });
     setSaving(false);
+    if (error) {
+      addToast?.('Zender toevoegen mislukt. Probeer het opnieuw.', 'error');
+      return;
+    }
+    addToast?.('Zender toegevoegd. Zet de schakelaar aan als je live gaat.', 'success');
     onRefresh();
     onClose();
   };
@@ -209,6 +247,7 @@ function AddStationForm({ onRefresh, onClose, userId }: { onRefresh: () => void;
         <input type="url" value={streamUrl} onChange={e => setStreamUrl(e.target.value)} placeholder="https://stream.example.com/live.mp3"
           className="w-full bg-white/[0.04] border border-white/8 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500/40 transition-colors" />
         <p className="text-xs text-slate-600 mt-1">Je kunt dit later ook nog invullen of aanpassen.</p>
+        <StreamUrlWarning url={streamUrl} />
       </div>
       <div>
         <label className="block text-xs font-medium text-slate-400 mb-1.5">Omschrijving</label>

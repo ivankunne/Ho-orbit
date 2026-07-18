@@ -9,6 +9,7 @@ import { useRadio } from '@context/RadioContext';
 import { useAppState } from '@context/AppStateContext';
 import { useState } from 'react';
 import { getWaveform, EqBars } from '@components/Waveform';
+import { useToast } from '@components/Toast';
 import { coverPlaceholder } from '@utils/placeholder';
 
 function formatTime(secs) {
@@ -35,8 +36,14 @@ export default function MusicPlayer({ hidden = false }: { hidden?: boolean }) {
   const { toggleLike, likedTracks } = useAppState();
   const liked = likedTracks.includes(track?.id);
 
-  const { isRadioPlaying, stopRadio, currentStation } = useRadio();
+  const { isRadioPlaying, stopRadio, currentStation, radioError } = useRadio();
   const { currentTime, duration } = usePlayerProgress();
+  const addToast = useToast();
+
+  // Surface stream failures — otherwise a dead stream fails silently
+  useEffect(() => {
+    if (radioError) addToast?.(radioError, 'error');
+  }, [radioError]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [expanded, setExpanded] = useState(false);
   const [showQueue, setShowQueue] = useState(false);

@@ -19,6 +19,7 @@ interface RadioContextValue {
   isLive: boolean;
   currentStation: RadioStation | null;
   isRadioPlaying: boolean;
+  radioError: string | null;
   playStation: (station: RadioStation) => void;
   stopRadio: () => void;
   toggleStation: (station: RadioStation) => void;
@@ -31,8 +32,20 @@ export function RadioProvider({ children }) {
   const [stations, setStations]           = useState<RadioStation[]>([]);
   const [currentStation, setCurrentStation] = useState<RadioStation | null>(null);
   const [isRadioPlaying, setIsRadioPlaying] = useState(false);
+  const [radioError, setRadioError] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Distinguishes real stream failures from the error event fired by clearing src in stopRadio
+  const wantsPlayRef = useRef(false);
   if (!audioRef.current) audioRef.current = new Audio();
+
+  const streamFailed = useCallback((e?: unknown) => {
+    // Switching stations aborts the previous play() — not a real failure
+    if (e instanceof DOMException && e.name === 'AbortError') return;
+    if (!wantsPlayRef.current) return;
+    wantsPlayRef.current = false;
+    setIsRadioPlaying(false);
+    setRadioError('De stream kan niet worden afgespeeld. Controleer of de zender uitzendt en of de stream-URL klopt (https).');
+  }, []);
 
   const fetchStations = useCallback(async () => {
     const { data } = await supabase.from('radio_streams').select('*').order('created_at');
@@ -62,27 +75,29 @@ export function RadioProvider({ children }) {
       .subscribe();
 
     const audio = audioRef.current!;
-    const onError = () => setIsRadioPlaying(false);
-    audio.addEventListener('error', onError);
+    audio.addEventListener('error', streamFailed);
 
     return () => {
       supabase.removeChannel(channel);
-      audio.removeEventListener('error', onError);
+      audio.removeEventListener('error', streamFailed);
     };
-  }, [fetchStations]);
+  }, [fetchStations, streamFailed]);
 
   const playStation = useCallback((station: RadioStation) => {
     if (!station.stream_url || !station.is_live) return;
     pausePlayerAudio(); // stop track audio synchronously before starting radio
     const audio = audioRef.current!;
+    setRadioError(null);
+    wantsPlayRef.current = true;
     audio.src = station.stream_url;
-    audio.play().catch(() => setIsRadioPlaying(false));
+    audio.play().catch(streamFailed);
     setCurrentStation(station);
     setIsRadioPlaying(true);
-  }, []);
+  }, [streamFailed]);
 
   const stopRadio = useCallback(() => {
     const audio = audioRef.current!;
+    wantsPlayRef.current = false;
     audio.pause();
     audio.src = '';
     setIsRadioPlaying(false);
@@ -103,6 +118,7 @@ export function RadioProvider({ children }) {
       isLive: liveStations.length > 0,
       currentStation,
       isRadioPlaying,
+      radioError,
       playStation,
       stopRadio,
       toggleStation,
