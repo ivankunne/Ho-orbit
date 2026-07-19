@@ -58,6 +58,19 @@ function clearProfileCache(userId: string) {
   try { localStorage.removeItem(profileCacheKey(userId)); } catch {}
 }
 
+// De door supabase-js opgeslagen sessie, synchroon uit localStorage.
+// getSession() kan bij het opstarten netwerk nodig hebben (token-refresh) en
+// dus hangen of tijdelijk niets teruggeven; deze read kan dat niet.
+function readStoredSession(): { user: any } | null {
+  try {
+    const key = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+    if (!key) return null;
+    const raw = JSON.parse(localStorage.getItem(key) || 'null');
+    const session = raw?.user ? raw : raw?.currentSession;
+    return session?.user ? session : null;
+  } catch { return null; }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -115,10 +128,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // Read session from localStorage directly — fast, no network round-trip for valid sessions.
-    // This avoids the hard-refresh race where onAuthStateChange temporarily fires with null.
+    // Optimistische boot: met een opgeslagen sessie renderen we de app direct
+    // vanuit de profielcache. getSession() kan bij een verlopen token een
+    // netwerk-refresh doen die op een trage/net-ontwakende verbinding hangt of
+    // faalt — zonder dit bleef een ingelogde gebruiker op het laadscherm
+    // hangen (of belandde op het inlogscherm) tot een handmatige refresh.
+    const stored = readStoredSession();
+    if (stored?.user) {
+      setUser(mapProfile(loadProfileCache(stored.user.id), stored.user));
+      setLoading(false);
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (active) applySession(session);
+      if (!active) return;
+      if (session || !stored) {
+        applySession(session);
+        return;
+      }
+      // Opgeslagen sessie maar (nog) geen bevestigde sessie — waarschijnlijk een
+      // mislukte token-refresh door een opstart-netwerkblip. Nooit hier uitloggen:
+      // een echt ingetrokken token levert altijd een SIGNED_OUT-event op, en dat
+      // handelt onAuthStateChange hieronder al af. Alleen nog één keer bevestigen.
+      setTimeout(() => {
+        if (!active) return;
+        supabase.auth.getSession().then(({ data: { session: retried } }) => {
+          if (active && retried) applySession(retried);
+        }).catch(() => {});
+      }, 4_000);
     }).catch(() => {
       if (active) setLoading(false);
     });
