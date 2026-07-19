@@ -23,6 +23,32 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Boot-watchdog: een verouderde service-worker-shell kan naar verwijderde
+      // JS-chunks wijzen, waardoor de app nooit mount (leeg paars scherm).
+      // Als er na 8s niets gerenderd is: één keer caches legen en herladen.
+      (function () {
+        var KEY = 'horbit-boot-retry';
+        setTimeout(function () {
+          var root = document.getElementById('root');
+          if (root && root.childElementCount > 0) {
+            sessionStorage.removeItem(KEY);
+            sessionStorage.removeItem('horbit-chunk-retry');
+            return;
+          }
+          if (sessionStorage.getItem(KEY)) return; // maximaal één herstelpoging
+          sessionStorage.setItem(KEY, '1');
+          var reload = function () { location.reload(); };
+          if (window.caches && caches.keys) {
+            caches.keys()
+              .then(function (keys) { return Promise.all(keys.map(function (k) { return caches.delete(k); })); })
+              .then(reload, reload);
+          } else {
+            reload();
+          }
+        }, 8000);
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

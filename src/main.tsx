@@ -7,6 +7,15 @@ import { setTheme, getTheme } from '@utils/theme'
 // Apply saved theme before first render to prevent flash
 setTheme(getTheme());
 
+// Na een deploy bestaan oude lazy chunks niet meer; zonder dit blijft de
+// gebruiker op een foutscherm hangen tot een handmatige refresh.
+window.addEventListener('vite:preloadError', (event) => {
+  if (sessionStorage.getItem('horbit-chunk-retry')) return; // maximaal één herstelpoging
+  sessionStorage.setItem('horbit-chunk-retry', '1');
+  event.preventDefault();
+  window.location.reload();
+});
+
 const rootEl = document.getElementById('root');
 if (!rootEl) throw new Error('Root element #root not found in index.html');
 createRoot(rootEl).render(
