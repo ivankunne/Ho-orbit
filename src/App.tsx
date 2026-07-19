@@ -177,7 +177,12 @@ function ProtectedApp() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   // Het inlog-/registratiescherm is chroomloos: geen navbar, footer of speler.
-  const isLanding = !!useMatch('/') || !!useMatch('/login') || !!useMatch('/signup');
+  // Elke useMatch onvoorwaardelijk aanroepen — met || ertussen zou React's
+  // hook-volgorde breken zodra de route wisselt (error #310, wit scherm).
+  const matchRoot = useMatch('/');
+  const matchLogin = useMatch('/login');
+  const matchSignup = useMatch('/signup');
+  const isLanding = !!(matchRoot || matchLogin || matchSignup);
   // The band workspace is a full-height app shell with its own internal scroll.
   // Drop the page footer + bottom padding here so the window doesn't scroll on
   // top of it (which produced a nested scrollbar).
