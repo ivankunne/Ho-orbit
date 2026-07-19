@@ -2,7 +2,7 @@
    Keep it conservative: only same-origin GET requests are touched so Supabase
    API/auth/storage calls (and any other cross-origin traffic) pass straight through. */
 
-const CACHE = 'horbit-v4';
+const CACHE = 'horbit-v5';
 
 self.addEventListener('install', (event) => {
   // Precache the app shell so navigations have an offline fallback to serve.
@@ -31,17 +31,32 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // SPA navigations: network-first, fall back to cached shell when offline.
+  // SPA navigations: network-first met een korte timeout. Een PWA-koudstart
+  // vuurt de navigatie vaak af vóórdat het netwerk wakker is; zonder timeout
+  // kan die fetch seconden blijven hangen terwijl de gebruiker naar een leeg
+  // scherm kijkt. Na 2,5s serveren we de gecachte shell direct; de netwerk-
+  // fetch loopt op de achtergrond door en ververst de cache voor de volgende keer.
   if (request.mode === 'navigate') {
     event.respondWith(
       (async () => {
+        const cache = await caches.open(CACHE);
+        const networkFetch = fetch(request)
+          .then((fresh) => {
+            cache.put('/index.html', fresh.clone()).catch(() => {});
+            return fresh;
+          });
+        const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 2500));
         try {
-          const fresh = await fetch(request);
-          const cache = await caches.open(CACHE);
-          cache.put('/index.html', fresh.clone()).catch(() => {});
-          return fresh;
+          const fresh = await Promise.race([networkFetch, timeout]);
+          if (fresh) return fresh;
+          // Timeout: cached shell als die er is, anders alsnog op netwerk wachten.
+          const cached = (await cache.match(request)) || (await cache.match('/index.html'));
+          if (cached) {
+            networkFetch.catch(() => {});
+            return cached;
+          }
+          return await networkFetch;
         } catch {
-          const cache = await caches.open(CACHE);
           return (await cache.match(request)) || (await cache.match('/index.html')) || Response.error();
         }
       })()

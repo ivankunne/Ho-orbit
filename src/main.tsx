@@ -22,7 +22,24 @@ createRoot(rootEl).render(
   <StrictMode>
     <App />
   </StrictMode>,
-)
+);
+
+// Laat de opstart-splash (index.html) uitfaden zodra de app echt gerenderd is.
+// rAF-poll in plaats van een vaste timeout: de splash verdwijnt exact op het
+// moment dat React iets in #root heeft gezet.
+(function dismissSplash() {
+  const splash = document.getElementById('boot-splash');
+  if (!splash) return;
+  const check = () => {
+    if (rootEl.childElementCount > 0) {
+      splash.classList.add('done');
+      setTimeout(() => splash.remove(), 350);
+    } else {
+      requestAnimationFrame(check);
+    }
+  };
+  requestAnimationFrame(check);
+})();
 
 // Register the service worker so the app is installable / works offline.
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
