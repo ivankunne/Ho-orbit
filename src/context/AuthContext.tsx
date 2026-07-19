@@ -72,8 +72,15 @@ function readStoredSession(): { user: any } | null {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  // Synchron beslissen bij de allereerste render: opgeslagen sessie → direct
+  // ingelogd de app in; geen sessie → direct het inlogscherm. Nooit een
+  // laadscherm voor de vraag "is er een account?" — dat antwoord staat al
+  // in localStorage. getSession()/onAuthStateChange verfijnen daarna.
+  const [user, setUser] = useState<any>(() => {
+    const stored = readStoredSession();
+    return stored?.user ? mapProfile(loadProfileCache(stored.user.id), stored.user) : null;
+  });
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -128,16 +135,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // Optimistische boot: met een opgeslagen sessie renderen we de app direct
-    // vanuit de profielcache. getSession() kan bij een verlopen token een
-    // netwerk-refresh doen die op een trage/net-ontwakende verbinding hangt of
-    // faalt — zonder dit bleef een ingelogde gebruiker op het laadscherm
-    // hangen (of belandde op het inlogscherm) tot een handmatige refresh.
+    // De optimistische boot gebeurt al synchron in de useState-initializer
+    // hierboven; hier alleen nog de sessie bevestigen/verversen via het netwerk.
     const stored = readStoredSession();
-    if (stored?.user) {
-      setUser(mapProfile(loadProfileCache(stored.user.id), stored.user));
-      setLoading(false);
-    }
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!active) return;
@@ -166,8 +166,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       applySession(session);
     });
 
-    const safetyTimer = setTimeout(() => { if (active) setLoading(false); }, 5_000);
-    return () => { active = false; subscription.unsubscribe(); clearTimeout(safetyTimer); };
+    return () => { active = false; subscription.unsubscribe(); };
   }, []);
 
   const login = async (emailOrUsername: string, password: string): Promise<boolean> => {

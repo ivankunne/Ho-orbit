@@ -63,20 +63,44 @@
 
     <div id="root"></div>
     <script>
-      // Boot-watchdog: een verouderde service-worker-shell kan naar verwijderde
-      // JS-chunks wijzen, waardoor de app nooit mount (leeg paars scherm).
-      // Als er na 8s niets gerenderd is: één keer caches legen en herladen.
+      // Boot-herstel: een verouderde service-worker-shell kan naar verwijderde
+      // JS-chunks wijzen, waardoor de app nooit mount en de splash blijft staan.
+      // 1) Faalt het entry-script (404 na deploy)? → direct caches legen en
+      //    herladen, niet 8s wachten.
+      // 2) Watchdog als vangnet: na 8s zonder mount alsnog herstellen.
+      // 3) Na 2 mislukte pogingen: nooit eindeloos blijven draaien — toon een
+      //    duidelijke foutmelding met een knop om opnieuw te proberen.
       (function () {
         var KEY = 'horbit-boot-retry';
-        setTimeout(function () {
+        var recovering = false;
+
+        function mounted() {
           var root = document.getElementById('root');
-          if (root && root.childElementCount > 0) {
+          return !!(root && root.childElementCount > 0);
+        }
+
+        function showRetryUI() {
+          var s = document.getElementById('boot-splash');
+          if (!s) return;
+          s.innerHTML =
+            '<p style="color:#cbd5e1;font:15px/1.5 -apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;margin:0 24px;text-align:center;animation:none">' +
+              'De app kan niet geladen worden.<br>Controleer je internetverbinding.' +
+            '</p>' +
+            '<button style="margin-top:4px;padding:10px 24px;border-radius:12px;border:1px solid rgba(139,92,246,.4);background:rgba(124,58,237,.25);color:#fff;font:600 14px -apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;cursor:pointer">' +
+              'Opnieuw proberen' +
+            '</button>';
+          s.querySelector('button').addEventListener('click', function () {
             sessionStorage.removeItem(KEY);
-            sessionStorage.removeItem('horbit-chunk-retry');
-            return;
-          }
-          if (sessionStorage.getItem(KEY)) return; // maximaal één herstelpoging
-          sessionStorage.setItem(KEY, '1');
+            location.reload();
+          });
+        }
+
+        function recover() {
+          if (recovering || mounted()) return;
+          recovering = true;
+          var attempts = parseInt(sessionStorage.getItem(KEY) || '0', 10);
+          if (attempts >= 2) { showRetryUI(); return; }
+          sessionStorage.setItem(KEY, String(attempts + 1));
           var reload = function () { location.reload(); };
           if (window.caches && caches.keys) {
             caches.keys()
@@ -85,6 +109,21 @@
           } else {
             reload();
           }
+        }
+
+        // Entry-script van een verouderde shell 404't → meteen herstellen.
+        window.addEventListener('error', function (e) {
+          var t = e.target;
+          if (t && t.tagName === 'SCRIPT' && t.getAttribute('type') === 'module') recover();
+        }, true);
+
+        setTimeout(function () {
+          if (mounted()) {
+            sessionStorage.removeItem(KEY);
+            sessionStorage.removeItem('horbit-chunk-retry');
+            return;
+          }
+          recover();
         }, 8000);
       })();
     </script>
