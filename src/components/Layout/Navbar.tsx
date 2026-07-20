@@ -141,6 +141,26 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
   const unreadMessages = useUnreadMessageCount(user?.id);
   const [theme, setThemeState] = useThemeState(() => getTheme());
 
+  // Publish the navbar's real rendered height (incl. the iOS safe-area inset,
+  // e.g. the notch/Dynamic Island) as a CSS variable, so fixed-position
+  // elements elsewhere (like BandSpaceDetailPage's mobile header) can sit
+  // cleanly below it instead of hardcoding a height that ignores the inset.
+  const navRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = navRef.current;
+    if (!el) return;
+    const setVar = () =>
+      document.documentElement.style.setProperty('--navbar-h', `${el.offsetHeight}px`);
+    setVar();
+    const ro = new ResizeObserver(setVar);
+    ro.observe(el);
+    window.addEventListener('orientationchange', setVar);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('orientationchange', setVar);
+    };
+  }, [isLandingVariant]);
+
   const handleToggleTheme = () => {
     const next = toggleTheme();
     setThemeState(next);
@@ -172,7 +192,10 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
   const isLerenActive = ['/tutorials', '/masterclass'].some(p => location.pathname.startsWith(p));
 
   return (
-    <nav className={isLandingVariant
+    <nav
+      ref={navRef}
+      style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      className={isLandingVariant
       ? 'absolute top-0 inset-x-0 z-30 md:bg-[#1a1528]/95 md:backdrop-blur-md md:border-b md:border-white/5'
       : 'sticky top-0 z-50 bg-[#1a1528]/95 backdrop-blur-md border-b border-white/5'}>
       <div className={isLandingVariant ? 'px-3 md:px-5' : 'max-w-7xl mx-auto px-4 lg:px-6'}>

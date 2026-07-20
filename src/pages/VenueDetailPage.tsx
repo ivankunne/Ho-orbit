@@ -379,7 +379,8 @@ export default function VenueDetailPage() {
           onClick={() => setActiveGalleryIdx(null)}
         >
           <button
-            className="absolute top-4 right-4 text-white/60 hover:text-white text-2xl font-light w-10 h-10 flex items-center justify-center"
+            className="absolute right-4 text-white/60 hover:text-white text-2xl font-light w-10 h-10 flex items-center justify-center"
+            style={{ top: 'max(1rem, env(safe-area-inset-top))' }}
             onClick={() => setActiveGalleryIdx(null)}
           >
             ✕

@@ -686,7 +686,7 @@ export default function BandSpaceDetailPage() {
       {/* ── Sidebar ──────────────────────────────────────────────────────── */}
       <aside className={`
         shrink-0 flex-col bg-gradient-to-b from-[#1a1630] to-[#171328] border-r border-white/8
-        ${showMobileSidebar ? 'fixed top-16 bottom-0 left-0 z-50 flex shadow-2xl w-72 pb-28' : 'hidden lg:flex w-64'}
+        ${showMobileSidebar ? 'fixed top-[var(--navbar-h,4rem)] bottom-0 left-0 z-50 flex shadow-2xl w-72 pb-28' : 'hidden lg:flex w-64'}
       `}>
         {showMobileSidebar && (
           <button onClick={() => setShowMobileSidebar(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 lg:hidden"><X size={18} /></button>
@@ -788,8 +788,9 @@ export default function BandSpaceDetailPage() {
         </div>
       </aside>
 
-      {/* Mobile header bar (shown instead of sidebar on mobile) — sits below the main navbar (top-16 = 64px) */}
-      <div className="lg:hidden fixed top-16 left-0 right-0 z-40 flex items-center gap-3 px-4 py-3 border-b border-white/8" style={{ background: '#131020f0' }}>
+      {/* Mobile header bar (shown instead of sidebar on mobile) — sits below the main navbar, whose real
+          height (incl. iOS safe-area inset) is published as --navbar-h so this never sits under the notch. */}
+      <div className="lg:hidden fixed top-[var(--navbar-h,4rem)] left-0 right-0 z-40 flex items-center gap-3 px-4 py-3 border-b border-white/8" style={{ background: '#131020f0' }}>
         <Link to="/bandspace" className="text-slate-400 hover:text-white"><ChevronLeft size={18} /></Link>
         <span className="text-sm font-semibold text-white truncate flex-1">{band.name}</span>
         <button onClick={handleShare} className="p-1.5 text-slate-400 hover:text-violet-400 transition-colors"><Share2 size={16} /></button>
@@ -797,7 +798,7 @@ export default function BandSpaceDetailPage() {
       </div>
 
       {/* Mobile backdrop */}
-      {showMobileSidebar && <div className="fixed top-16 bottom-0 left-0 right-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden" onClick={() => setShowMobileSidebar(false)} />}
+      {showMobileSidebar && <div className="fixed top-[var(--navbar-h,4rem)] bottom-0 left-0 right-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden" onClick={() => setShowMobileSidebar(false)} />}
 
       {/* ── Main content ──────────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden pt-12 lg:pt-0">
@@ -1612,7 +1613,7 @@ export default function BandSpaceDetailPage() {
       {showMembers && (
         <>
           <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={() => setShowMembers(false)} />
-          <div className="fixed top-0 lg:top-0 bottom-0 right-0 w-full sm:w-80 bg-[#1a162c] border-l border-white/10 z-50 flex flex-col shadow-2xl">
+          <div className="fixed top-0 lg:top-0 bottom-0 right-0 w-full sm:w-80 bg-[#1a162c] border-l border-white/10 z-50 flex flex-col shadow-2xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
               <h3 className="font-semibold text-white">Leden</h3>
               <button onClick={() => setShowMembers(false)} className="text-slate-400 hover:text-white p-1 hover:bg-white/8 rounded-lg transition-colors"><X size={16} /></button>
