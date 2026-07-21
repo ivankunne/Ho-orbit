@@ -44,13 +44,14 @@ export async function addComment({
 export async function deleteComment(
   resourceType: string, resourceId: number | string, commentId: number, userId: string
 ) {
-  await supabase
+  const { error } = await supabase
     .from('comments')
     .delete()
     .eq('id', commentId)
     .eq('resource_type', resourceType)
     .eq('resource_id', resourceId)
     .eq('author_id', userId);
+  if (error) throw error;
   return getComments(resourceType, resourceId);
 }
 
@@ -64,9 +65,11 @@ export async function toggleCommentLike(
     .eq('user_id', userId)
     .single();
   if (existing) {
-    await supabase.from('comment_likes').delete().eq('comment_id', commentId).eq('user_id', userId);
+    const { error } = await supabase.from('comment_likes').delete().eq('comment_id', commentId).eq('user_id', userId);
+    if (error) throw error;
   } else {
-    await supabase.from('comment_likes').insert({ comment_id: commentId, user_id: userId });
+    const { error } = await supabase.from('comment_likes').insert({ comment_id: commentId, user_id: userId });
+    if (error) throw error;
   }
   return getComments(resourceType, resourceId);
 }

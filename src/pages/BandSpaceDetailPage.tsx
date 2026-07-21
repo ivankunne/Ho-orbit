@@ -597,12 +597,15 @@ export default function BandSpaceDetailPage() {
   }
   async function handleCancelRequest() {
     if (!user || !id) return;
-    await supabase.from('band_members').delete().eq('band_id', id).eq('user_id', user.id);
+    const { error } = await supabase.from('band_members').delete().eq('band_id', id).eq('user_id', user.id);
+    if (error) { addToast('Intrekken mislukt', 'error'); return; }
     setIsPending(false); addToast('Aanvraag ingetrokken', 'info');
   }
   async function handleLeave() {
     if (!user || !id) return; setLeaving(true);
-    await supabase.from('band_members').delete().eq('band_id', id).eq('user_id', user.id);
+    const { error } = await supabase.from('band_members').delete().eq('band_id', id).eq('user_id', user.id);
+    setLeaving(false);
+    if (error) { addToast('Band verlaten mislukt', 'error'); return; }
     addToast('Je hebt de band verlaten', 'info'); navigate('/bandspace');
   }
   async function handleAccept(memberId: string, profile: any) {

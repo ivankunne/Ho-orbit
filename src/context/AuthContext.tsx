@@ -232,7 +232,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (authData.user) {
-      await supabase.from('profiles').upsert({
+      const { error: profileError } = await supabase.from('profiles').upsert({
         id: authData.user.id,
         username: data.username,
         display_name: data.displayName || data.username,
@@ -245,6 +245,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         verified: false,
         is_admin: false,
       });
+      // The auth user now exists whether or not this succeeds — but without a
+      // profile row nothing else in the app works for this account. Report the
+      // failure instead of silently returning ok:true (this previously masked
+      // a schema-drift bug the same way the profiles.booking_info one did).
+      if (profileError) {
+        setError('Account is aangemaakt, maar het profiel kon niet worden opgeslagen. Probeer opnieuw in te loggen of neem contact op met support.');
+        return { ok: false };
+      }
 
       // Only set onboarding flag when user gets an immediate session (no email confirmation needed)
       if (authData.session) {

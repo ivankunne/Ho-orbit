@@ -29,6 +29,8 @@ export default function OnboardingPage() {
   const [selectedRole, setSelectedRole] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
   const [selectedDiscover, setSelectedDiscover] = useState([]);
+  const [finishing, setFinishing] = useState(false);
+  const [finishError, setFinishError] = useState('');
 
   function toggleGenre(id) {
     setSelectedGenres(prev => prev.includes(id) ? prev.filter(g => g !== id) : [...prev, id]);
@@ -45,27 +47,38 @@ export default function OnboardingPage() {
     return true;
   }
 
-  function handleFinish() {
-    sessionStorage.removeItem('ho_show_onboarding');
+  async function handleFinish() {
     const location = selectedCity ? `${selectedCity}, Nederland` : user.location;
-    // Update local state immediately so UI transitions away from onboarding
-    updateProfile({
-      needsOnboarding: false,
-      preferredGenres: selectedGenres,
-      role: ROLES.find(r => r.id === selectedRole)?.label || user.role,
-      location,
-      discoverPrefs: selectedDiscover,
-    });
-    // Persist to DB
+    const role = ROLES.find(r => r.id === selectedRole)?.label || user.role;
+    setFinishing(true);
+    setFinishError('');
+    // Persist to DB first — only leave onboarding once we know the answers actually saved,
+    // otherwise a schema/RLS issue would silently discard them and strand the profile with
+    // needs_onboarding stuck at true forever (this exact thing happened with a missing column).
     if (user?.id) {
-      supabase.from('profiles').update({
+      const { error } = await supabase.from('profiles').update({
         needs_onboarding: false,
         preferred_genres: selectedGenres,
         location: location || null,
         discover_prefs: selectedDiscover,
-        role: ROLES.find(r => r.id === selectedRole)?.label || user.role,
-      }).eq('id', user.id).then(() => {});
+        role,
+      }).eq('id', user.id);
+      setFinishing(false);
+      if (error) {
+        setFinishError('Opslaan is mislukt. Probeer het opnieuw.');
+        return;
+      }
+    } else {
+      setFinishing(false);
     }
+    sessionStorage.removeItem('ho_show_onboarding');
+    updateProfile({
+      needsOnboarding: false,
+      preferredGenres: selectedGenres,
+      role,
+      location,
+      discoverPrefs: selectedDiscover,
+    });
   }
 
   return (
@@ -205,27 +218,36 @@ export default function OnboardingPage() {
           </div>
         )}
 
+        {finishError && (
+          <div className="flex items-center gap-2 text-red-400 text-sm bg-red-500/10 border border-red-500/30 rounded-xl px-3 py-2 mb-3">
+            {finishError}
+          </div>
+        )}
+
         {/* Navigation */}
         <div className="flex items-center gap-3">
           {step > 0 && (
             <button
               onClick={() => setStep(s => s - 1)}
-              className="flex items-center gap-2 px-4 py-3 rounded-xl border border-white/10 text-slate-300 hover:bg-white/5 font-medium transition-colors"
+              disabled={finishing}
+              className="flex items-center gap-2 px-4 py-3 rounded-xl border border-white/10 text-slate-300 hover:bg-white/5 font-medium transition-colors disabled:opacity-50"
             >
               <ChevronLeft size={16} /> Terug
             </button>
           )}
           <button
             onClick={step < steps.length - 1 ? () => setStep(s => s + 1) : handleFinish}
-            disabled={!canNext()}
+            disabled={!canNext() || finishing}
             className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold transition-all ${
-              canNext()
+              canNext() && !finishing
                 ? 'bg-violet-600 hover:bg-violet-500 text-white'
                 : 'bg-white/5 text-slate-600 cursor-not-allowed'
             }`}
           >
             {step < steps.length - 1 ? (
               <><span>Volgende</span> <ArrowRight size={16} /></>
+            ) : finishing ? (
+              <span>Bezig met opslaan...</span>
             ) : (
               <><Check size={16} /> <span>h-orbit verkennen</span></>
             )}

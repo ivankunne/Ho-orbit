@@ -21,6 +21,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { getThreadsByCategory } from '@services/forumService';
 import { coverPlaceholder } from '@utils/placeholder';
+import { useToast } from '@components/Toast';
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -285,6 +286,7 @@ function UploadsSection({ adminId }: { adminId: string }) {
 // ─── Users section ────────────────────────────────────────────────────────────
 
 function UsersSection() {
+  const addToast = useToast();
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'active' | 'suspended'>('all');
@@ -337,8 +339,12 @@ function UsersSection() {
                   <button
                     onClick={async () => {
                       const newRole = u.role === 'Radio' ? 'Luisteraar' : 'Radio';
-                      await setUserRole(u.id, newRole);
-                      load();
+                      try {
+                        await setUserRole(u.id, newRole);
+                        load();
+                      } catch (e: any) {
+                        addToast(e?.message || 'Rol wijzigen mislukt.', 'error');
+                      }
                     }}
                     title={u.role === 'Radio' ? 'Radio-rol intrekken' : 'Radio-rol toekennen'}
                     className={`flex items-center gap-1.5 border rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
@@ -350,7 +356,14 @@ function UsersSection() {
                     <Radio size={12} /><span className="hidden sm:inline">{u.role === 'Radio' ? 'Intrekken' : 'Radio'}</span>
                   </button>
                   {u.suspended ? (
-                    <button onClick={async () => { await unsuspendUser(u.id); load(); }}
+                    <button onClick={async () => {
+                      try {
+                        await unsuspendUser(u.id);
+                        load();
+                      } catch (e: any) {
+                        addToast(e?.message || 'Opheffen van schorsing mislukt.', 'error');
+                      }
+                    }}
                       className="flex items-center gap-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors">
                       <UserCheck size={12} /><span className="hidden sm:inline">Opheffen</span>
                     </button>
@@ -365,7 +378,15 @@ function UsersSection() {
               {suspendingId === u.id && (
                 <RejectInput
                   label="Reden voor schorsing (optioneel)"
-                  onConfirm={async r => { await suspendUser(u.id, r); setSuspendingId(null); load(); }}
+                  onConfirm={async r => {
+                    try {
+                      await suspendUser(u.id, r);
+                      setSuspendingId(null);
+                      load();
+                    } catch (e: any) {
+                      addToast(e?.message || 'Schorsen mislukt.', 'error');
+                    }
+                  }}
                   onCancel={() => setSuspendingId(null)}
                 />
               )}
@@ -524,6 +545,7 @@ function ForumSection() {
 // ─── Events section ───────────────────────────────────────────────────────────
 
 function EventsSection() {
+  const addToast = useToast();
   const [tab, setTab] = useState<ReviewTab>('pending');
   const [events, setEvents] = useState<PendingEvent[]>([]);
   const [search, setSearch] = useState('');
@@ -566,7 +588,14 @@ function EventsSection() {
                 </div>
                 <div className="flex flex-col gap-2 shrink-0 self-start">
                   {evt.status !== 'approved' && (
-                    <button onClick={async () => { await approveEvent(evt.id); load(); }} className="flex items-center gap-1.5 bg-emerald-600/20 hover:bg-emerald-600/35 text-emerald-400 border border-emerald-500/30 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors">
+                    <button onClick={async () => {
+                      try {
+                        await approveEvent(evt.id);
+                        load();
+                      } catch (e: any) {
+                        addToast(e?.message || 'Goedkeuren mislukt.', 'error');
+                      }
+                    }} className="flex items-center gap-1.5 bg-emerald-600/20 hover:bg-emerald-600/35 text-emerald-400 border border-emerald-500/30 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors">
                       <CheckCircle size={13} /><span className="hidden sm:inline">Goedkeuren</span>
                     </button>
                   )}
@@ -578,7 +607,15 @@ function EventsSection() {
                 </div>
               </div>
               {rejectingId === evt.id && (
-                <RejectInput onConfirm={async r => { await rejectEvent(evt.id, r); setRejectingId(null); load(); }} onCancel={() => setRejectingId(null)} />
+                <RejectInput onConfirm={async r => {
+                  try {
+                    await rejectEvent(evt.id, r);
+                    setRejectingId(null);
+                    load();
+                  } catch (e: any) {
+                    addToast(e?.message || 'Afwijzen mislukt.', 'error');
+                  }
+                }} onCancel={() => setRejectingId(null)} />
               )}
             </div>
           ))}
@@ -591,6 +628,7 @@ function EventsSection() {
 // ─── Reports section ──────────────────────────────────────────────────────────
 
 function ReportsSection() {
+  const addToast = useToast();
   const [reports, setReports] = useState<ContentReport[]>([]);
   const [filter, setFilter] = useState<'open' | 'resolved' | 'dismissed' | 'all'>('open');
   const [search, setSearch] = useState('');
@@ -647,7 +685,14 @@ function ReportsSection() {
                       <button onClick={() => setResolvingId(report.id)} className="flex items-center gap-1.5 bg-emerald-600/20 hover:bg-emerald-600/35 text-emerald-400 border border-emerald-500/30 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors">
                         <CheckCircle size={11} /><span className="hidden sm:inline">Oplossen</span>
                       </button>
-                      <button onClick={async () => { await dismissReport(report.id); load(); }} className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 text-slate-400 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs transition-colors">
+                      <button onClick={async () => {
+                        try {
+                          await dismissReport(report.id);
+                          load();
+                        } catch (e: any) {
+                          addToast(e?.message || 'Sluiten mislukt.', 'error');
+                        }
+                      }} className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 text-slate-400 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs transition-colors">
                         <XCircle size={11} /><span className="hidden sm:inline">Sluiten</span>
                       </button>
                     </div>
@@ -657,7 +702,15 @@ function ReportsSection() {
               {resolvingId === report.id && (
                 <RejectInput
                   label="Admin notitie (optioneel)"
-                  onConfirm={async notes => { await resolveReport(report.id, notes); setResolvingId(null); load(); }}
+                  onConfirm={async notes => {
+                    try {
+                      await resolveReport(report.id, notes);
+                      setResolvingId(null);
+                      load();
+                    } catch (e: any) {
+                      addToast(e?.message || 'Oplossen mislukt.', 'error');
+                    }
+                  }}
                   onCancel={() => setResolvingId(null)}
                 />
               )}
@@ -681,6 +734,7 @@ interface AdminRadioStation {
 }
 
 function RadioSection() {
+  const addToast = useToast();
   const [stations, setStations] = useState<AdminRadioStation[]>([]);
   const [loading, setLoading] = useState(true);
   const [togglingId, setTogglingId] = useState<string | null>(null);
@@ -696,7 +750,8 @@ function RadioSection() {
 
   const toggleLive = async (station: AdminRadioStation) => {
     setTogglingId(station.id);
-    await supabase.from('radio_streams').update({ is_live: !station.is_live }).eq('id', station.id);
+    const { error } = await supabase.from('radio_streams').update({ is_live: !station.is_live }).eq('id', station.id);
+    if (error) addToast(error.message || 'Live-status wijzigen mislukt.', 'error');
     await load();
     setTogglingId(null);
   };

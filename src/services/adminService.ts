@@ -75,19 +75,21 @@ export async function getUsers(): Promise<ManagedUser[]> {
 }
 
 export async function suspendUser(userId: string, reason: string): Promise<void> {
-  await supabase.from('profiles').update({
+  const { error } = await supabase.from('profiles').update({
     suspended: true,
     suspended_at: new Date().toISOString(),
     suspended_reason: reason || null,
   }).eq('id', userId);
+  if (error) throw new Error(error.message);
 }
 
 export async function unsuspendUser(userId: string): Promise<void> {
-  await supabase.from('profiles').update({
+  const { error } = await supabase.from('profiles').update({
     suspended: false,
     suspended_at: null,
     suspended_reason: null,
   }).eq('id', userId);
+  if (error) throw new Error(error.message);
 }
 
 export async function setUserRole(userId: string, role: string): Promise<void> {
@@ -137,19 +139,21 @@ export async function getAllEvents(): Promise<PendingEvent[]> {
 }
 
 export async function approveEvent(eventId: string): Promise<void> {
-  await supabase.from('events').update({
+  const { error } = await supabase.from('events').update({
     status: 'approved',
     reviewed_at: new Date().toISOString(),
     rejection_reason: null,
   }).eq('id', eventId);
+  if (error) throw new Error(error.message);
 }
 
 export async function rejectEvent(eventId: string, reason: string): Promise<void> {
-  await supabase.from('events').update({
+  const { error } = await supabase.from('events').update({
     status: 'rejected',
     reviewed_at: new Date().toISOString(),
     rejection_reason: reason || null,
   }).eq('id', eventId);
+  if (error) throw new Error(error.message);
 }
 
 function mapEvent(d: Record<string, unknown>): PendingEvent {
@@ -205,18 +209,20 @@ export async function createReport(params: {
 }
 
 export async function resolveReport(reportId: string, notes: string): Promise<void> {
-  await supabase.from('reports').update({
+  const { error } = await supabase.from('reports').update({
     status: 'resolved',
     resolved_at: new Date().toISOString(),
     admin_notes: notes || null,
   }).eq('id', reportId);
+  if (error) throw new Error(error.message);
 }
 
 export async function dismissReport(reportId: string): Promise<void> {
-  await supabase.from('reports').update({
+  const { error } = await supabase.from('reports').update({
     status: 'dismissed',
     resolved_at: new Date().toISOString(),
   }).eq('id', reportId);
+  if (error) throw new Error(error.message);
 }
 
 function mapReport(d: Record<string, unknown>): ContentReport {

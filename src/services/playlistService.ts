@@ -34,12 +34,14 @@ export async function createPlaylist({ name, userId }: { name: string; userId: s
 }
 
 export async function renamePlaylist(userId: string, playlistId: string | number, name: string) {
-  await supabase.from('playlists').update({ name }).eq('id', playlistId).eq('user_id', userId);
+  const { error } = await supabase.from('playlists').update({ name }).eq('id', playlistId).eq('user_id', userId);
+  if (error) throw error;
   return getPlaylists(userId);
 }
 
 export async function deletePlaylist(userId: string, playlistId: string | number) {
-  await supabase.from('playlists').delete().eq('id', playlistId).eq('user_id', userId);
+  const { error } = await supabase.from('playlists').delete().eq('id', playlistId).eq('user_id', userId);
+  if (error) throw error;
   return getPlaylists(userId);
 }
 
@@ -51,21 +53,30 @@ export async function addTrackToPlaylist(userId: string, playlistId: string | nu
     .order('position', { ascending: false })
     .limit(1);
   const nextPos = existing.data?.length ? (existing.data[0].position + 1) : 0;
-  await supabase.from('playlist_tracks').upsert({ playlist_id: playlistId, track_id: trackId, position: nextPos });
+  const { error } = await supabase.from('playlist_tracks').upsert({ playlist_id: playlistId, track_id: trackId, position: nextPos });
+  if (error) throw error;
   return getPlaylists(userId);
 }
 
 export async function removeTrackFromPlaylist(userId: string, playlistId: string | number, trackId: number) {
-  await supabase.from('playlist_tracks').delete().eq('playlist_id', playlistId).eq('track_id', trackId);
+  const { error } = await supabase.from('playlist_tracks').delete().eq('playlist_id', playlistId).eq('track_id', trackId);
+  if (error) throw error;
   return getPlaylists(userId);
 }
 
 export async function reorderPlaylistTracks(userId: string, playlistId: string | number, newTrackIds: number[]) {
-  await supabase.from('playlist_tracks').delete().eq('playlist_id', playlistId);
+  // Delete-then-reinsert: if the reinsert fails after the delete succeeds, the
+  // playlist would otherwise end up permanently empty with no error surfaced.
+  // Throwing here at least lets the caller know reordering didn't fully apply
+  // (the old order is already gone by this point — Supabase's JS client has no
+  // multi-statement transaction, so this is the best available short of an RPC).
+  const { error: deleteError } = await supabase.from('playlist_tracks').delete().eq('playlist_id', playlistId);
+  if (deleteError) throw deleteError;
   if (newTrackIds.length) {
-    await supabase.from('playlist_tracks').insert(
+    const { error: insertError } = await supabase.from('playlist_tracks').insert(
       newTrackIds.map((track_id, position) => ({ playlist_id: playlistId, track_id, position }))
     );
+    if (insertError) throw insertError;
   }
   return getPlaylists(userId);
 }
