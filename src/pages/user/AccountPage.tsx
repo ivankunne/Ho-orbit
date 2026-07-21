@@ -168,6 +168,7 @@ function ProfielSection({ user, updateProfile, userId }: { user: any; updateProf
     bookingInfo: user?.bookingInfo ?? {},
   });
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [bannerUploading, setBannerUploading] = useState(false);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -201,13 +202,18 @@ function ProfielSection({ user, updateProfile, userId }: { user: any; updateProf
   }
 
   const handleSave = async () => {
-    updateProfile(form);
+    setSaveError('');
     if (user?.id && typeof user.id === 'string') {
-      await persistProfile(user.id, form);
+      const result = await persistProfile(user.id, form);
+      if (!result.ok) {
+        setSaveError(result.error || 'Opslaan is mislukt. Probeer het opnieuw.');
+        return;
+      }
       if (form.email && form.email !== user.email) {
         await updateEmail(form.email);
       }
     }
+    updateProfile(form);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
@@ -376,6 +382,12 @@ function ProfielSection({ user, updateProfile, userId }: { user: any; updateProf
           </div>
         </div>
 
+        {saveError && (
+          <div className="flex items-center gap-2 text-red-400 text-sm bg-red-500/10 border border-red-500/30 rounded-xl px-3 py-2">
+            <AlertTriangle size={15} className="shrink-0" /> {saveError}
+          </div>
+        )}
+
         <div className="flex items-center justify-between pt-2">
           <div className={`flex items-center gap-2 text-green-400 text-sm transition-opacity ${saved ? 'opacity-100' : 'opacity-0'}`}>
             <Check size={16} /> Opgeslagen!
@@ -403,6 +415,7 @@ function MeldingenSection({ user, updateProfile }: { user: any; updateProfile: (
   };
   const [notifications, setNotifications] = useState(defaults);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const ITEMS = [
     { label: 'Nieuwe volger', desc: 'Ontvang een melding als iemand je gaat volgen' },
@@ -415,10 +428,15 @@ function MeldingenSection({ user, updateProfile }: { user: any; updateProfile: (
   ];
 
   const handleSave = async () => {
-    updateProfile({ notifications });
+    setSaveError('');
     if (user?.id && typeof user.id === 'string') {
-      await updatePreferences(user.id, notifications);
+      const result = await updatePreferences(user.id, notifications);
+      if (!result.ok) {
+        setSaveError(result.error || 'Opslaan is mislukt. Probeer het opnieuw.');
+        return;
+      }
     }
+    updateProfile({ notifications });
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
@@ -441,6 +459,12 @@ function MeldingenSection({ user, updateProfile }: { user: any; updateProfile: (
           />
         ))}
       </div>
+      {saveError && (
+        <div className="flex items-center gap-2 text-red-400 text-sm bg-red-500/10 border border-red-500/30 rounded-xl px-3 py-2 mt-4">
+          <AlertTriangle size={15} className="shrink-0" /> {saveError}
+        </div>
+      )}
+
       <div className="flex items-center justify-end gap-4 mt-6">
         <div className={`flex items-center gap-2 text-green-400 text-sm transition-opacity ${saved ? 'opacity-100' : 'opacity-0'}`}>
           <Check size={16} /> Opgeslagen!
