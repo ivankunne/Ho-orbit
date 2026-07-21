@@ -1,17 +1,27 @@
 -- ============================================================================
--- Feedback fixes migration (2026-06)
---  1. Follows: make user_following_artists.artist_id text so one table can hold
---     both numeric artist ids and profile UUIDs (artist + user-to-user follows).
---  2. Post moderation: let a post's author OR an admin edit/delete posts, and
---     allow comments under networking / hub posts.
+-- RUN THIS ONE FILE — combines every migration currently pending as of
+-- 2026-07-21. Open Supabase Dashboard → SQL Editor → New query, paste this
+-- whole file, and run it once. Every statement in here is additive/idempotent
+-- (IF NOT EXISTS, CREATE OR REPLACE, DROP POLICY IF EXISTS), so it's safe to
+-- run again later even if some pieces already went through.
 --
--- Safe to run more than once. Run in the Supabase SQL editor.
--- All policy changes are ADDITIVE (extra permissive policies are OR'd with any
--- existing ones), so existing reads / like-count / view-count updates keep
--- working. Authorization for editing is also enforced in the UI.
+-- Combines, in order:
+--   1. feedback_fixes_migration.sql   — follows artist_id text conversion +
+--      is_admin() helper + delete policies for hub_posts/networking_posts/
+--      forum_threads/forum_replies
+--   2. fix_profiles_discover_prefs_migration.sql — onboarding save fix
+--   3. tracks_owner_update_delete_migration.sql  — track edit/delete
+--   4. comments_and_hub_replies_edit_delete_migration.sql — comment edit,
+--      hub reply edit/delete
+--
+-- Once this succeeds, the individual files above don't need to be run
+-- separately — this is the same statements, just in one place.
 -- ============================================================================
 
--- ── 1. Follows: artist_id bigint → text ─────────────────────────────────────
+
+-- ═══ 1. feedback_fixes_migration.sql ═══════════════════════════════════════
+
+-- ── 1a. Follows: artist_id bigint → text ────────────────────────────────────
 -- Existing values are all numeric, so the cast is lossless. After this both a
 -- numeric artists.id ("1") and a profile UUID can live in artist_id.
 --
@@ -63,7 +73,7 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
   SELECT EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.is_admin = true);
 $$;
 
--- ── 2a. networking_posts: author OR admin can update / delete ───────────────
+-- ── 1b. networking_posts: author OR admin can update / delete ──────────────
 ALTER TABLE public.networking_posts ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Author or admin update networking posts" ON public.networking_posts;
@@ -76,7 +86,7 @@ CREATE POLICY "Author or admin delete networking posts"
   ON public.networking_posts FOR DELETE TO authenticated
   USING (auth.uid() = user_id OR public.is_admin());
 
--- ── 2b. hub_posts: add author OR admin delete (update already permitted for
+-- ── 1c. hub_posts: add author OR admin delete (update already permitted for
 --        view/reply count bumps) ──────────────────────────────────────────────
 ALTER TABLE public.hub_posts ENABLE ROW LEVEL SECURITY;
 
@@ -85,7 +95,7 @@ CREATE POLICY "Author or admin delete hub posts"
   ON public.hub_posts FOR DELETE TO authenticated
   USING (auth.uid() = author_id OR public.is_admin());
 
--- ── 2c. forum_threads: author OR admin delete (UPDATE stays open for
+-- ── 1d. forum_threads: author OR admin delete (UPDATE stays open for
 --        replies_count / views_count / last_post_at bumps by other users) ─────
 ALTER TABLE public.forum_threads ENABLE ROW LEVEL SECURITY;
 
@@ -94,7 +104,7 @@ CREATE POLICY "Author or admin delete forum threads"
   ON public.forum_threads FOR DELETE TO authenticated
   USING (auth.uid() = author_id OR public.is_admin());
 
--- ── 2d. forum_replies: author, admin, OR the owner of the parent thread can
+-- ── 1e. forum_replies: author, admin, OR the owner of the parent thread can
 --        delete (so deleting a thread can clean up everyone's replies). UPDATE
 --        stays open for likes_count bumps. ─────────────────────────────────────
 ALTER TABLE public.forum_replies ENABLE ROW LEVEL SECURITY;
@@ -136,7 +146,7 @@ EXCEPTION WHEN others THEN
   NULL;
 END $$;
 
--- ── 2e. comments: allow the new resource types (networking_post, hub_post).
+-- ── 1f. comments: allow the new resource types (networking_post, hub_post).
 --        The generic comments table is shared by events/tutorials/articles and
 --        already has working insert/select/delete policies. The only thing that
 --        could block new types is a CHECK constraint on resource_type — drop it
@@ -153,3 +163,53 @@ BEGIN
     EXECUTE format('ALTER TABLE public.comments DROP CONSTRAINT %I', chk.conname);
   END LOOP;
 END $$;
+
+
+-- ═══ 2. fix_profiles_discover_prefs_migration.sql ══════════════════════════
+
+alter table public.profiles
+  add column if not exists discover_prefs text[] not null default '{}';
+
+
+-- ═══ 3. tracks_owner_update_delete_migration.sql ═══════════════════════════
+
+drop policy if exists "tracks_update_own" on public.tracks;
+create policy "tracks_update_own" on public.tracks for update
+  to authenticated
+  using (uploaded_by = auth.uid())
+  with check (uploaded_by = auth.uid());
+
+drop policy if exists "tracks_delete_own" on public.tracks;
+create policy "tracks_delete_own" on public.tracks for delete
+  to authenticated
+  using (uploaded_by = auth.uid());
+
+
+-- ═══ 4. comments_and_hub_replies_edit_delete_migration.sql ═════════════════
+
+ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Author or admin update comments" ON public.comments;
+CREATE POLICY "Author or admin update comments"
+  ON public.comments FOR UPDATE TO authenticated
+  USING (auth.uid() = author_id OR public.is_admin())
+  WITH CHECK (auth.uid() = author_id OR public.is_admin());
+
+ALTER TABLE public.hub_replies ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "hub_replies_update" ON public.hub_replies;
+DROP POLICY IF EXISTS "Author or admin update hub replies" ON public.hub_replies;
+CREATE POLICY "Author or admin update hub replies"
+  ON public.hub_replies FOR UPDATE TO authenticated
+  USING (auth.uid() = author_id OR public.is_admin())
+  WITH CHECK (auth.uid() = author_id OR public.is_admin());
+
+DROP POLICY IF EXISTS "Author or admin delete hub replies" ON public.hub_replies;
+CREATE POLICY "Author or admin delete hub replies"
+  ON public.hub_replies FOR DELETE TO authenticated
+  USING (auth.uid() = author_id OR public.is_admin());
+
+-- ============================================================================
+-- Done. If every statement above ran without error, all 4 migrations are
+-- fully applied.
+-- ============================================================================
