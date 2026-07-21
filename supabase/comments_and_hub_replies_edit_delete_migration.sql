@@ -8,9 +8,24 @@
 -- PostgREST — exactly the class of bug this whole audit has been about,
 -- just caught before shipping instead of after.
 --
--- Reuses the public.is_admin() helper already created in
--- feedback_fixes_migration.sql. Safe to re-run.
+-- Defines public.is_admin() itself (CREATE OR REPLACE, so this is safe even
+-- if feedback_fixes_migration.sql already created it elsewhere) rather than
+-- assuming that migration was run — turns out it wasn't (confirmed: running
+-- this file standalone hit "function public.is_admin() does not exist", and
+-- user_following_artists.artist_id is still numeric, not text, which that
+-- migration was also supposed to change). If feedback_fixes_migration.sql
+-- has genuinely never been applied, run that one too — it also adds the
+-- delete policy for hub_posts and the author/admin update+delete policies
+-- for networking_posts and forum_threads/forum_replies, which may currently
+-- be silently broken in production the same way this was.
+-- Safe to re-run.
 -- ============================================================================
+
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.is_admin = true);
+$$;
 
 -- ── comments: author (or admin) can edit their own comment ──────────────────
 -- insert/select/delete already work per feedback_fixes_migration.sql; UPDATE
