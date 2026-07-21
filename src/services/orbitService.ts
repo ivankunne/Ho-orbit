@@ -220,6 +220,14 @@ export async function createBandEvent(
   return data;
 }
 
+export async function updateBandEvent(
+  eventId: string,
+  updates: Partial<Pick<BandEvent, 'title' | 'description' | 'event_date' | 'event_time' | 'type'>>,
+): Promise<boolean> {
+  const { error } = await supabase.from('band_events').update(updates).eq('id', eventId);
+  return !error;
+}
+
 export async function deleteBandEvent(eventId: string): Promise<boolean> {
   const { error } = await supabase.from('band_events').delete().eq('id', eventId);
   return !error;
@@ -324,6 +332,11 @@ export async function createBandTodo(bandId: string, userId: string, content: st
     .single();
   if (error) return null;
   return data as BandTodo;
+}
+
+export async function updateBandTodo(todoId: string, content: string): Promise<boolean> {
+  const { error } = await supabase.from('band_todos').update({ content }).eq('id', todoId);
+  return !error;
 }
 
 export async function toggleBandTodo(todoId: string, completed: boolean, userId: string): Promise<boolean> {

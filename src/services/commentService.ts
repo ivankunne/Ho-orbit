@@ -41,6 +41,20 @@ export async function addComment({
   };
 }
 
+export async function updateComment(
+  resourceType: string, resourceId: number | string, commentId: number, userId: string, body: string
+) {
+  const { error } = await supabase
+    .from('comments')
+    .update({ body })
+    .eq('id', commentId)
+    .eq('resource_type', resourceType)
+    .eq('resource_id', resourceId)
+    .eq('author_id', userId);
+  if (error) throw error;
+  return getComments(resourceType, resourceId);
+}
+
 export async function deleteComment(
   resourceType: string, resourceId: number | string, commentId: number, userId: string
 ) {

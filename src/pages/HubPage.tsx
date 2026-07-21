@@ -175,10 +175,11 @@ function HubThreadRow({ thread, onClick }: { thread: HubThread; onClick: () => v
 
 // ─── Thread detail modal ──────────────────────────────────────────────────────
 
-function HubThreadDetailModal({ thread, onClose, onReplyPosted, onUpdated, onDeleted }: {
+function HubThreadDetailModal({ thread, onClose, onReplyPosted, onReplyDeleted, onUpdated, onDeleted }: {
   thread: HubThread;
   onClose: () => void;
   onReplyPosted?: () => void;
+  onReplyDeleted?: () => void;
   onUpdated?: (title: string) => void;
   onDeleted?: () => void;
 }) {
@@ -194,6 +195,10 @@ function HubThreadDetailModal({ thread, onClose, onReplyPosted, onUpdated, onDel
   const [savingEdit, setSavingEdit] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const [editingReplyId, setEditingReplyId] = useState<string | null>(null);
+  const [editReplyText, setEditReplyText] = useState('');
+  const [savingReplyEdit, setSavingReplyEdit] = useState(false);
+  const [deletingReplyId, setDeletingReplyId] = useState<string | null>(null);
 
   const canManage = !!user && (user.id === thread.author.id || user.isAdmin);
 
@@ -269,6 +274,45 @@ function HubThreadDetailModal({ thread, onClose, onReplyPosted, onUpdated, onDel
       addToast('Plaatsen mislukt. Probeer het opnieuw.', 'error');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const startEditReply = (reply: HubReply) => {
+    setEditingReplyId(reply.id);
+    setEditReplyText(reply.content);
+  };
+
+  const handleSaveReplyEdit = async (replyId: string) => {
+    const content = editReplyText.trim();
+    if (!content) return;
+    setSavingReplyEdit(true);
+    try {
+      const { error } = await supabase.from('hub_replies').update({ content }).eq('id', replyId);
+      if (error) throw error;
+      setReplies(prev => prev.map(r => r.id === replyId ? { ...r, content } : r));
+      setEditingReplyId(null);
+    } catch {
+      addToast('Bijwerken mislukt. Probeer het opnieuw.', 'error');
+    } finally {
+      setSavingReplyEdit(false);
+    }
+  };
+
+  const handleDeleteReply = async (replyId: string) => {
+    if (!window.confirm('Deze reactie verwijderen?')) return;
+    setDeletingReplyId(replyId);
+    try {
+      const { error } = await supabase.from('hub_replies').delete().eq('id', replyId);
+      if (error) throw error;
+      setReplies(prev => prev.filter(r => r.id !== replyId));
+      await supabase.from('hub_posts')
+        .update({ replies_count: Math.max(0, thread.replies - 1) })
+        .eq('id', thread.id);
+      onReplyDeleted?.();
+    } catch {
+      addToast('Verwijderen mislukt. Probeer het opnieuw.', 'error');
+    } finally {
+      setDeletingReplyId(null);
     }
   };
 
@@ -378,16 +422,54 @@ function HubThreadDetailModal({ thread, onClose, onReplyPosted, onUpdated, onDel
               <p className="text-sm text-slate-500 py-6 text-center">Nog geen antwoorden. Wees de eerste!</p>
             ) : (
               <div className="space-y-3">
-                {replies.map(reply => (
-                  <div key={reply.id} className="p-4 bg-white/[0.04] border border-white/[0.06] rounded-xl">
+                {replies.map(reply => {
+                  const canManageReply = !!user && (user.id === reply.author.id || user.isAdmin);
+                  return (
+                  <div key={reply.id} className="p-4 bg-white/[0.04] border border-white/[0.06] rounded-xl group">
                     <div className="flex items-center gap-2.5 mb-2">
                       <UserAvatar src={reply.author.avatar} name={reply.author.name} size={26} />
                       <span className="text-sm font-semibold text-white">{reply.author.name}</span>
                       <span className="text-xs text-slate-500 ml-auto">{timeAgo(reply.createdAt)}</span>
+                      {canManageReply && editingReplyId !== reply.id && (
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => startEditReply(reply)} title="Bewerken" className="p-1 text-slate-500 hover:text-violet-300 transition-colors"><Pencil size={12} /></button>
+                          <button
+                            onClick={() => handleDeleteReply(reply.id)}
+                            disabled={deletingReplyId === reply.id}
+                            title="Verwijderen"
+                            className="p-1 text-slate-500 hover:text-red-400 transition-colors disabled:opacity-50"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      )}
                     </div>
-                    <p className="text-sm text-slate-300 leading-relaxed">{reply.content}</p>
+                    {editingReplyId === reply.id ? (
+                      <div className="space-y-2">
+                        <textarea
+                          autoFocus
+                          value={editReplyText}
+                          onChange={e => setEditReplyText(e.target.value)}
+                          rows={2}
+                          className="w-full bg-white/5 border border-violet-500/40 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none resize-none"
+                        />
+                        <div className="flex gap-2">
+                          <button onClick={() => setEditingReplyId(null)} className="px-3 py-1.5 rounded-lg border border-white/10 text-xs text-slate-400 hover:text-white transition-colors">Annuleren</button>
+                          <button
+                            onClick={() => handleSaveReplyEdit(reply.id)}
+                            disabled={!editReplyText.trim() || savingReplyEdit}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-colors"
+                          >
+                            {savingReplyEdit ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />} Opslaan
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-slate-300 leading-relaxed">{reply.content}</p>
+                    )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -553,6 +635,11 @@ function SectionContent({ sectionId, postBarPlaceholder, postTags }: {
           onReplyPosted={() => {
             setThreads(prev => prev.map(t =>
               t.id === selectedThread.id ? { ...t, replies: t.replies + 1 } : t
+            ));
+          }}
+          onReplyDeleted={() => {
+            setThreads(prev => prev.map(t =>
+              t.id === selectedThread.id ? { ...t, replies: Math.max(0, t.replies - 1) } : t
             ));
           }}
           onUpdated={(title) => {

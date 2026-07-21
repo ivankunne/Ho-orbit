@@ -1,17 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { MapPin, Users, Music, Calendar, Heart, BadgeCheck, Settings, Share2, TrendingUp, Play, BarChart2, Clock, ExternalLink, Mail, Phone, Briefcase, MessageSquare, HandHeart } from 'lucide-react';
+import { MapPin, Users, Music, Calendar, Heart, BadgeCheck, Settings, Share2, TrendingUp, Play, BarChart2, Clock, ExternalLink, Mail, Phone, Briefcase, MessageSquare, HandHeart, Pencil, Trash2 } from 'lucide-react';
 import { normalizeDonationUrl, isTikkieUrl } from '@utils/donation';
 import { useAuth } from '@context/AuthContext';
 import UserAvatar from '@components/UserAvatar';
 import { useAppState } from '@context/AppStateContext';
 import { supabase } from '@/lib/supabase';
 import { fetchFollowedArtists, fetchFollowerProfiles, countFollowing } from '@utils/artistHelpers';
-import { getUploadedTracks, type UploadedTrack } from '@services/uploadService';
+import { getUploadedTracks, deleteTrack, type UploadedTrack } from '@services/uploadService';
 import { getOrCreateConversation } from '@services/chatService';
 import { shareContent, buildShareUrl } from '@utils/share';
 import { coverPlaceholder } from '@utils/placeholder';
 import { useToast } from '@components/Toast';
+import EditTrackModal from '@components/EditTrackModal';
 
 
 const PLATFORM_CONFIG: Record<string, { label: string; badge: string; color: string; buildUrl: (v: string) => string }> = {
@@ -47,6 +48,8 @@ export default function ProfilePage() {
   const [otherProfile, setOtherProfile] = useState<any>(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [followerList, setFollowerList] = useState<any[]>([]);
+  const [editingTrack, setEditingTrack] = useState<UploadedTrack | null>(null);
+  const [deletingTrackId, setDeletingTrackId] = useState<string | null>(null);
   // Following count for *other* profiles (own-profile following = followedArtists.length).
   const [otherFollowingCount, setOtherFollowingCount] = useState(0);
 
@@ -64,6 +67,21 @@ export default function ProfilePage() {
     });
     if (result === 'copied') addToast('Link gekopieerd naar klembord', 'success');
     else if (result === 'error') addToast('Delen mislukt', 'error');
+  }
+
+  async function handleDeleteTrack(trackId: string) {
+    if (!currentUser?.id) return;
+    if (!window.confirm('Dit nummer definitief verwijderen?')) return;
+    setDeletingTrackId(trackId);
+    try {
+      await deleteTrack(trackId, currentUser.id);
+      setUploadedTracks(prev => prev.filter(t => t.id !== trackId));
+      addToast('Nummer verwijderd', 'success');
+    } catch (e: any) {
+      addToast(e?.message || 'Verwijderen mislukt', 'error');
+    } finally {
+      setDeletingTrackId(null);
+    }
   }
 
   async function handleStartChat() {
@@ -359,6 +377,25 @@ export default function ProfilePage() {
                     )}
                     {track.status === 'rejected' && (
                       <span className="text-xs bg-red-500/15 text-red-400 px-2 py-0.5 rounded-full shrink-0">Afgewezen</span>
+                    )}
+                    {isOwnProfile && (
+                      <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => setEditingTrack(track)}
+                          title="Bewerken"
+                          className="p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors"
+                        >
+                          <Pencil size={13} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTrack(track.id)}
+                          disabled={deletingTrackId === track.id}
+                          title="Verwijderen"
+                          className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     )}
                   </div>
                 ))}
@@ -663,6 +700,19 @@ export default function ProfilePage() {
 
         <div className="pb-16" />
       </div>
+
+      {editingTrack && currentUser?.id && (
+        <EditTrackModal
+          track={editingTrack}
+          userId={currentUser.id}
+          onClose={() => setEditingTrack(null)}
+          onSaved={updated => {
+            setUploadedTracks(prev => prev.map(t => t.id === updated.id ? updated : t));
+            setEditingTrack(null);
+            addToast('Nummer bijgewerkt', 'success');
+          }}
+        />
+      )}
     </div>
   );
 }

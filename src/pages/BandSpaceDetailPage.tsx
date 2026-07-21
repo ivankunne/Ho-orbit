@@ -20,9 +20,9 @@ import {
   getChannelPreviews, markChannelRead,
   uploadBandMedia, setPinned, deleteBandMessage,
   getBandPosts, createBandPost, updateBandPost, deleteBandPost,
-  getBandEvents, getUpcomingEvents, createBandEvent, deleteBandEvent,
+  getBandEvents, getUpcomingEvents, createBandEvent, updateBandEvent, deleteBandEvent,
   getPinnedEvents, pinBandEvent,
-  getBandTodos, createBandTodo, toggleBandTodo, deleteBandTodo,
+  getBandTodos, createBandTodo, updateBandTodo, toggleBandTodo, deleteBandTodo,
   getBandNote, saveBandNote,
   getMentionCounts, markMentionsRead, createMentionNotifications,
 } from '@services/orbitService';
@@ -154,6 +154,7 @@ export default function BandSpaceDetailPage() {
   const [eventsLoading, setEventsLoading] = useState(false);
   const [selectedDay, setSelectedDay]     = useState<number | null>(null);
   const [showAddEvent, setShowAddEvent]   = useState(false);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [savingEvent, setSavingEvent]     = useState(false);
   const [eventForm, setEventForm]         = useState({ title: '', type: 'rehearsal' as EventType, date: '', time: '', description: '', autoPost: true });
 
@@ -169,6 +170,8 @@ export default function BandSpaceDetailPage() {
   const [todosLoading, setTodosLoading] = useState(false);
   const [newTodo, setNewTodo]           = useState('');
   const [addingTodo, setAddingTodo]     = useState(false);
+  const [editingTodoId, setEditingTodoId] = useState<string | null>(null);
+  const [editingTodoText, setEditingTodoText] = useState('');
 
   // Pinned events
   const [pinnedEvents, setPinnedEvents] = useState<BandEvent[]>([]);
@@ -503,10 +506,37 @@ export default function BandSpaceDetailPage() {
   }
 
   // ── Handlers: calendar events ────────────────────────────────────────────
+  function startEditEvent(ev: BandEvent) {
+    setEditingEventId(ev.id);
+    setEventForm({
+      title: ev.title, type: ev.type, date: ev.event_date,
+      time: ev.event_time ? ev.event_time.slice(0, 5) : '', description: ev.description || '', autoPost: false,
+    });
+    setShowAddEvent(true);
+  }
+
   async function handleAddEvent() {
     if (!eventForm.title.trim() || !eventForm.date || !user || !id) return;
     setSavingEvent(true);
     const typeInfo = EVENT_TYPES.find(t => t.value === eventForm.type)!;
+
+    if (editingEventId) {
+      const ok = await updateBandEvent(editingEventId, {
+        title: eventForm.title.trim(), description: eventForm.description.trim() || null,
+        event_date: eventForm.date, event_time: eventForm.time || null, type: eventForm.type,
+      });
+      setSavingEvent(false);
+      if (!ok) { addToast('Bijwerken mislukt', 'error'); return; }
+      const patch = { title: eventForm.title.trim(), description: eventForm.description.trim() || null, event_date: eventForm.date, event_time: eventForm.time || null, type: eventForm.type };
+      setBandEvents(prev => prev.map(e => e.id === editingEventId ? { ...e, ...patch } : e).sort((a, b) => a.event_date.localeCompare(b.event_date)));
+      setUpcomingEvents(prev => prev.map(e => e.id === editingEventId ? { ...e, ...patch } : e).sort((a, b) => a.event_date.localeCompare(b.event_date)));
+      addToast('Evenement bijgewerkt!', 'success');
+      setEditingEventId(null);
+      setEventForm({ title: '', type: 'rehearsal', date: '', time: '', description: '', autoPost: true });
+      setShowAddEvent(false);
+      return;
+    }
+
     const event = await createBandEvent({ band_id: id, title: eventForm.title.trim(), description: eventForm.description.trim() || null, event_date: eventForm.date, event_time: eventForm.time || null, type: eventForm.type, channel: typeInfo.channel, created_by: user.id });
     if (!event) { addToast('Aanmaken mislukt', 'error'); setSavingEvent(false); return; }
     if (eventForm.autoPost && typeInfo.channel) {
@@ -549,6 +579,20 @@ export default function BandSpaceDetailPage() {
     setTodos(prev => prev.filter(t => t.id !== todoId));
     const ok = await deleteBandTodo(todoId);
     if (!ok) { addToast('Verwijderen mislukt', 'error'); if (id) getBandTodos(id).then(setTodos); }
+  }
+
+  function startEditTodo(todo: BandTodo) {
+    setEditingTodoId(todo.id);
+    setEditingTodoText(todo.content);
+  }
+
+  async function handleSaveTodoEdit(todoId: string) {
+    const content = editingTodoText.trim();
+    if (!content) return;
+    const ok = await updateBandTodo(todoId, content);
+    if (!ok) { addToast('Bijwerken mislukt', 'error'); return; }
+    setTodos(prev => prev.map(t => t.id === todoId ? { ...t, content } : t));
+    setEditingTodoId(null);
   }
 
   // ── Handlers: pin event ──────────────────────────────────────────────────
@@ -1269,6 +1313,7 @@ export default function BandSpaceDetailPage() {
                                 className={`p-1 transition-colors ${ev.is_pinned ? 'text-amber-400' : 'text-slate-600 hover:text-amber-400'}`}>
                                 <Pin size={13} />
                               </button>
+                              <button onClick={() => startEditEvent(ev)} title="Bewerken" className="p-1 text-slate-600 hover:text-white transition-colors"><Pencil size={13} /></button>
                               <button onClick={() => handleDeleteEvent(ev.id)} className="p-1 text-slate-600 hover:text-red-400 transition-colors"><Trash2 size={14} /></button>
                             </div>
                           )}
@@ -1337,14 +1382,32 @@ export default function BandSpaceDetailPage() {
                         <Square size={16} />
                       </button>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-white leading-relaxed">{todo.content}</p>
-                        <p className="text-[11px] text-slate-600 mt-0.5">{todo.creator?.display_name || todo.creator?.username}</p>
+                        {editingTodoId === todo.id ? (
+                          <div className="flex items-center gap-2">
+                            <input
+                              autoFocus
+                              value={editingTodoText}
+                              onChange={e => setEditingTodoText(e.target.value)}
+                              onKeyDown={e => { if (e.key === 'Enter') handleSaveTodoEdit(todo.id); if (e.key === 'Escape') setEditingTodoId(null); }}
+                              className="flex-1 bg-white/5 border border-violet-500/40 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none"
+                            />
+                            <button onClick={() => handleSaveTodoEdit(todo.id)} className="text-violet-400 hover:text-violet-300 shrink-0"><Check size={14} /></button>
+                            <button onClick={() => setEditingTodoId(null)} className="text-slate-500 hover:text-white shrink-0"><X size={14} /></button>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="text-sm text-white leading-relaxed">{todo.content}</p>
+                            <p className="text-[11px] text-slate-600 mt-0.5">{todo.creator?.display_name || todo.creator?.username}</p>
+                          </>
+                        )}
                       </div>
-                      {(isAdmin || todo.created_by === user?.id) && (
-                        <button onClick={() => handleDeleteTodo(todo.id)}
-                          className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 text-slate-600 hover:text-red-400 transition-all p-0.5 shrink-0">
-                          <Trash2 size={13} />
-                        </button>
+                      {editingTodoId !== todo.id && (isAdmin || todo.created_by === user?.id) && (
+                        <div className="flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all shrink-0">
+                          <button onClick={() => startEditTodo(todo)} className="text-slate-600 hover:text-white p-0.5"><Pencil size={13} /></button>
+                          <button onClick={() => handleDeleteTodo(todo.id)} className="text-slate-600 hover:text-red-400 p-0.5">
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       )}
                     </div>
                   ))}
@@ -1363,13 +1426,29 @@ export default function BandSpaceDetailPage() {
                             <CheckSquare size={16} />
                           </button>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm text-slate-500 line-through leading-relaxed">{todo.content}</p>
+                            {editingTodoId === todo.id ? (
+                              <div className="flex items-center gap-2">
+                                <input
+                                  autoFocus
+                                  value={editingTodoText}
+                                  onChange={e => setEditingTodoText(e.target.value)}
+                                  onKeyDown={e => { if (e.key === 'Enter') handleSaveTodoEdit(todo.id); if (e.key === 'Escape') setEditingTodoId(null); }}
+                                  className="flex-1 bg-white/5 border border-violet-500/40 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none"
+                                />
+                                <button onClick={() => handleSaveTodoEdit(todo.id)} className="text-violet-400 hover:text-violet-300 shrink-0"><Check size={14} /></button>
+                                <button onClick={() => setEditingTodoId(null)} className="text-slate-500 hover:text-white shrink-0"><X size={14} /></button>
+                              </div>
+                            ) : (
+                              <p className="text-sm text-slate-500 line-through leading-relaxed">{todo.content}</p>
+                            )}
                           </div>
-                          {(isAdmin || todo.created_by === user?.id) && (
-                            <button onClick={() => handleDeleteTodo(todo.id)}
-                              className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 text-slate-600 hover:text-red-400 transition-all p-0.5 shrink-0">
-                              <Trash2 size={13} />
-                            </button>
+                          {editingTodoId !== todo.id && (isAdmin || todo.created_by === user?.id) && (
+                            <div className="flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all shrink-0">
+                              <button onClick={() => startEditTodo(todo)} className="text-slate-600 hover:text-white p-0.5"><Pencil size={13} /></button>
+                              <button onClick={() => handleDeleteTodo(todo.id)} className="text-slate-600 hover:text-red-400 p-0.5">
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
                           )}
                         </div>
                       ))}
@@ -1674,8 +1753,8 @@ export default function BandSpaceDetailPage() {
         <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center sm:p-4 bg-black/70 backdrop-blur-sm">
           <div className="bg-[#1e1a30] border border-white/10 rounded-t-2xl sm:rounded-2xl p-6 w-full sm:max-w-md shadow-2xl max-h-[90dvh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-base font-semibold text-white">Evenement toevoegen</h2>
-              <button onClick={() => setShowAddEvent(false)} className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/8 transition-colors"><X size={16} /></button>
+              <h2 className="text-base font-semibold text-white">{editingEventId ? 'Evenement bewerken' : 'Evenement toevoegen'}</h2>
+              <button onClick={() => { setShowAddEvent(false); setEditingEventId(null); }} className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/8 transition-colors"><X size={16} /></button>
             </div>
             <div className="space-y-4">
               <div>
@@ -1731,7 +1810,7 @@ export default function BandSpaceDetailPage() {
               )}
             </div>
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowAddEvent(false)} className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-slate-300 hover:text-white hover:border-white/20 transition-colors text-sm">Annuleren</button>
+              <button onClick={() => { setShowAddEvent(false); setEditingEventId(null); }} className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-slate-300 hover:text-white hover:border-white/20 transition-colors text-sm">Annuleren</button>
               <button onClick={handleAddEvent} disabled={savingEvent || !eventForm.title.trim() || !eventForm.date}
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold transition-colors disabled:opacity-50 text-sm">
                 {savingEvent ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Opslaan

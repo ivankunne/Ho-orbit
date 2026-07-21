@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Heart, Send, MessageSquare, Trash2 } from 'lucide-react';
+import { Heart, Send, MessageSquare, Trash2, Pencil, X, Check } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
 import UserAvatar from '@components/UserAvatar';
 import { useToast } from './Toast';
-import { getComments, addComment, deleteComment, toggleCommentLike } from '@services/commentService';
+import { getComments, addComment, updateComment, deleteComment, toggleCommentLike } from '@services/commentService';
 import { addNotification } from '@services/notificationService';
 import { avatarPlaceholder } from '@utils/placeholder';
 
@@ -32,6 +32,8 @@ export default function CommentSection({ resourceType, resourceId, resourceTitle
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState(null);
+  const [editBody, setEditBody] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -71,6 +73,28 @@ export default function CommentSection({ resourceType, resourceId, resourceTitle
           : 'Je hebt een reactie geplaatst',
         link: window.location.pathname,
       });
+    } catch {
+      addToast('Er is iets misgegaan. Probeer het opnieuw.', 'error');
+    }
+  };
+
+  const startEdit = (comment) => {
+    setEditingId(comment.id);
+    setEditBody(comment.body);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditBody('');
+  };
+
+  const handleSaveEdit = async (commentId) => {
+    const body = editBody.trim();
+    if (!body || !user) return;
+    try {
+      const next = await updateComment(resourceType, resourceId, commentId, user.id, body);
+      setComments(next);
+      cancelEdit();
     } catch {
       addToast('Er is iets misgegaan. Probeer het opnieuw.', 'error');
     }
@@ -178,17 +202,53 @@ export default function CommentSection({ resourceType, resourceId, resourceTitle
                         <span className="text-sm font-semibold text-white truncate">{comment.authorName}</span>
                         <span className="text-xs text-slate-600 shrink-0">{relativeTime(comment.createdAt)}</span>
                       </div>
-                      {isOwn && (
-                        <button
-                          onClick={() => handleDelete(comment.id)}
-                          className="text-slate-600 hover:text-red-400 transition-colors shrink-0"
-                          title="Verwijder reactie"
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                      {isOwn && editingId !== comment.id && (
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => startEdit(comment)}
+                            className="text-slate-600 hover:text-white transition-colors"
+                            title="Bewerk reactie"
+                          >
+                            <Pencil size={12} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(comment.id)}
+                            className="text-slate-600 hover:text-red-400 transition-colors"
+                            title="Verwijder reactie"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       )}
                     </div>
-                    <p className="text-sm text-slate-300 leading-relaxed">{comment.body}</p>
+                    {editingId === comment.id ? (
+                      <div>
+                        <textarea
+                          value={editBody}
+                          onChange={e => setEditBody(e.target.value.slice(0, MAX_CHARS))}
+                          rows={3}
+                          autoFocus
+                          className="w-full bg-white/5 border border-violet-500/40 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none resize-none"
+                        />
+                        <div className="flex items-center justify-end gap-2 mt-1.5">
+                          <button
+                            onClick={cancelEdit}
+                            className="flex items-center gap-1 text-xs text-slate-400 hover:text-white transition-colors px-2 py-1"
+                          >
+                            <X size={12} /> Annuleren
+                          </button>
+                          <button
+                            onClick={() => handleSaveEdit(comment.id)}
+                            disabled={!editBody.trim()}
+                            className="flex items-center gap-1 text-xs text-violet-400 hover:text-violet-300 disabled:text-slate-600 transition-colors px-2 py-1"
+                          >
+                            <Check size={12} /> Opslaan
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-slate-300 leading-relaxed">{comment.body}</p>
+                    )}
                   </div>
                   <button
                     onClick={() => handleLike(comment.id)}

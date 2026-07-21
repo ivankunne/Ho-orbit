@@ -225,6 +225,51 @@ export async function uploadTrack({
   return mapTrack(data);
 }
 
+export async function updateTrack(trackId: string, userId: string, updates: {
+  title?: string; genre?: string; description?: string; tags?: string[];
+  explicit?: boolean; isPrivate?: boolean; coverFile?: File; isrc?: string; upc?: string;
+}): Promise<UploadedTrack> {
+  let coverUrl: string | undefined;
+  if (updates.coverFile) {
+    try {
+      coverUrl = await uploadCoverFile(updates.coverFile, updates.title || 'cover');
+    } catch (e) {
+      console.warn('Cover upload failed, keeping existing artwork:', e);
+    }
+  }
+  const dbUpdates: Record<string, unknown> = {};
+  if (updates.title !== undefined) dbUpdates.title = updates.title;
+  if (updates.genre !== undefined) dbUpdates.genre = updates.genre || 'Overig';
+  if (updates.description !== undefined) dbUpdates.description = updates.description;
+  if (updates.tags !== undefined) dbUpdates.tags = updates.tags;
+  if (updates.explicit !== undefined) dbUpdates.explicit = updates.explicit;
+  if (updates.isPrivate !== undefined) dbUpdates.is_private = updates.isPrivate;
+  if (updates.isrc !== undefined) dbUpdates.isrc = updates.isrc?.trim() || null;
+  if (updates.upc !== undefined) dbUpdates.upc = updates.upc?.trim() || null;
+  if (coverUrl) dbUpdates.cover_url = coverUrl;
+
+  // Scope to the owner both in the filter (defense in depth) and via RLS —
+  // never trust the client-supplied userId alone to gate a write like this.
+  const { data, error } = await supabase
+    .from('tracks')
+    .update(dbUpdates)
+    .eq('id', trackId)
+    .eq('uploaded_by', userId)
+    .select()
+    .single();
+  if (error || !data) throw new Error(error?.message || 'Bijwerken van nummer mislukt');
+  return mapTrack(data);
+}
+
+export async function deleteTrack(trackId: string, userId: string): Promise<void> {
+  const { error } = await supabase
+    .from('tracks')
+    .delete()
+    .eq('id', trackId)
+    .eq('uploaded_by', userId);
+  if (error) throw new Error(error.message);
+}
+
 export async function getUploadedTracks(userId?: string): Promise<UploadedTrack[]> {
   let query = supabase.from('tracks').select('*').eq('is_user_upload', true);
   if (userId && isUUID(userId)) query = query.eq('uploaded_by', userId);
