@@ -1,6 +1,10 @@
+import * as tus from 'tus-js-client';
 import { supabase } from '@/lib/supabase';
 import { upsertArtistFromProfile } from '@utils/artistHelpers';
 import { coverPlaceholder } from '@utils/placeholder';
+
+// Resumable uploads go straight to the storage host, not the API host.
+const STORAGE_PROJECT_REF = new URL(import.meta.env.VITE_SUPABASE_URL as string).hostname.split('.')[0];
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isUUID = (id: string | null | undefined) => !!id && UUID_RE.test(id);
@@ -33,13 +37,6 @@ export interface UploadedTrack {
   reviewedBy: string | null;
   isrc: string | null;
   upc: string | null;
-}
-
-function withTimeout<T>(promise: Promise<T>, ms: number, msg: string): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<never>((_, reject) => setTimeout(() => reject(new Error(msg)), ms)),
-  ]);
 }
 
 function getAudioDuration(file: File): Promise<string> {
@@ -87,7 +84,7 @@ function getAudioDuration(file: File): Promise<string> {
   });
 }
 
-async function uploadAudioFile(file: File, trackTitle: string): Promise<string> {
+async function uploadAudioFile(file: File, trackTitle: string, onProgress?: (pct: number) => void): Promise<string> {
   const ext = (file.name.split('.').pop() ?? 'mp3').toLowerCase();
   const safeName = trackTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase();
   const path = `${Date.now()}_${safeName}.${ext}`;
@@ -104,13 +101,43 @@ async function uploadAudioFile(file: File, trackTitle: string): Promise<string> 
     oga: 'audio/ogg',
   };
   const contentType = EXT_MIME[ext] || file.type || `audio/${ext}`;
-  console.log('[upload] starting storage upload', { path, size: file.size, contentType });
-  const { error } = await withTimeout(
-    supabase.storage.from('audio').upload(path, file, { contentType }),
-    60_000,
-    'Storage upload time-out na 60s — controleer je verbinding of Supabase project status'
-  );
-  if (error) throw error;
+  console.log('[upload] starting resumable storage upload', { path, size: file.size, contentType });
+
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Je bent uitgelogd — log opnieuw in en probeer het nogmaals.');
+
+  // Songs (and especially long-form uploads like radio shows) can run into the
+  // hundreds of MB — a single-shot upload has no way to recover from a dropped
+  // mobile connection partway through. Resumable (TUS) uploads retry in 6MB
+  // chunks and can resume a previous attempt instead of restarting from zero.
+  await new Promise<void>((resolve, reject) => {
+    const upload = new tus.Upload(file, {
+      endpoint: `https://${STORAGE_PROJECT_REF}.storage.supabase.co/storage/v1/upload/resumable`,
+      retryDelays: [0, 3000, 5000, 10000, 20000],
+      headers: {
+        authorization: `Bearer ${session.access_token}`,
+        'x-upsert': 'false',
+      },
+      uploadDataDuringCreation: true,
+      removeFingerprintOnSuccess: true,
+      metadata: {
+        bucketName: 'audio',
+        objectName: path,
+        contentType,
+        cacheControl: '3600',
+      },
+      chunkSize: 6 * 1024 * 1024, // required by Supabase's resumable endpoint — do not change
+      onProgress: (bytesUploaded, bytesTotal) => onProgress?.(Math.round((bytesUploaded / bytesTotal) * 100)),
+      onSuccess: () => resolve(),
+      onError: reject,
+    });
+
+    upload.findPreviousUploads().then(previousUploads => {
+      if (previousUploads.length) upload.resumeFromPreviousUpload(previousUploads[0]);
+      upload.start();
+    });
+  });
+
   console.log('[upload] storage upload complete');
   const { data } = supabase.storage.from('audio').getPublicUrl(path);
   return data.publicUrl;
@@ -136,19 +163,20 @@ export async function uploadEventPoster(file: File): Promise<string> {
 }
 
 export async function uploadTrack({
-  title, genre, description, tags, explicit, isPrivate, userId, artistName, audioFile, coverFile, isrc, upc, onStep,
+  title, genre, description, tags, explicit, isPrivate, userId, artistName, audioFile, coverFile, isrc, upc, onStep, onAudioProgress,
 }: {
   title: string; genre: string; description: string; tags: string[];
   explicit: boolean; isPrivate: boolean; userId: string; artistName: string;
   audioFile?: File; coverFile?: File; isrc?: string; upc?: string;
   onStep?: (step: 'audio' | 'cover' | 'saving') => void;
+  onAudioProgress?: (pct: number) => void;
 }): Promise<UploadedTrack> {
   let streamUrl = '';
   let duration = '0:00';
   if (audioFile) {
     duration = await getAudioDuration(audioFile);
     onStep?.('audio');
-    streamUrl = await uploadAudioFile(audioFile, title);
+    streamUrl = await uploadAudioFile(audioFile, title, onAudioProgress);
   }
 
   let coverUrl = coverPlaceholder(title);

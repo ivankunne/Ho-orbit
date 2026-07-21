@@ -22,6 +22,7 @@ export default function UploadPage() {
   const [selectedTags, setSelectedTags] = useState([]);
   const [uploadState, setUploadState] = useState('idle'); // idle | uploading | success
   const [uploadStep, setUploadStep] = useState('');
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState('');
   const [form, setForm] = useState({
     title: '',
@@ -102,6 +103,7 @@ export default function UploadPage() {
     setUploadState('uploading');
     setUploadError('');
     setUploadStep('audio');
+    setUploadProgress(0);
     try {
       const track = await uploadTrack({
         title: form.title || (trackFile?.name ? trackFile.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').trim() : 'Naamloos'),
@@ -117,6 +119,7 @@ export default function UploadPage() {
         isrc: form.isrc || undefined,
         upc: form.upc || undefined,
         onStep: setUploadStep,
+        onAudioProgress: setUploadProgress,
       });
       if (user?.id) {
         addNotification(user.id, {
@@ -138,6 +141,7 @@ export default function UploadPage() {
   const handleReset = () => {
     setUploadState('idle');
     setUploadStep('');
+    setUploadProgress(0);
     setUploadError('');
     setTrackFile(null);
     setArtworkFile(null);
@@ -234,9 +238,20 @@ export default function UploadPage() {
           <div className="bg-white/5 border border-white/10 rounded-xl p-4">
             <div className="flex items-center gap-3">
               <Loader size={16} className="text-violet-400 animate-spin shrink-0" />
-              <div>
-                <span className="text-sm font-medium text-white">{STEP_LABELS[uploadStep] || 'Bezig met uploaden...'}</span>
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-medium text-white">
+                  {STEP_LABELS[uploadStep] || 'Bezig met uploaden...'}
+                  {uploadStep === 'audio' && uploadProgress > 0 ? ` ${uploadProgress}%` : ''}
+                </span>
                 <p className="text-xs text-slate-500 mt-0.5">Dit kan even duren voor grote bestanden</p>
+                {uploadStep === 'audio' && (
+                  <div className="w-full h-1.5 bg-white/10 rounded-full mt-2 overflow-hidden">
+                    <div
+                      className="h-full bg-violet-500 rounded-full transition-all duration-300"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>
