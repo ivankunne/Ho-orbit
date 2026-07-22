@@ -1011,10 +1011,25 @@ export default function BandSpaceDetailPage() {
       </aside>
 
       {/* Mobile header bar (shown instead of sidebar on mobile) — sits below the main navbar, whose real
-          height (incl. iOS safe-area inset) is published as --navbar-h so this never sits under the notch. */}
+          height (incl. iOS safe-area inset) is published as --navbar-h so this never sits under the notch.
+          The back chevron only leaves the band from Home — from any other screen it steps back to Home
+          within the same band, and the title reflects the current screen, so mobile users always know
+          where they are instead of getting bounced out of the workspace. */}
       <div className="lg:hidden fixed top-[var(--navbar-h,4rem)] left-0 right-0 z-40 flex items-center gap-3 px-4 py-3 border-b border-white/8" style={{ background: '#131020f0' }}>
-        <Link to="/bandspace" className="text-slate-400 hover:text-white"><ChevronLeft size={18} /></Link>
-        <span className="text-sm font-semibold text-white truncate flex-1">{band.name}</span>
+        {activeView === 'home' ? (
+          <Link to="/bandspace" className="text-slate-400 hover:text-white shrink-0"><ChevronLeft size={18} /></Link>
+        ) : (
+          <button onClick={() => { setActiveView('home'); setActiveProjectId(null); }} className="text-slate-400 hover:text-white shrink-0">
+            <ChevronLeft size={18} />
+          </button>
+        )}
+        <span className="text-sm font-semibold text-white truncate flex-1">
+          {activeView === 'home' ? band.name
+            : activeView === 'calendar' ? 'Kalender'
+            : activeView === 'projects' ? 'Projecten'
+            : activeView === 'project' ? (activeProject?.name ?? 'Project')
+            : activeCh.label}
+        </span>
         <button onClick={handleShare} className="p-1.5 text-slate-400 hover:text-violet-400 transition-colors"><Share2 size={16} /></button>
         <button onClick={() => setShowMobileSidebar(true)} className="p-1.5 text-slate-400 hover:text-white"><Menu size={18} /></button>
       </div>
