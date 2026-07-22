@@ -1,12 +1,35 @@
-import { useState } from 'react';
-import { Radio, Play, Pause, WifiOff, Settings2, CheckCircle, RefreshCw, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
-import { useRadio, type RadioStation } from '@context/RadioContext';
+import { useState, useEffect, useCallback } from 'react';
+import { Radio, Play, Pause, WifiOff, Settings2, CheckCircle, RefreshCw, Plus, Trash2, ChevronDown, ChevronUp, History, Upload } from 'lucide-react';
+import { useRadio, type RadioStation, type RadioRecording } from '@context/RadioContext';
 import { useAuth } from '@context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { EqBars } from '@components/Waveform';
 import { useToast } from '@components/Toast';
 import GenrePicker from '@components/GenrePicker';
 import GenreBadge from '@components/GenreBadge';
+import { getAudioDuration, uploadAudioFile } from '@services/uploadService';
+
+// Fetches + subscribes to one station's past recordings. Shared by the public
+// StationCard (listen back) and the Studio row (upload/manage).
+function useStationRecordings(stationId: string) {
+  const [recordings, setRecordings] = useState<RadioRecording[]>([]);
+
+  const refresh = useCallback(async () => {
+    const { data } = await supabase.from('radio_recordings').select('*').eq('station_id', stationId).order('recorded_at', { ascending: false });
+    if (data) setRecordings(data as RadioRecording[]);
+  }, [stationId]);
+
+  useEffect(() => {
+    refresh();
+    const channel = supabase
+      .channel(`radio_recordings_${stationId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'radio_recordings', filter: `station_id=eq.${stationId}` }, refresh)
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [stationId, refresh]);
+
+  return { recordings, refresh };
+}
 
 // http:// streams are blocked as mixed content on the https site — warn before the DJ finds out the hard way
 function StreamUrlWarning({ url }: { url: string }) {
@@ -20,9 +43,10 @@ function StreamUrlWarning({ url }: { url: string }) {
 
 // ─── Station card (public listener view) ────────────────────────────────────
 
-function StationCard({ station }: { station: RadioStation }) {
+function StationCard({ station, recordingCount }: { station: RadioStation; recordingCount: number }) {
   const { currentStation, isRadioPlaying, toggleStation } = useRadio();
   const isThisPlaying = isRadioPlaying && currentStation?.id === station.id;
+  const [showRecordings, setShowRecordings] = useState(false);
 
   return (
     <div className={`relative flex flex-col gap-4 p-5 rounded-2xl border transition-all ${
@@ -74,6 +98,52 @@ function StationCard({ station }: { station: RadioStation }) {
           <WifiOff size={14} /> Momenteel offline
         </div>
       )}
+
+      {recordingCount > 0 && (
+        <div>
+          <button
+            onClick={() => setShowRecordings(v => !v)}
+            className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors"
+          >
+            <History size={13} />
+            Terugluisteren ({recordingCount})
+            {showRecordings ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          </button>
+          {showRecordings && <RecordingsList stationId={station.id} />}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Recordings — listen back (public view) ─────────────────────────────────
+
+function RecordingsList({ stationId }: { stationId: string }) {
+  const { recordings } = useStationRecordings(stationId);
+  const { currentRecording, isRecordingPlaying, toggleRecording } = useRadio();
+
+  if (recordings.length === 0) {
+    return <p className="text-xs text-slate-600 mt-2">Nog geen opnames.</p>;
+  }
+
+  return (
+    <div className="mt-2 space-y-1.5">
+      {recordings.map(rec => {
+        const isThisPlaying = isRecordingPlaying && currentRecording?.id === rec.id;
+        return (
+          <button
+            key={rec.id}
+            onClick={() => toggleRecording(rec)}
+            className={`flex items-center gap-2.5 w-full text-left px-2.5 py-2 rounded-lg transition-colors ${
+              isThisPlaying ? 'bg-violet-600/15 text-violet-300' : 'hover:bg-white/5 text-slate-400 hover:text-white'
+            }`}
+          >
+            {isThisPlaying ? <EqBars playing /> : <Play size={13} fill="currentColor" className="shrink-0" />}
+            <span className="flex-1 min-w-0 truncate text-xs">{rec.title}</span>
+            {rec.duration && <span className="text-[10px] text-slate-600 shrink-0">{rec.duration}</span>}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -195,8 +265,132 @@ function StudioRow({ station, onRefresh }: { station: RadioStation; onRefresh: (
             }`}>
             {saved ? <><CheckCircle size={13} /> Opgeslagen</> : saving ? <><RefreshCw size={13} className="animate-spin" /> Opslaan…</> : 'Opslaan'}
           </button>
+
+          <div className="pt-3 border-t border-white/8">
+            <p className="text-xs font-medium text-slate-400 mb-2">Opnames — terugluisteren</p>
+            <StudioRecordings stationId={station.id} />
+          </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Recordings — studio view (upload/manage) ────────────────────────────────
+
+function StudioRecordings({ stationId }: { stationId: string }) {
+  const { recordings, refresh } = useStationRecordings(stationId);
+  const [showAddForm, setShowAddForm] = useState(false);
+
+  return (
+    <div className="space-y-2">
+      {recordings.map(rec => (
+        <StudioRecordingRow key={rec.id} recording={rec} onRefresh={refresh} />
+      ))}
+      {recordings.length === 0 && !showAddForm && (
+        <p className="text-xs text-slate-600 py-1">Nog geen opnames geüpload.</p>
+      )}
+      {showAddForm ? (
+        <AddRecordingForm stationId={stationId} onRefresh={refresh} onClose={() => setShowAddForm(false)} />
+      ) : (
+        <button
+          onClick={() => setShowAddForm(true)}
+          className="flex items-center gap-1.5 bg-violet-600/15 hover:bg-violet-600/25 border border-violet-500/30 text-violet-400 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+        >
+          <Plus size={13} /> Opname toevoegen
+        </button>
+      )}
+    </div>
+  );
+}
+
+function StudioRecordingRow({ recording, onRefresh }: { recording: RadioRecording; onRefresh: () => void }) {
+  const { currentRecording, isRecordingPlaying, toggleRecording } = useRadio();
+  const [deleting, setDeleting] = useState(false);
+  const addToast = useToast();
+  const isThisPlaying = isRecordingPlaying && currentRecording?.id === recording.id;
+
+  const remove = async () => {
+    if (!confirm(`Opname "${recording.title}" verwijderen?`)) return;
+    setDeleting(true);
+    const { data, error } = await supabase.from('radio_recordings').delete().eq('id', recording.id).select('id');
+    if (error || !data?.length) {
+      setDeleting(false);
+      addToast?.('Verwijderen mislukt.', 'error');
+      return;
+    }
+    onRefresh();
+  };
+
+  return (
+    <div className="flex items-center gap-2.5 bg-white/[0.03] border border-white/8 rounded-lg px-3 py-2">
+      <button onClick={() => toggleRecording(recording)} className="text-slate-400 hover:text-white transition-colors shrink-0">
+        {isThisPlaying ? <EqBars playing /> : <Play size={13} fill="currentColor" />}
+      </button>
+      <span className="flex-1 min-w-0 truncate text-xs text-slate-300">{recording.title}</span>
+      {recording.duration && <span className="text-[10px] text-slate-600 shrink-0">{recording.duration}</span>}
+      <button onClick={remove} disabled={deleting} className="text-slate-600 hover:text-red-400 transition-colors p-1 shrink-0">
+        <Trash2 size={12} />
+      </button>
+    </div>
+  );
+}
+
+function AddRecordingForm({ stationId, onRefresh, onClose }: { stationId: string; onRefresh: () => void; onClose: () => void }) {
+  const [title, setTitle]       = useState('');
+  const [file, setFile]         = useState<File | null>(null);
+  const [saving, setSaving]     = useState(false);
+  const [progress, setProgress] = useState(0);
+  const addToast = useToast();
+
+  const save = async () => {
+    if (!title.trim() || !file) return;
+    setSaving(true);
+    try {
+      const duration = await getAudioDuration(file);
+      const audioUrl = await uploadAudioFile(file, title, setProgress);
+      const { error } = await supabase.from('radio_recordings').insert({
+        station_id: stationId,
+        title,
+        audio_url: audioUrl,
+        duration,
+      });
+      if (error) throw error;
+      addToast?.('Opname toegevoegd.', 'success');
+      onRefresh();
+      onClose();
+    } catch {
+      addToast?.('Opname toevoegen mislukt. Probeer het opnieuw.', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-white/[0.03] border border-violet-500/20 rounded-xl p-3 space-y-2.5">
+      <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Titel van de opname (bijv. Uitzending 12 juli)"
+        className="w-full bg-white/[0.04] border border-white/8 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500/40 transition-colors" />
+      <label className="flex items-center gap-2 w-full bg-white/[0.04] border border-dashed border-white/15 rounded-lg px-3 py-2.5 text-sm text-slate-400 hover:border-violet-500/40 cursor-pointer transition-colors">
+        <Upload size={14} className="shrink-0" />
+        <span className="truncate">{file ? file.name : 'Kies een audiobestand (mp3, wav, m4a…)'}</span>
+        <input type="file" accept="audio/*" className="hidden" onChange={e => setFile(e.target.files?.[0] ?? null)} />
+      </label>
+      {saving && (
+        <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+          <div className="h-full bg-violet-500 transition-all" style={{ width: `${progress}%` }} />
+        </div>
+      )}
+      <div className="flex gap-2">
+        <button onClick={save} disabled={saving || !title.trim() || !file}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            saving || !title.trim() || !file ? 'bg-white/5 text-slate-600 cursor-not-allowed' : 'bg-violet-600 hover:bg-violet-500 text-white'
+          }`}>
+          {saving ? <><RefreshCw size={12} className="animate-spin" /> Uploaden… {progress}%</> : 'Toevoegen'}
+        </button>
+        <button onClick={onClose} className="px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:text-white hover:bg-white/5 transition-colors">
+          Annuleer
+        </button>
+      </div>
     </div>
   );
 }
@@ -272,7 +466,7 @@ function AddStationForm({ onRefresh, onClose, userId }: { onRefresh: () => void;
 // ─── Main RadioPage ───────────────────────────────────────────────────────────
 
 export default function RadioPage() {
-  const { stations, liveStations, fetchStations } = useRadio();
+  const { stations, liveStations, fetchStations, recordingCounts } = useRadio();
   const { user } = useAuth();
   const isAdmin    = Boolean(user?.isAdmin);
   const isRadioHost = user?.role === 'Radio';
@@ -314,7 +508,7 @@ export default function RadioPage() {
             <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Nu live</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {liveStations.map(s => <StationCard key={s.id} station={s} />)}
+            {liveStations.map(s => <StationCard key={s.id} station={s} recordingCount={recordingCounts[s.id] ?? 0} />)}
           </div>
         </section>
       )}
@@ -324,7 +518,7 @@ export default function RadioPage() {
         <section className="mb-10">
           <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wider mb-4">Overige zenders</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {offlineStations.map(s => <StationCard key={s.id} station={s} />)}
+            {offlineStations.map(s => <StationCard key={s.id} station={s} recordingCount={recordingCounts[s.id] ?? 0} />)}
           </div>
         </section>
       )}

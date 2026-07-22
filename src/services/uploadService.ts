@@ -39,7 +39,7 @@ export interface UploadedTrack {
   upc: string | null;
 }
 
-function getAudioDuration(file: File): Promise<string> {
+export function getAudioDuration(file: File): Promise<string> {
   // Read duration from the streamed metadata via an <audio> element. We must NOT
   // decode the whole file into PCM (decodeAudioData) here: a normal song decodes
   // to hundreds of MB of memory and OOM-crashes the tab on mobile — which is the
@@ -84,7 +84,7 @@ function getAudioDuration(file: File): Promise<string> {
   });
 }
 
-async function uploadAudioFile(file: File, trackTitle: string, onProgress?: (pct: number) => void): Promise<string> {
+export async function uploadAudioFile(file: File, trackTitle: string, onProgress?: (pct: number) => void): Promise<string> {
   const ext = (file.name.split('.').pop() ?? 'mp3').toLowerCase();
   const safeName = trackTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase();
   const path = `${Date.now()}_${safeName}.${ext}`;
@@ -143,7 +143,7 @@ async function uploadAudioFile(file: File, trackTitle: string, onProgress?: (pct
   return data.publicUrl;
 }
 
-async function uploadCoverFile(file: File, trackTitle: string): Promise<string> {
+export async function uploadCoverFile(file: File, trackTitle: string): Promise<string> {
   const ext = file.name.split('.').pop() ?? 'jpg';
   const safeName = trackTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase();
   const path = `covers/${Date.now()}_${safeName}.${ext}`;

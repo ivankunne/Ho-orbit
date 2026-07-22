@@ -3,7 +3,7 @@ import {
   ShieldCheck, Music, Users, Calendar, Flag, MessageSquare,
   CheckCircle, XCircle, Clock, Search, RefreshCw,
   Ban, UserCheck, Eye, EyeOff, AlertTriangle,
-  Play, Pause, Volume2, Radio,
+  Play, Pause, Volume2, Radio, Headphones,
 } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
 import { getStreamUrl } from '@services/playerService';
@@ -26,7 +26,7 @@ import { useToast } from '@components/Toast';
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
 type ReviewTab = 'pending' | 'approved' | 'rejected' | 'all';
-type Section = 'uploads' | 'users' | 'forum' | 'events' | 'reports' | 'radio';
+type Section = 'uploads' | 'users' | 'forum' | 'events' | 'reports' | 'radio' | 'podcasts';
 
 function fmt(iso: string) {
   return new Date(iso).toLocaleDateString('nl-NL', {
@@ -354,6 +354,26 @@ function UsersSection() {
                     }`}
                   >
                     <Radio size={12} /><span className="hidden sm:inline">{u.role === 'Radio' ? 'Intrekken' : 'Radio'}</span>
+                  </button>
+                  {/* Podcast role toggle */}
+                  <button
+                    onClick={async () => {
+                      const newRole = u.role === 'Podcast' ? 'Luisteraar' : 'Podcast';
+                      try {
+                        await setUserRole(u.id, newRole);
+                        load();
+                      } catch (e: any) {
+                        addToast(e?.message || 'Rol wijzigen mislukt.', 'error');
+                      }
+                    }}
+                    title={u.role === 'Podcast' ? 'Podcast-rol intrekken' : 'Podcast-rol toekennen'}
+                    className={`flex items-center gap-1.5 border rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                      u.role === 'Podcast'
+                        ? 'bg-violet-500/20 hover:bg-violet-500/30 text-violet-400 border-violet-500/30'
+                        : 'bg-white/5 hover:bg-white/10 text-slate-500 hover:text-slate-300 border-white/10'
+                    }`}
+                  >
+                    <Headphones size={12} /><span className="hidden sm:inline">{u.role === 'Podcast' ? 'Intrekken' : 'Podcast'}</span>
                   </button>
                   {u.suspended ? (
                     <button onClick={async () => {
@@ -814,6 +834,79 @@ function RadioSection() {
   );
 }
 
+// ─── Podcasts section ─────────────────────────────────────────────────────────
+
+interface AdminPodcast {
+  id: string;
+  title: string;
+  genre: string;
+  description: string;
+}
+
+function PodcastsSection() {
+  const addToast = useToast();
+  const [podcasts, setPodcasts] = useState<AdminPodcast[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase.from('podcasts').select('*').order('created_at');
+    setPodcasts((data as AdminPodcast[]) ?? []);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const remove = async (podcast: AdminPodcast) => {
+    if (!confirm(`Podcast "${podcast.title}" verwijderen? Alle afleveringen worden ook verwijderd.`)) return;
+    setDeletingId(podcast.id);
+    const { error } = await supabase.from('podcasts').delete().eq('id', podcast.id);
+    if (error) addToast(error.message || 'Verwijderen mislukt.', 'error');
+    await load();
+    setDeletingId(null);
+  };
+
+  if (loading) return <LoadingState />;
+
+  return (
+    <div className="space-y-5">
+      {podcasts.length === 0 ? (
+        <EmptyState icon={<Headphones size={32} />} label="Geen podcasts gevonden. Voeg ze toe via de Podcasts-pagina." />
+      ) : (
+        <div className="space-y-3">
+          {podcasts.map(podcast => (
+            <div key={podcast.id} className="bg-white/[0.03] border border-white/8 hover:border-white/15 rounded-2xl p-4 transition-all">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                  <Headphones size={16} className="text-slate-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-white">{podcast.title}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{podcast.genre}{podcast.description ? ` · ${podcast.description}` : ''}</p>
+                </div>
+                <button
+                  onClick={() => remove(podcast)}
+                  disabled={deletingId === podcast.id}
+                  className="text-slate-600 hover:text-red-400 transition-colors p-1 shrink-0"
+                >
+                  <XCircle size={16} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <p className="text-xs text-slate-600 mt-2">
+        Podcasts en afleveringen toevoegen of bewerken kan via de{' '}
+        <a href="/podcasts" className="text-violet-400 hover:text-violet-300 underline">Podcasts-pagina</a>{' '}
+        (beschikbaar voor admins en gebruikers met de Podcast-rol).
+      </p>
+    </div>
+  );
+}
+
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
 function LoadingState() {
@@ -842,6 +935,7 @@ const SECTIONS: { id: Section; label: string; icon: React.ReactNode; description
   { id: 'events',  label: 'Evenementen', icon: <Calendar size={16} />,      description: 'Events goedkeuren' },
   { id: 'reports', label: 'Meldingen',   icon: <Flag size={16} />,          description: 'Rapporten behandelen' },
   { id: 'radio',   label: 'Radio',       icon: <Radio size={16} />,         description: 'Livestream beheren' },
+  { id: 'podcasts', label: 'Podcasts',   icon: <Headphones size={16} />,    description: 'Podcasts beheren' },
 ];
 
 export default function AdminPage() {
@@ -923,6 +1017,7 @@ export default function AdminPage() {
             {section === 'events'  && <EventsSection />}
             {section === 'reports' && <ReportsSection />}
             {section === 'radio'   && <RadioSection />}
+            {section === 'podcasts' && <PodcastsSection />}
           </div>
         </main>
       </div>

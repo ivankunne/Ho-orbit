@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { usePlayer, usePlayerProgress } from '@context/PlayerContext';
 import { useRadio } from '@context/RadioContext';
+import { usePodcast } from '@context/PodcastContext';
 import { useAppState } from '@context/AppStateContext';
 import { useState } from 'react';
 import { getWaveform, EqBars } from '@components/Waveform';
@@ -36,7 +37,8 @@ export default function MusicPlayer({ hidden = false }: { hidden?: boolean }) {
   const { toggleLike, likedTracks } = useAppState();
   const liked = likedTracks.includes(track?.id);
 
-  const { isRadioPlaying, stopRadio, currentStation, radioError } = useRadio();
+  const { isRadioPlaying, stopRadio, isRecordingPlaying, stopRecording, currentStation, radioError } = useRadio();
+  const { stopPodcast } = usePodcast();
   const { currentTime, duration } = usePlayerProgress();
   const addToast = useToast();
 
@@ -48,15 +50,15 @@ export default function MusicPlayer({ hidden = false }: { hidden?: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
 
-  // Stop radio when a track starts playing
+  // Stop radio, podcast and recording playback when a track starts playing
   useEffect(() => {
-    if (isPlaying) stopRadio();
+    if (isPlaying) { stopRadio(); stopPodcast(); stopRecording(); }
   }, [isPlaying]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Pause track when radio starts
+  // Pause track when radio (live or a recording) starts
   useEffect(() => {
-    if (isRadioPlaying) setIsPlaying(false);
-  }, [isRadioPlaying]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (isRadioPlaying || isRecordingPlaying) setIsPlaying(false);
+  }, [isRadioPlaying, isRecordingPlaying]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
   const waveformBars = useMemo(() => getWaveform(currentIndex + 1, 60, 'player'), [currentIndex]);
@@ -327,7 +329,7 @@ export default function MusicPlayer({ hidden = false }: { hidden?: boolean }) {
                     <SkipBack size={18} fill="currentColor" />
                   </button>
                   <button
-                    onClick={() => { if (!isPlaying) stopRadio(); setIsPlaying(p => !p); }}
+                    onClick={() => { if (!isPlaying) { stopRadio(); stopPodcast(); stopRecording(); } setIsPlaying(p => !p); }}
                     className="w-9 h-9 bg-white rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shadow-lg shadow-black/30"
                   >
                     {isPlaying

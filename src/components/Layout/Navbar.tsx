@@ -2,9 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Search, Bell, ChevronDown, Menu, X,
-  Upload, Home, Users, BookOpen, FileText, Globe, MessageSquare,
+  Upload, Home, Users, BookOpen, Globe, MessageSquare,
   Calendar, User, Settings, LogOut, Library, Zap,
-  Mic2, Star, MapPin, Disc3, ExternalLink, ShieldCheck, Radio,
+  Headphones, ShieldCheck, Radio,
   Music2, Handshake, GraduationCap,
 } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
@@ -31,7 +31,7 @@ const navItems = [
   { label: 'Artiesten', path: '/artists', icon: Users },
   { label: 'Evenementen', path: '/events', icon: Calendar },
   { label: 'Hub', path: '/hub', icon: Zap },
-  { label: 'Magazine', path: '/magazine', icon: FileText },
+  { label: 'Podcasts', path: '/podcasts', icon: Headphones },
   { label: 'Radio', path: '/radio', icon: Radio },
   { label: 'Community', path: '/dutch-scene', icon: Globe },
   { label: 'Leren', path: '/tutorials', icon: BookOpen },
@@ -49,49 +49,6 @@ const lerenDropdown = [
   { label: 'Masterclass', sub: 'Van de groten leren', path: '/masterclass', icon: GraduationCap },
 ];
 
-const magazineDropdown = [
-  {
-    label: 'h-orbit Magazine',
-    sub: 'Alle artikelen & verhalen',
-    path: '/magazine',
-    icon: FileText,
-    accent: false,
-    divider: false,
-  },
-  {
-    label: 'Interviews',
-    sub: 'In gesprek met artiesten',
-    path: '/magazine?cat=Interviews',
-    icon: Mic2,
-    accent: false,
-    divider: false,
-  },
-  {
-    label: 'Recensies',
-    sub: 'Album & show reviews',
-    path: '/magazine?cat=Recensies',
-    icon: Star,
-    accent: false,
-    divider: false,
-  },
-  {
-    label: 'Scènerapporten',
-    sub: 'Updates uit de scene',
-    path: '/magazine?cat=Scènerapporten',
-    icon: MapPin,
-    accent: false,
-    divider: false,
-  },
-  {
-    label: 'Genre Spotlights',
-    sub: 'Deep dives per genre',
-    path: '/magazine?cat=Genre Spotlights',
-    icon: Disc3,
-    accent: false,
-    divider: false,
-  },
-];
-
 export default function Navbar({ externalShowSearch = false, onExternalSearchClose, onMobileMenuChange, variant = 'default' }) {
   const location = useLocation();
   const { user, logout } = useAuth();
@@ -105,9 +62,6 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [magazineOpen, setMagazineOpen] = useState(false);
-  const [mobileMagazineOpen, setMobileMagazineOpen] = useState(false);
-  const magazineTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [communityOpen, setCommunityOpen] = useState(false);
   const [mobileCommunityOpen, setMobileCommunityOpen] = useState(false);
   const communityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -162,23 +116,11 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
     logout();
   };
 
-  const openMagazine = () => {
-    if (magazineTimer.current) clearTimeout(magazineTimer.current);
-    setMagazineOpen(true);
-  };
-
-  const closeMagazine = () => {
-    magazineTimer.current = setTimeout(() => setMagazineOpen(false), 120);
-  };
-
   const openCommunity = () => { if (communityTimer.current) clearTimeout(communityTimer.current); setCommunityOpen(true); };
   const closeCommunity = () => { communityTimer.current = setTimeout(() => setCommunityOpen(false), 120); };
   const openLeren = () => { if (lerenTimer.current) clearTimeout(lerenTimer.current); setLerenOpen(true); };
   const closeLeren = () => { lerenTimer.current = setTimeout(() => setLerenOpen(false), 120); };
 
-  const isMagazineActive =
-    location.pathname === '/magazine' ||
-    location.pathname.startsWith('/magazine/');
   const isCommunityActive = ['/dutch-scene', '/forums', '/netwerken', '/bandspace'].some(p => location.pathname.startsWith(p));
   const isLerenActive = ['/tutorials', '/masterclass'].some(p => location.pathname.startsWith(p));
 
@@ -200,86 +142,6 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
           {!isLandingVariant && (
           <div className="hidden lg:flex items-center gap-1 ml-4">
             {navItems.map(item => {
-              if (item.label === 'Magazine') {
-                return (
-                  <div
-                    key={item.path}
-                    className="relative"
-                    onMouseEnter={openMagazine}
-                    onMouseLeave={closeMagazine}
-                  >
-                    <button
-                      className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                        isMagazineActive
-                          ? 'bg-violet-600/15 text-violet-400'
-                          : 'text-slate-400 hover:text-white hover:bg-white/5'
-                      }`}
-                    >
-                      {item.label}
-                      <ChevronDown
-                        size={12}
-                        className={`transition-transform duration-200 ${magazineOpen ? 'rotate-180' : ''}`}
-                      />
-                    </button>
-
-                    {magazineOpen && (
-                      <div className="absolute top-full left-0 mt-2 w-64 bg-[#1e1833] border border-white/10 rounded-xl shadow-2xl shadow-black/50 overflow-hidden z-50">
-                        {/* Arrow */}
-                        <div className="absolute -top-1.5 left-5 w-3 h-3 bg-[#1e1833] border-l border-t border-white/10 rotate-45" />
-
-                        <div className="p-1.5 pt-3">
-                          {magazineDropdown.map(drop => {
-                            const Icon = drop.icon;
-                            return (
-                              <div key={drop.path}>
-                                {drop.divider && (
-                                  <div className="my-1.5 border-t border-white/8" />
-                                )}
-                                <Link
-                                  to={drop.path}
-                                  onClick={() => setMagazineOpen(false)}
-                                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group ${
-                                    drop.accent
-                                      ? 'hover:bg-violet-600/15'
-                                      : 'hover:bg-white/5'
-                                  }`}
-                                >
-                                  <div
-                                    className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
-                                      drop.accent
-                                        ? 'bg-violet-600/20 group-hover:bg-violet-600/30'
-                                        : 'bg-white/5 group-hover:bg-white/10'
-                                    }`}
-                                  >
-                                    <Icon
-                                      size={14}
-                                      className={drop.accent ? 'text-violet-400' : 'text-slate-400 group-hover:text-white'}
-                                    />
-                                  </div>
-                                  <div className="min-w-0">
-                                    <p
-                                      className={`text-sm font-medium leading-tight ${
-                                        drop.accent ? 'text-violet-300' : 'text-slate-200'
-                                      }`}
-                                    >
-                                      {drop.label}
-                                    </p>
-                                    <p className="text-xs text-slate-500 mt-0.5 leading-tight">{drop.sub}</p>
-                                  </div>
-                                  {drop.accent && (
-                                    <ExternalLink size={11} className="ml-auto text-violet-500/60 shrink-0" />
-                                  )}
-                                </Link>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              }
-
               if (item.label === 'Radio') {
                 return (
                   <Link
@@ -587,53 +449,6 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
           <div className="space-y-1">
             {navItems.map(item => {
               const Icon = item.icon;
-
-              if (item.label === 'Magazine') {
-                return (
-                  <div key={item.path}>
-                    <button
-                      onClick={() => setMobileMagazineOpen(v => !v)}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                        isMagazineActive
-                          ? 'bg-violet-600/15 text-violet-400'
-                          : 'text-slate-400 hover:text-white hover:bg-white/5'
-                      }`}
-                    >
-                      <Icon size={16} />
-                      <span className="flex-1 text-left">{item.label}</span>
-                      <ChevronDown
-                        size={14}
-                        className={`transition-transform duration-200 ${mobileMagazineOpen ? 'rotate-180' : ''}`}
-                      />
-                    </button>
-
-                    {mobileMagazineOpen && (
-                      <div className="ml-3 mt-1 pl-3 border-l border-white/8 space-y-0.5">
-                        {magazineDropdown.map(drop => {
-                          const DropIcon = drop.icon;
-                          return (
-                            <div key={drop.path}>
-                              {drop.divider && <div className="my-1 border-t border-white/8" />}
-                              <Link
-                                to={drop.path}
-                                onClick={() => { setMobileMenuOpen(false); setMobileMagazineOpen(false); }}
-                                className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-colors ${
-                                  drop.accent
-                                    ? 'text-violet-400 hover:bg-violet-600/10'
-                                    : 'text-slate-400 hover:text-white hover:bg-white/5'
-                                }`}
-                              >
-                                <DropIcon size={14} className="shrink-0" />
-                                {drop.label}
-                              </Link>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              }
 
               if (item.label === 'Community') {
                 return (

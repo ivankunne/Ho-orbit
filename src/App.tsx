@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from '@context/AuthContext';
 import { AuthModalProvider } from '@context/AuthModalContext';
 import AuthModal from '@components/AuthModal';
 import { RadioProvider } from '@context/RadioContext';
+import { PodcastProvider } from '@context/PodcastContext';
 import { AppStateProvider, useAppState } from '@context/AppStateContext';
 import { PlayerProvider, usePlayer } from '@context/PlayerContext';
 import { GenreProvider } from '@context/GenreContext';
@@ -65,6 +66,8 @@ const HubPage = lazy(() => import('@pages/HubPage'));
 const AdminPage = lazy(() => import('@pages/AdminPage'));
 const AdminLoginPage = lazy(() => import('@pages/AdminLoginPage'));
 const RadioPage = lazy(() => import('@pages/RadioPage'));
+const PodcastsPage = lazy(() => import('@pages/PodcastsPage'));
+const PodcastDetailPage = lazy(() => import('@pages/PodcastDetailPage'));
 const MessagesPage = lazy(() => import('@pages/MessagesPage'));
 const ConversationPage = lazy(() => import('@pages/ConversationPage'));
 const BandSpacePage = lazy(() => import('@pages/BandSpacePage'));
@@ -224,6 +227,8 @@ function ProtectedApp() {
 
               {/* Alles hieronder vereist een account */}
               <Route path="/radio" element={<ProtectedRoute><RadioPage /></ProtectedRoute>} />
+              <Route path="/podcasts" element={<ProtectedRoute><PodcastsPage /></ProtectedRoute>} />
+              <Route path="/podcasts/:id" element={<ProtectedRoute><PodcastDetailPage /></ProtectedRoute>} />
               <Route path="/muziek" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
               <Route path="/artists" element={<ProtectedRoute><ArtistsPage /></ProtectedRoute>} />
               <Route path="/artists/:slug" element={<ProtectedRoute><ArtistDetailPage /></ProtectedRoute>} />
@@ -289,6 +294,7 @@ export default function App() {
         <GenreProvider>
         <PlayerProvider>
         <RadioProvider>
+        <PodcastProvider>
         <ToastProvider>
           <BrowserRouter>
             <AuthModalProvider>
@@ -299,6 +305,7 @@ export default function App() {
             </AuthModalProvider>
           </BrowserRouter>
         </ToastProvider>
+        </PodcastProvider>
         </RadioProvider>
         </PlayerProvider>
         </GenreProvider>
