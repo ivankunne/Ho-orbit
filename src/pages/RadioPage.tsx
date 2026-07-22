@@ -235,9 +235,9 @@ function StudioRow({ station, onRefresh }: { station: RadioStation; onRefresh: (
         <button
           onClick={quickToggleLive}
           title={isLive ? 'Zender offline zetten' : 'Zender live zetten'}
-          className={`relative w-10 h-5 rounded-full transition-colors shrink-0 ${isLive ? 'bg-red-500' : 'bg-white/15'}`}
+          className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${isLive ? 'bg-red-500' : 'bg-white/15'}`}
         >
-          <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${isLive ? 'translate-x-5' : 'translate-x-0.5'}`} />
+          <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${isLive ? 'left-6' : 'left-1'}`} />
         </button>
         {/* Directly discoverable — this is where a host uploads a recording for listeners to play back */}
         <button

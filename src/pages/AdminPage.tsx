@@ -815,9 +815,9 @@ function RadioSection() {
                 <button
                   onClick={() => toggleLive(station)}
                   disabled={togglingId === station.id}
-                  className={`relative w-12 h-6 rounded-full transition-colors shrink-0 [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1528] ${station.is_live ? 'bg-red-500' : 'bg-white/15'} ${togglingId === station.id ? 'opacity-50' : ''}`}
+                  className={`relative w-11 h-6 rounded-full transition-colors shrink-0 [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1528] ${station.is_live ? 'bg-red-500' : 'bg-white/15'} ${togglingId === station.id ? 'opacity-50' : ''}`}
                 >
-                  <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${station.is_live ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                  <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${station.is_live ? 'left-6' : 'left-1'}`} />
                 </button>
               </div>
             </div>
