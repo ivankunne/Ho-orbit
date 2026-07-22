@@ -406,6 +406,7 @@ function MeldingenSection({ user, updateProfile }: { user: any; updateProfile: (
   const defaults = {
     'Nieuwe volger': true,
     'Nieuw bericht': true,
+    'Vermelding': true,
     'Reacties op nummers': true,
     'Evenementherinneringen': true,
     'Nieuwe berichten in forums': false,
@@ -420,6 +421,7 @@ function MeldingenSection({ user, updateProfile }: { user: any; updateProfile: (
   const ITEMS = [
     { label: 'Nieuwe volger', desc: 'Ontvang een melding als iemand je gaat volgen' },
     { label: 'Nieuw bericht', desc: 'Ontvang een e-mail bij een nieuw chatbericht' },
+    { label: 'Vermelding', desc: 'Meldingen als iemand je @vermeldt in een band- of projectchat' },
     { label: 'Reacties op nummers', desc: 'Meldingen voor reacties op jouw uploads' },
     { label: 'Evenementherinneringen', desc: 'Herinnering 24 uur voor aangemelde evenementen' },
     { label: 'Nieuwe berichten in forums', desc: 'Reacties in discussions die je volgt' },

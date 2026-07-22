@@ -7,8 +7,9 @@
 // behalf (which RLS blocks for the client).
 //
 // Body:
-//   { kind: 'message', conversationId: string, messageId: string }
-//   { kind: 'follow',  targetUserId: string }   // UUID of the followed profile
+//   { kind: 'message',      conversationId: string, messageId: string }
+//   { kind: 'follow',       targetUserId: string }   // UUID of the followed profile
+//   { kind: 'band_mention', bandId: string, messageId: string, recipientIds: string[] }
 //
 // Deploy:  supabase functions deploy notify
 // Secrets: RESEND_API_KEY, SITE_URL (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY
@@ -68,6 +69,9 @@ Deno.serve(async (req) => {
     }
     if (payload.kind === 'follow') {
       return await handleFollow(admin, callerId, payload);
+    }
+    if (payload.kind === 'band_mention') {
+      return await handleBandMention(admin, callerId, payload);
     }
     return json({ error: 'Unknown kind' }, 400);
   } catch (e) {
@@ -214,4 +218,64 @@ async function handleFollow(
   }
 
   return json({ ok: true, emailed, pushed });
+}
+
+async function handleBandMention(
+  admin: ReturnType<typeof createClient>,
+  callerId: string,
+  payload: Record<string, unknown>,
+) {
+  const bandId = String(payload.bandId ?? '');
+  const messageId = String(payload.messageId ?? '');
+  const recipientIds = Array.isArray(payload.recipientIds) ? payload.recipientIds.map(String) : [];
+  if (!UUID_RE.test(bandId) || !UUID_RE.test(messageId)) {
+    return json({ error: 'bandId and messageId must be UUIDs' }, 400);
+  }
+  if (recipientIds.length === 0 || !recipientIds.every((rid) => UUID_RE.test(rid))) {
+    return json({ error: 'recipientIds must be a non-empty array of UUIDs' }, 400);
+  }
+
+  const { data: message } = await admin
+    .from('band_messages')
+    .select('id, sender_id, band_id, content')
+    .eq('id', messageId)
+    .single();
+
+  // The caller must be the actual sender of the message.
+  if (!message || message.sender_id !== callerId || message.band_id !== bandId) {
+    return json({ error: 'Message not found for caller' }, 403);
+  }
+
+  const [{ data: band }, { data: sender }] = await Promise.all([
+    admin.from('bands').select('name').eq('id', bandId).single(),
+    admin.from('profiles').select('display_name, username').eq('id', callerId).single(),
+  ]);
+
+  const senderName = displayName(sender);
+  const bandName = band?.name ?? 'je band';
+  const preview = message.content.length > 120 ? `${message.content.slice(0, 120)}…` : message.content;
+  const title = `${senderName} vermeldde je in ${bandName}`;
+  const link = `/bandspace/${bandId}`;
+
+  // Push + in-app share the "Vermelding" preference (opt-out model). Email is
+  // deliberately skipped for mentions — chat is a higher-frequency surface
+  // than DMs/follows, so we don't want to add an email-per-@mention.
+  let pushed = 0;
+  await Promise.all(
+    recipientIds.filter((rid) => rid !== callerId).map(async (recipientId) => {
+      const { data: recipient } = await admin
+        .from('profiles').select('notification_prefs').eq('id', recipientId).single();
+
+      await admin.from('notifications').insert({
+        user_id: recipientId, type: 'band_mention', title, body: preview, link,
+      });
+
+      if (prefEnabled(recipient?.notification_prefs ?? null, 'Vermelding')) {
+        const res = await sendPushToUser(admin, recipientId, { title, body: preview, url: link, tag: `band-${bandId}` });
+        pushed += res.sent;
+      }
+    }),
+  );
+
+  return json({ ok: true, pushed });
 }

@@ -15,6 +15,8 @@ import { useToast } from '@components/Toast';
 import UserAvatar from '@components/UserAvatar';
 import GenreBadge from '@components/GenreBadge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@components/ui/select';
+import { notifyBandMention } from '@services/emailService';
+import BandPushBanner from '@components/BandPushBanner';
 import {
   type ChannelKey, type ChannelPreview, type BandEvent, type EventType, type BandPost,
   type BandProject, type BandProjectAssignment, type BandProjectGoal, type BandProjectIdea,
@@ -460,7 +462,10 @@ export default function BandSpaceDetailPage() {
       setMessages(prev => prev.some(m => m.id === inserted.id) ? prev : [...prev, inserted]);
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
       if (id && user && chatScope.mode === 'channel') getChannelPreviews(id, user.id).then(setChannelPreviews);
-      if (mentionedIds.length > 0) await createMentionNotifications(inserted.id, id!, chatScope.mode === 'project' ? 'project' : chatScope.key, user.id, mentionedIds);
+      if (mentionedIds.length > 0) {
+        await createMentionNotifications(inserted.id, id!, chatScope.mode === 'project' ? 'project' : chatScope.key, user.id, mentionedIds);
+        notifyBandMention(id!, inserted.id, mentionedIds);
+      }
     }
 
     setSending(false);
@@ -1184,6 +1189,7 @@ export default function BandSpaceDetailPage() {
 
             {/* Content grid */}
             <div className="max-w-6xl mx-auto px-4 lg:px-8 py-6 lg:py-8">
+              {isMember && <BandPushBanner userId={user?.id} />}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
 
                 {/* Left: Posts feed */}

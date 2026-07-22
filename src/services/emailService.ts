@@ -26,3 +26,9 @@ export function notifyNewMessage(conversationId: string, messageId: string) {
 export function notifyNewFollower(targetUserId: string) {
   return invokeNotify({ kind: 'follow', targetUserId });
 }
+
+/** Notify each @mentioned member of a band/project chat message. */
+export function notifyBandMention(bandId: string, messageId: string, recipientIds: string[]) {
+  if (recipientIds.length === 0) return Promise.resolve();
+  return invokeNotify({ kind: 'band_mention', bandId, messageId, recipientIds });
+}
