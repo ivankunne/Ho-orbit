@@ -99,17 +99,26 @@ function StationCard({ station, recordingCount }: { station: RadioStation; recor
         </div>
       )}
 
-      {recordingCount > 0 && (
-        <div>
-          <button
-            onClick={() => setShowRecordings(v => !v)}
-            className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors"
-          >
-            <History size={13} />
-            Terugluisteren ({recordingCount})
-            {showRecordings ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-          </button>
-          {showRecordings && <RecordingsList stationId={station.id} />}
+      {/* Always visible — this is the CTA to browse a station's info + listen back to past shows */}
+      <button
+        onClick={() => setShowRecordings(v => !v)}
+        className={`flex items-center justify-center gap-2 w-full py-2 rounded-xl text-xs font-medium border transition-colors ${
+          showRecordings
+            ? 'bg-violet-600/15 border-violet-500/30 text-violet-300'
+            : 'bg-white/[0.03] border-white/10 text-slate-400 hover:text-white hover:border-white/20'
+        }`}
+      >
+        <History size={13} />
+        Eerdere uitzendingen{recordingCount > 0 ? ` (${recordingCount})` : ''}
+        {showRecordings ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+      </button>
+
+      {showRecordings && (
+        <div className="bg-white/[0.02] border border-white/8 rounded-xl p-3">
+          {station.description && (
+            <p className="text-xs text-slate-400 mb-3 pb-3 border-b border-white/8">{station.description}</p>
+          )}
+          <RecordingsList stationId={station.id} />
         </div>
       )}
     </div>
@@ -123,11 +132,15 @@ function RecordingsList({ stationId }: { stationId: string }) {
   const { currentRecording, isRecordingPlaying, toggleRecording } = useRadio();
 
   if (recordings.length === 0) {
-    return <p className="text-xs text-slate-600 mt-2">Nog geen opnames.</p>;
+    return (
+      <p className="text-xs text-slate-600 text-center py-3">
+        Nog geen eerdere uitzendingen beschikbaar — kom later terug.
+      </p>
+    );
   }
 
   return (
-    <div className="mt-2 space-y-1.5">
+    <div className="space-y-1.5">
       {recordings.map(rec => {
         const isThisPlaying = isRecordingPlaying && currentRecording?.id === rec.id;
         return (
@@ -151,7 +164,9 @@ function RecordingsList({ stationId }: { stationId: string }) {
 // ─── Studio station row (edit/manage) ────────────────────────────────────────
 
 function StudioRow({ station, onRefresh }: { station: RadioStation; onRefresh: () => void }) {
-  const [open, setOpen]           = useState(false);
+  const { recordingCounts } = useRadio();
+  const [open, setOpen]                     = useState(false);
+  const [recordingsOpen, setRecordingsOpen] = useState(false);
   const [name, setName]           = useState(station.name);
   const [description, setDesc]    = useState(station.description);
   const [streamUrl, setStreamUrl] = useState(station.stream_url);
@@ -224,6 +239,20 @@ function StudioRow({ station, onRefresh }: { station: RadioStation; onRefresh: (
         >
           <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${isLive ? 'translate-x-5' : 'translate-x-0.5'}`} />
         </button>
+        {/* Directly discoverable — this is where a host uploads a recording for listeners to play back */}
+        <button
+          onClick={() => setRecordingsOpen(v => !v)}
+          title="Opnames uploaden en beheren"
+          className={`flex items-center gap-1.5 border rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors shrink-0 ${
+            recordingsOpen
+              ? 'bg-violet-600/20 border-violet-500/30 text-violet-300'
+              : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Upload size={12} />
+          <span className="hidden sm:inline">Opnames</span>
+          {(recordingCounts[station.id] ?? 0) > 0 && <span>({recordingCounts[station.id]})</span>}
+        </button>
         <button onClick={() => setOpen(o => !o)} className="text-slate-500 hover:text-white transition-colors p-1">
           {open ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
         </button>
@@ -231,6 +260,13 @@ function StudioRow({ station, onRefresh }: { station: RadioStation; onRefresh: (
           <Trash2 size={14} />
         </button>
       </div>
+
+      {recordingsOpen && (
+        <div className="border-t border-white/8 px-4 py-4 bg-white/[0.02]">
+          <p className="text-xs font-medium text-slate-400 mb-2">Opnames — terugluisteren</p>
+          <StudioRecordings stationId={station.id} />
+        </div>
+      )}
 
       {open && (
         <div className="border-t border-white/8 px-4 py-4 space-y-3 bg-white/[0.02]">
@@ -265,11 +301,6 @@ function StudioRow({ station, onRefresh }: { station: RadioStation; onRefresh: (
             }`}>
             {saved ? <><CheckCircle size={13} /> Opgeslagen</> : saving ? <><RefreshCw size={13} className="animate-spin" /> Opslaan…</> : 'Opslaan'}
           </button>
-
-          <div className="pt-3 border-t border-white/8">
-            <p className="text-xs font-medium text-slate-400 mb-2">Opnames — terugluisteren</p>
-            <StudioRecordings stationId={station.id} />
-          </div>
         </div>
       )}
     </div>
@@ -481,7 +512,7 @@ export default function RadioPage() {
   const offlineStations = stations.filter(s => !s.is_live);
 
   return (
-    <div className="min-h-screen max-w-4xl mx-auto px-4 lg:px-6 py-10">
+    <div className="min-h-screen max-w-7xl mx-auto px-4 lg:px-6 py-10">
 
       {/* Header */}
       <div className="flex items-center justify-between gap-3 mb-8">
@@ -507,7 +538,7 @@ export default function RadioPage() {
             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse inline-block" />
             <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Nu live</h2>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {liveStations.map(s => <StationCard key={s.id} station={s} recordingCount={recordingCounts[s.id] ?? 0} />)}
           </div>
         </section>
@@ -517,7 +548,7 @@ export default function RadioPage() {
       {offlineStations.length > 0 && (
         <section className="mb-10">
           <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wider mb-4">Overige zenders</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {offlineStations.map(s => <StationCard key={s.id} station={s} recordingCount={recordingCounts[s.id] ?? 0} />)}
           </div>
         </section>
@@ -538,7 +569,7 @@ export default function RadioPage() {
 
       {/* ── Studio — Radio hosts & admins ── */}
       {isStudio && (
-        <div className="mt-6 pt-8 border-t border-white/8">
+        <div className="mt-6 pt-8 border-t border-white/8 max-w-3xl">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Settings2 size={16} className="text-slate-500" />

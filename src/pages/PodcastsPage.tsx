@@ -207,7 +207,7 @@ export default function PodcastsPage() {
     : podcasts.filter(p => p.owner_id === user?.id);
 
   return (
-    <div className="min-h-screen max-w-4xl mx-auto px-4 lg:px-6 py-10">
+    <div className="min-h-screen max-w-7xl mx-auto px-4 lg:px-6 py-10">
 
       {/* Header */}
       <div className="flex items-center justify-between gap-3 mb-8">
@@ -229,7 +229,7 @@ export default function PodcastsPage() {
       {/* Podcast grid */}
       {podcasts.length > 0 && (
         <section className="mb-10">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {podcasts.map(p => <PodcastCard key={p.id} podcast={p} episodeCount={episodeCounts[p.id] ?? 0} />)}
           </div>
         </section>
@@ -250,7 +250,7 @@ export default function PodcastsPage() {
 
       {/* ── Studio — Podcast hosts & admins ── */}
       {isStudio && (
-        <div className="mt-6 pt-8 border-t border-white/8">
+        <div className="mt-6 pt-8 border-t border-white/8 max-w-3xl">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Settings2 size={16} className="text-slate-500" />
