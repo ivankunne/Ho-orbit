@@ -3,12 +3,10 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   Search, Bell, ChevronDown, Menu, X,
   Upload, Home, Users, BookOpen, FileText, Globe, MessageSquare,
-  Calendar, User, Settings, LogOut, Library, Sun, Moon, Zap,
+  Calendar, User, Settings, LogOut, Library, Zap,
   Mic2, Star, MapPin, Disc3, ExternalLink, ShieldCheck, Radio,
   Music2, Handshake, GraduationCap,
 } from 'lucide-react';
-import { useState as useThemeState } from 'react';
-import { getTheme, toggleTheme } from '@utils/theme';
 import { useAuth } from '@context/AuthContext';
 import { useAuthModal } from '@context/AuthModalContext';
 import UserAvatar from '@components/UserAvatar';
@@ -139,8 +137,6 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
 
   const unreadCount = useNotificationCount(user?.id);
   const unreadMessages = useUnreadMessageCount(user?.id);
-  const [theme, setThemeState] = useThemeState(() => getTheme());
-
   // Publish the navbar's real rendered height (incl. the iOS safe-area inset,
   // e.g. the notch/Dynamic Island) as a CSS variable, so fixed-position
   // elements elsewhere (like BandSpaceDetailPage's mobile header) can sit
@@ -160,11 +156,6 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
       window.removeEventListener('orientationchange', setVar);
     };
   }, [isLandingVariant]);
-
-  const handleToggleTheme = () => {
-    const next = toggleTheme();
-    setThemeState(next);
-  };
 
   const handleLogout = () => {
     setUserMenuOpen(false);
@@ -425,17 +416,6 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
                     <ShieldCheck size={14} />
                     Admin
                   </Link>
-                )}
-
-                {/* Thema toggle */}
-                {!isLandingVariant && (
-                  <button
-                    onClick={handleToggleTheme}
-                    className="hidden md:block p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
-                    title={theme === 'dark' ? 'Lichte modus' : 'Donkere modus'}
-                  >
-                    {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-                  </button>
                 )}
 
                 {/* Meldingen */}
