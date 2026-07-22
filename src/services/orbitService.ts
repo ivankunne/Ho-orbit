@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
 
-export type ChannelKey = 'rehearsals' | 'gigs' | 'socials' | 'magazine' | 'media' | 'projects' | 'collabs';
+export type ChannelKey = 'rehearsals' | 'gigs' | 'socials' | 'magazine' | 'media' | 'collabs';
 
 export interface ChannelPreview {
   lastContent: string | null;
@@ -29,7 +29,7 @@ export async function getChannelPreviews(
   bandId: string,
   currentUserId: string,
 ): Promise<Partial<Record<ChannelKey, ChannelPreview>>> {
-  const KEYS: ChannelKey[] = ['rehearsals', 'gigs', 'socials', 'magazine', 'media', 'projects', 'collabs'];
+  const KEYS: ChannelKey[] = ['rehearsals', 'gigs', 'socials', 'magazine', 'media', 'collabs'];
 
   const results = await Promise.all(
     KEYS.map(ch =>
@@ -299,14 +299,156 @@ export async function markMentionsRead(
     .eq('band_id', bandId).eq('channel', channel).eq('recipient_id', userId).is('read_at', null);
 }
 
-// ── Band Todos ────────────────────────────────────────────────────────────────
-// DB table defined in supabase/band_todos_migration.sql
+// ── Band Projects (tiles) ───────────────────────────────────────────────────────
+// DB tables defined in supabase/band_projects_migration.sql
 
-export interface BandTodo {
+export interface BandProject {
   id: string;
   band_id: string;
+  name: string;
+  description: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  creator?: { display_name: string | null; username: string | null } | null;
+}
+
+export async function getBandProjects(bandId: string): Promise<BandProject[]> {
+  const { data } = await supabase
+    .from('band_projects')
+    .select('*, creator:profiles!created_by(display_name, username)')
+    .eq('band_id', bandId)
+    .order('created_at', { ascending: true });
+  return (data ?? []) as BandProject[];
+}
+
+export async function createBandProject(
+  bandId: string, userId: string, name: string, description?: string,
+): Promise<BandProject | null> {
+  const { data, error } = await supabase
+    .from('band_projects')
+    .insert({ band_id: bandId, created_by: userId, name, description: description || null })
+    .select('*, creator:profiles!created_by(display_name, username)')
+    .single();
+  if (error) return null;
+  return data as BandProject;
+}
+
+export async function updateBandProject(
+  projectId: string, updates: { name?: string; description?: string | null },
+): Promise<boolean> {
+  const { error } = await supabase
+    .from('band_projects')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', projectId);
+  return !error;
+}
+
+export async function deleteBandProject(projectId: string): Promise<boolean> {
+  const { error } = await supabase.from('band_projects').delete().eq('id', projectId);
+  return !error;
+}
+
+// ── Project Assignments (assignee + due date + pin + complete) ─────────────────
+
+export interface BandProjectAssignment {
+  id: string;
+  project_id: string;
+  created_by: string;
+  assignee_id: string | null;
+  content: string;
+  due_date: string | null;
+  is_pinned: boolean;
+  completed: boolean;
+  completed_by: string | null;
+  completed_at: string | null;
+  created_at: string;
+  creator?: { display_name: string | null; username: string | null } | null;
+  assignee?: { display_name: string | null; username: string | null; avatar_url: string | null } | null;
+}
+
+export async function getProjectAssignments(projectId: string): Promise<BandProjectAssignment[]> {
+  const { data } = await supabase
+    .from('band_project_assignments')
+    .select(`
+      *,
+      creator:profiles!created_by(display_name, username),
+      assignee:profiles!assignee_id(display_name, username, avatar_url)
+    `)
+    .eq('project_id', projectId)
+    .order('completed', { ascending: true })
+    .order('is_pinned', { ascending: false })
+    .order('due_date', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: true });
+  return (data ?? []) as BandProjectAssignment[];
+}
+
+export async function createProjectAssignment(
+  projectId: string, userId: string, content: string,
+  assigneeId?: string | null, dueDate?: string | null,
+): Promise<BandProjectAssignment | null> {
+  const { data, error } = await supabase
+    .from('band_project_assignments')
+    .insert({
+      project_id: projectId, created_by: userId, content,
+      assignee_id: assigneeId || null, due_date: dueDate || null,
+    })
+    .select(`
+      *,
+      creator:profiles!created_by(display_name, username),
+      assignee:profiles!assignee_id(display_name, username, avatar_url)
+    `)
+    .single();
+  if (error) return null;
+  return data as BandProjectAssignment;
+}
+
+export async function updateProjectAssignment(
+  assignmentId: string,
+  updates: { content?: string; assigneeId?: string | null; dueDate?: string | null },
+): Promise<boolean> {
+  const { error } = await supabase
+    .from('band_project_assignments')
+    .update({
+      ...(updates.content !== undefined ? { content: updates.content } : {}),
+      ...(updates.assigneeId !== undefined ? { assignee_id: updates.assigneeId } : {}),
+      ...(updates.dueDate !== undefined ? { due_date: updates.dueDate } : {}),
+    })
+    .eq('id', assignmentId);
+  return !error;
+}
+
+export async function toggleProjectAssignment(
+  assignmentId: string, completed: boolean, userId: string,
+): Promise<boolean> {
+  const { error } = await supabase
+    .from('band_project_assignments')
+    .update({ completed, completed_by: completed ? userId : null, completed_at: completed ? new Date().toISOString() : null })
+    .eq('id', assignmentId);
+  return !error;
+}
+
+export async function pinProjectAssignment(assignmentId: string, isPinned: boolean): Promise<boolean> {
+  const { error } = await supabase
+    .from('band_project_assignments')
+    .update({ is_pinned: isPinned })
+    .eq('id', assignmentId);
+  return !error;
+}
+
+export async function deleteProjectAssignment(assignmentId: string): Promise<boolean> {
+  const { error } = await supabase.from('band_project_assignments').delete().eq('id', assignmentId);
+  return !error;
+}
+
+// ── Project Goals (simple checklist: text + optional due date) ─────────────────
+
+export interface BandProjectGoal {
+  id: string;
+  project_id: string;
   created_by: string;
   content: string;
+  due_date: string | null;
   completed: boolean;
   completed_by: string | null;
   completed_at: string | null;
@@ -314,41 +456,99 @@ export interface BandTodo {
   creator?: { display_name: string | null; username: string | null } | null;
 }
 
-export async function getBandTodos(bandId: string): Promise<BandTodo[]> {
+export async function getProjectGoals(projectId: string): Promise<BandProjectGoal[]> {
   const { data } = await supabase
-    .from('band_todos')
+    .from('band_project_goals')
     .select('*, creator:profiles!created_by(display_name, username)')
-    .eq('band_id', bandId)
+    .eq('project_id', projectId)
     .order('completed', { ascending: true })
+    .order('due_date', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: true });
-  return (data ?? []) as BandTodo[];
+  return (data ?? []) as BandProjectGoal[];
 }
 
-export async function createBandTodo(bandId: string, userId: string, content: string): Promise<BandTodo | null> {
+export async function createProjectGoal(
+  projectId: string, userId: string, content: string, dueDate?: string | null,
+): Promise<BandProjectGoal | null> {
   const { data, error } = await supabase
-    .from('band_todos')
-    .insert({ band_id: bandId, created_by: userId, content, completed: false })
+    .from('band_project_goals')
+    .insert({ project_id: projectId, created_by: userId, content, due_date: dueDate || null })
     .select('*, creator:profiles!created_by(display_name, username)')
     .single();
   if (error) return null;
-  return data as BandTodo;
+  return data as BandProjectGoal;
 }
 
-export async function updateBandTodo(todoId: string, content: string): Promise<boolean> {
-  const { error } = await supabase.from('band_todos').update({ content }).eq('id', todoId);
-  return !error;
-}
-
-export async function toggleBandTodo(todoId: string, completed: boolean, userId: string): Promise<boolean> {
+export async function updateProjectGoal(
+  goalId: string, updates: { content?: string; dueDate?: string | null },
+): Promise<boolean> {
   const { error } = await supabase
-    .from('band_todos')
-    .update({ completed, completed_by: completed ? userId : null, completed_at: completed ? new Date().toISOString() : null })
-    .eq('id', todoId);
+    .from('band_project_goals')
+    .update({
+      ...(updates.content !== undefined ? { content: updates.content } : {}),
+      ...(updates.dueDate !== undefined ? { due_date: updates.dueDate } : {}),
+    })
+    .eq('id', goalId);
   return !error;
 }
 
-export async function deleteBandTodo(todoId: string): Promise<boolean> {
-  const { error } = await supabase.from('band_todos').delete().eq('id', todoId);
+export async function toggleProjectGoal(goalId: string, completed: boolean, userId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('band_project_goals')
+    .update({ completed, completed_by: completed ? userId : null, completed_at: completed ? new Date().toISOString() : null })
+    .eq('id', goalId);
+  return !error;
+}
+
+export async function deleteProjectGoal(goalId: string): Promise<boolean> {
+  const { error } = await supabase.from('band_project_goals').delete().eq('id', goalId);
+  return !error;
+}
+
+// ── Project Ideas (freeform pinnable notes) ─────────────────────────────────────
+
+export interface BandProjectIdea {
+  id: string;
+  project_id: string;
+  created_by: string;
+  content: string;
+  is_pinned: boolean;
+  created_at: string;
+  creator?: { display_name: string | null; username: string | null } | null;
+}
+
+export async function getProjectIdeas(projectId: string): Promise<BandProjectIdea[]> {
+  const { data } = await supabase
+    .from('band_project_ideas')
+    .select('*, creator:profiles!created_by(display_name, username)')
+    .eq('project_id', projectId)
+    .order('is_pinned', { ascending: false })
+    .order('created_at', { ascending: false });
+  return (data ?? []) as BandProjectIdea[];
+}
+
+export async function createProjectIdea(projectId: string, userId: string, content: string): Promise<BandProjectIdea | null> {
+  const { data, error } = await supabase
+    .from('band_project_ideas')
+    .insert({ project_id: projectId, created_by: userId, content })
+    .select('*, creator:profiles!created_by(display_name, username)')
+    .single();
+  if (error) return null;
+  return data as BandProjectIdea;
+}
+
+export async function updateProjectIdea(ideaId: string, content: string): Promise<boolean> {
+  const { error } = await supabase.from('band_project_ideas').update({ content }).eq('id', ideaId);
+  return !error;
+}
+
+export async function pinProjectIdea(ideaId: string, isPinned: boolean): Promise<boolean> {
+  const { error } = await supabase.from('band_project_ideas').update({ is_pinned: isPinned }).eq('id', ideaId);
+  return !error;
+}
+
+export async function deleteProjectIdea(ideaId: string): Promise<boolean> {
+  const { error } = await supabase.from('band_project_ideas').delete().eq('id', ideaId);
   return !error;
 }
 

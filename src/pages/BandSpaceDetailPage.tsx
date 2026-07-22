@@ -6,23 +6,28 @@ import {
   X, Clock, Check, Trash2, Pin, Paperclip, ChevronDown, Menu,
   Image as ImageIcon, FileText as FileIcon, ShieldCheck,
   Calendar, Plus, MessageSquare, PenLine, AtSign, MapPin,
-  CheckSquare, Square, Share2, Copy, ListTodo,
-  FolderKanban, Handshake, Pencil,
+  CheckSquare, Square, Share2, Copy,
+  FolderKanban, Handshake, Pencil, Target, Lightbulb, UserCircle2,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@context/AuthContext';
 import { useToast } from '@components/Toast';
 import UserAvatar from '@components/UserAvatar';
 import GenreBadge from '@components/GenreBadge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@components/ui/select';
 import {
   type ChannelKey, type ChannelPreview, type BandEvent, type EventType, type BandPost,
-  type BandTodo,
+  type BandProject, type BandProjectAssignment, type BandProjectGoal, type BandProjectIdea,
   getChannelPreviews, markChannelRead,
   uploadBandMedia, setPinned, deleteBandMessage,
   getBandPosts, createBandPost, updateBandPost, deleteBandPost,
   getBandEvents, getUpcomingEvents, createBandEvent, updateBandEvent, deleteBandEvent,
   getPinnedEvents, pinBandEvent,
-  getBandTodos, createBandTodo, updateBandTodo, toggleBandTodo, deleteBandTodo,
+  getBandProjects, createBandProject, updateBandProject, deleteBandProject,
+  getProjectAssignments, createProjectAssignment, updateProjectAssignment,
+  toggleProjectAssignment, pinProjectAssignment, deleteProjectAssignment,
+  getProjectGoals, createProjectGoal, updateProjectGoal, toggleProjectGoal, deleteProjectGoal,
+  getProjectIdeas, createProjectIdea, pinProjectIdea, deleteProjectIdea,
   getBandNote, saveBandNote,
   getMentionCounts, markMentionsRead, createMentionNotifications,
 } from '@services/orbitService';
@@ -35,7 +40,6 @@ const CHANNELS = [
   { key: 'socials'    as ChannelKey, label: 'Socials',       icon: Globe,     color: 'text-sky-400',     bg: 'bg-sky-500/20',     accent: 'bg-sky-500',     border: 'border-sky-500/30'     },
   { key: 'magazine'   as ChannelKey, label: 'Muziekbladen', icon: Newspaper, color: 'text-amber-400',   bg: 'bg-amber-500/20',   accent: 'bg-amber-500',   border: 'border-amber-500/30'   },
   { key: 'media'      as ChannelKey, label: 'Media',         icon: Video,     color: 'text-emerald-400', bg: 'bg-emerald-500/20', accent: 'bg-emerald-500', border: 'border-emerald-500/30' },
-  { key: 'projects'   as ChannelKey, label: 'Projecten',     icon: FolderKanban, color: 'text-indigo-400', bg: 'bg-indigo-500/20', accent: 'bg-indigo-500', border: 'border-indigo-500/30' },
   { key: 'collabs'    as ChannelKey, label: 'Samenwerkingen', icon: Handshake, color: 'text-teal-400',   bg: 'bg-teal-500/20',    accent: 'bg-teal-500',    border: 'border-teal-500/30'    },
 ] as const;
 
@@ -94,7 +98,8 @@ function bandGradient(genre: string) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-type ActiveView = 'home' | 'channel' | 'calendar' | 'todos';
+type ActiveView = 'home' | 'channel' | 'calendar' | 'projects' | 'project';
+type ProjectTab = 'chat' | 'assignments' | 'goals' | 'ideas';
 
 export default function BandSpaceDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -165,13 +170,37 @@ export default function BandSpaceDetailPage() {
   const [noteSaved, setNoteSaved]             = useState(false);
   const [noteLastUpdated, setNoteLastUpdated] = useState<any>(null);
 
-  // Todos
-  const [todos, setTodos]               = useState<BandTodo[]>([]);
-  const [todosLoading, setTodosLoading] = useState(false);
-  const [newTodo, setNewTodo]           = useState('');
-  const [addingTodo, setAddingTodo]     = useState(false);
-  const [editingTodoId, setEditingTodoId] = useState<string | null>(null);
-  const [editingTodoText, setEditingTodoText] = useState('');
+  // Project tiles
+  const [projects, setProjects]               = useState<BandProject[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(false);
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+  const [projectTab, setProjectTab]           = useState<ProjectTab>('chat');
+  const [showProjectModal, setShowProjectModal] = useState(false);
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const [projectForm, setProjectForm]         = useState({ name: '', description: '' });
+  const [savingProject, setSavingProject]     = useState(false);
+
+  // Project assignments
+  const [assignments, setAssignments]           = useState<BandProjectAssignment[]>([]);
+  const [assignmentsLoading, setAssignmentsLoading] = useState(false);
+  const [newAssignment, setNewAssignment]       = useState({ content: '', assigneeId: '', dueDate: '' });
+  const [addingAssignment, setAddingAssignment] = useState(false);
+  const [editingAssignmentId, setEditingAssignmentId] = useState<string | null>(null);
+  const [editingAssignmentText, setEditingAssignmentText] = useState('');
+
+  // Project goals
+  const [goals, setGoals]             = useState<BandProjectGoal[]>([]);
+  const [goalsLoading, setGoalsLoading] = useState(false);
+  const [newGoal, setNewGoal]         = useState({ content: '', dueDate: '' });
+  const [addingGoal, setAddingGoal]   = useState(false);
+  const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
+  const [editingGoalText, setEditingGoalText] = useState('');
+
+  // Project ideas
+  const [ideas, setIdeas]             = useState<BandProjectIdea[]>([]);
+  const [ideasLoading, setIdeasLoading] = useState(false);
+  const [newIdea, setNewIdea]         = useState('');
+  const [addingIdea, setAddingIdea]   = useState(false);
 
   // Pinned events
   const [pinnedEvents, setPinnedEvents] = useState<BandEvent[]>([]);
@@ -193,6 +222,12 @@ export default function BandSpaceDetailPage() {
   // Derived
   const activeCh       = CHANNELS.find(c => c.key === activeChannel)!;
   const ActiveIcon     = activeCh.icon;
+  const activeProject  = projects.find(p => p.id === activeProjectId) ?? null;
+  // Unified chat scope: chat/pin/@mention/realtime logic is shared between a fixed
+  // channel and a dynamic project tile — this is the single thing that switches.
+  const chatScope = activeView === 'project'
+    ? { mode: 'project' as const, key: activeProjectId ?? '', label: activeProject?.name ?? '', icon: MessageSquare, bg: 'bg-indigo-500/20', color: 'text-indigo-400', border: 'border-indigo-500/30' }
+    : { mode: 'channel' as const, key: activeChannel,          label: activeCh.label,           icon: ActiveIcon,     bg: activeCh.bg,          color: activeCh.color,          border: activeCh.border };
   const pinnedMessages = messages.filter(m => m.is_pinned);
   const memberUsernames = new Set(members.map(m => (m.profile?.username || '').toLowerCase()).filter(Boolean));
   const mentionSuggestions = mentionSearch !== null
@@ -238,26 +273,30 @@ export default function BandSpaceDetailPage() {
   // ── Load messages ────────────────────────────────────────────────────────
   const loadMessages = useCallback(async () => {
     if (!id) return;
+    if (chatScope.mode === 'project' && !chatScope.key) return;
     setMsgLoading(true);
-    const { data } = await supabase.from('band_messages')
+    let query = supabase.from('band_messages')
       .select('*, sender:profiles!band_messages_sender_id_fkey(id,username,display_name,avatar_url)')
-      .eq('band_id', id).eq('channel', activeChannel)
-      .order('created_at', { ascending: true }).limit(100);
+      .eq('band_id', id);
+    query = chatScope.mode === 'project' ? query.eq('project_id', chatScope.key) : query.eq('channel', chatScope.key);
+    const { data } = await query.order('created_at', { ascending: true }).limit(100);
     setMessages(data ?? []);
     setMsgLoading(false);
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
-  }, [id, activeChannel]);
+  }, [id, chatScope.mode, chatScope.key]);
 
-  useEffect(() => { if (activeView === 'channel') loadMessages(); }, [loadMessages, activeView]);
+  useEffect(() => {
+    if (activeView === 'channel' || (activeView === 'project' && projectTab === 'chat')) loadMessages();
+  }, [loadMessages, activeView, projectTab]);
 
   // ── Mark read + refresh previews/mentions on channel switch ──────────────
   useEffect(() => {
-    if (!id || !isMember || !user) return;
+    if (!id || !isMember || !user || activeView !== 'channel') return;
     markChannelRead(id, activeChannel);
     markMentionsRead(id, activeChannel, user.id);
     getChannelPreviews(id, user.id).then(setChannelPreviews);
     getMentionCounts(id, user.id).then(setMentionCounts);
-  }, [id, activeChannel, isMember, user]);
+  }, [id, activeChannel, isMember, user, activeView]);
 
   // ── Initial sidebar data ─────────────────────────────────────────────────
   useEffect(() => {
@@ -269,25 +308,27 @@ export default function BandSpaceDetailPage() {
   // ── Realtime ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!id || !isMember || !user) return;
+    if (chatScope.mode === 'project' && !chatScope.key) return;
+    const matchesScope = (row: any) => chatScope.mode === 'project' ? row.project_id === chatScope.key : row.channel === chatScope.key;
 
-    const msgCh = supabase.channel(`band-${id}-${activeChannel}`)
+    const msgCh = supabase.channel(`band-${id}-${chatScope.mode}-${chatScope.key}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'band_messages', filter: `band_id=eq.${id}` },
         async (payload) => {
-          if (payload.new.channel !== activeChannel) { getChannelPreviews(id, user.id).then(setChannelPreviews); return; }
+          if (!matchesScope(payload.new)) { if (chatScope.mode === 'channel') getChannelPreviews(id, user.id).then(setChannelPreviews); return; }
           const { data: sender } = await supabase.from('profiles').select('id,username,display_name,avatar_url').eq('id', payload.new.sender_id).single();
           setMessages(prev => prev.some(m => m.id === payload.new.id) ? prev : [...prev, { ...payload.new, sender }]);
           setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
-          getChannelPreviews(id, user.id).then(setChannelPreviews);
+          if (chatScope.mode === 'channel') getChannelPreviews(id, user.id).then(setChannelPreviews);
         })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'band_messages', filter: `band_id=eq.${id}` },
         (payload) => {
-          if (payload.new.channel !== activeChannel) return;
+          if (!matchesScope(payload.new)) return;
           setMessages(prev => prev.map(m => m.id === payload.new.id ? { ...m, ...payload.new } : m));
         })
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'band_messages' },
         (payload) => {
           setMessages(prev => prev.filter(m => m.id !== payload.old.id));
-          getChannelPreviews(id, user.id).then(setChannelPreviews);
+          if (chatScope.mode === 'channel') getChannelPreviews(id, user.id).then(setChannelPreviews);
         })
       .subscribe();
 
@@ -297,7 +338,7 @@ export default function BandSpaceDetailPage() {
       .subscribe();
 
     return () => { supabase.removeChannel(msgCh); supabase.removeChannel(notifCh); };
-  }, [id, activeChannel, isMember, user]);
+  }, [id, chatScope.mode, chatScope.key, isMember, user]);
 
   // ── Load calendar events ─────────────────────────────────────────────────
   useEffect(() => {
@@ -307,12 +348,27 @@ export default function BandSpaceDetailPage() {
       .then(e => { setBandEvents(e); setEventsLoading(false); });
   }, [activeView, id, isMember, calendarDate]);
 
-  // ── Load todos ───────────────────────────────────────────────────────────
+  // ── Load projects ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!id || !isMember) return;
-    setTodosLoading(true);
-    getBandTodos(id).then(t => { setTodos(t); setTodosLoading(false); });
+    setProjectsLoading(true);
+    getBandProjects(id).then(p => { setProjects(p); setProjectsLoading(false); });
   }, [id, isMember]);
+
+  // ── Load assignments / goals / ideas for the open project tile ──────────
+  useEffect(() => {
+    if (!activeProjectId || activeView !== 'project') return;
+    if (projectTab === 'assignments') {
+      setAssignmentsLoading(true);
+      getProjectAssignments(activeProjectId).then(a => { setAssignments(a); setAssignmentsLoading(false); });
+    } else if (projectTab === 'goals') {
+      setGoalsLoading(true);
+      getProjectGoals(activeProjectId).then(g => { setGoals(g); setGoalsLoading(false); });
+    } else if (projectTab === 'ideas') {
+      setIdeasLoading(true);
+      getProjectIdeas(activeProjectId).then(i => { setIdeas(i); setIdeasLoading(false); });
+    }
+  }, [activeProjectId, activeView, projectTab]);
 
   // ── Load pinned events ───────────────────────────────────────────────────
   useEffect(() => {
@@ -390,7 +446,12 @@ export default function BandSpaceDetailPage() {
       .map(m => m.user_id).filter((uid: string) => uid !== user.id);
 
     const { data: inserted, error } = await supabase.from('band_messages')
-      .insert({ band_id: id, channel: activeChannel, sender_id: user.id, content, mentions: mentionedIds })
+      .insert({
+        band_id: id,
+        channel: chatScope.mode === 'project' ? 'project' : chatScope.key,
+        project_id: chatScope.mode === 'project' ? chatScope.key : null,
+        sender_id: user.id, content, mentions: mentionedIds,
+      })
       .select('*, sender:profiles!band_messages_sender_id_fkey(id,username,display_name,avatar_url)').single();
 
     if (error || !inserted) { setInput(content); addToast('Versturen mislukt', 'error'); }
@@ -398,8 +459,8 @@ export default function BandSpaceDetailPage() {
       // Show it immediately — don't rely on the realtime echo (which may be disabled for the project).
       setMessages(prev => prev.some(m => m.id === inserted.id) ? prev : [...prev, inserted]);
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
-      if (id && user) getChannelPreviews(id, user.id).then(setChannelPreviews);
-      if (mentionedIds.length > 0) await createMentionNotifications(inserted.id, id!, activeChannel, user.id, mentionedIds);
+      if (id && user && chatScope.mode === 'channel') getChannelPreviews(id, user.id).then(setChannelPreviews);
+      if (mentionedIds.length > 0) await createMentionNotifications(inserted.id, id!, chatScope.mode === 'project' ? 'project' : chatScope.key, user.id, mentionedIds);
     }
 
     setSending(false);
@@ -452,21 +513,28 @@ export default function BandSpaceDetailPage() {
     const content = input.trim() || file.name;
     setInput('');
     const { data: inserted, error } = await supabase.from('band_messages')
-      .insert({ band_id: id, channel: activeChannel, sender_id: user.id, content, attachment_url: result.url, attachment_type: result.type })
+      .insert({
+        band_id: id,
+        channel: chatScope.mode === 'project' ? 'project' : chatScope.key,
+        project_id: chatScope.mode === 'project' ? chatScope.key : null,
+        sender_id: user.id, content, attachment_url: result.url, attachment_type: result.type,
+      })
       .select('*, sender:profiles!band_messages_sender_id_fkey(id,username,display_name,avatar_url)').single();
     if (error || !inserted) { addToast('Versturen mislukt', 'error'); }
     else {
       // Append right away so the upload is visible without waiting on realtime.
       setMessages(prev => prev.some(m => m.id === inserted.id) ? prev : [...prev, inserted]);
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
-      if (id && user) getChannelPreviews(id, user.id).then(setChannelPreviews);
+      if (id && user && chatScope.mode === 'channel') getChannelPreviews(id, user.id).then(setChannelPreviews);
     }
     setUploading(false); inputRef.current?.focus();
   }
 
-  function handleDragOver(e: React.DragEvent) { if (activeChannel !== 'media' || !isMember) return; e.preventDefault(); setIsDragging(true); }
+  // Media drag-and-drop is a channel-specific affordance (the "Media" channel only) —
+  // not part of project chat, which has no attachment spec.
+  function handleDragOver(e: React.DragEvent) { if (chatScope.mode !== 'channel' || activeChannel !== 'media' || !isMember) return; e.preventDefault(); setIsDragging(true); }
   function handleDragLeave() { setIsDragging(false); }
-  function handleDrop(e: React.DragEvent) { e.preventDefault(); setIsDragging(false); if (activeChannel !== 'media' || !isMember) return; const f = e.dataTransfer.files[0]; if (f) handleFileUpload(f); }
+  function handleDrop(e: React.DragEvent) { e.preventDefault(); setIsDragging(false); if (chatScope.mode !== 'channel' || activeChannel !== 'media' || !isMember) return; const f = e.dataTransfer.files[0]; if (f) handleFileUpload(f); }
 
   // ── Handlers: pin ────────────────────────────────────────────────────────
   async function handleTogglePin(msg: any) {
@@ -557,42 +625,149 @@ export default function BandSpaceDetailPage() {
     setUpcomingEvents(prev => prev.filter(e => e.id !== eventId));
   }
 
-  // ── Handlers: todos ──────────────────────────────────────────────────────
-  async function handleCreateTodo() {
-    if (!newTodo.trim() || !user || !id) return;
-    setAddingTodo(true);
-    const todo = await createBandTodo(id, user.id, newTodo.trim());
-    if (todo) { setTodos(prev => [...prev, todo]); setNewTodo(''); }
+  // ── Handlers: project tiles ──────────────────────────────────────────────
+  function openProject(projectId: string) {
+    setActiveProjectId(projectId); setActiveView('project'); setProjectTab('chat'); setShowMobileSidebar(false);
+  }
+
+  function startCreateProject() {
+    setEditingProjectId(null); setProjectForm({ name: '', description: '' }); setShowProjectModal(true);
+  }
+
+  function startEditProject(project: BandProject) {
+    setEditingProjectId(project.id);
+    setProjectForm({ name: project.name, description: project.description || '' });
+    setShowProjectModal(true);
+  }
+
+  async function handleSaveProject() {
+    if (!projectForm.name.trim() || !user || !id) return;
+    setSavingProject(true);
+    if (editingProjectId) {
+      const ok = await updateBandProject(editingProjectId, { name: projectForm.name.trim(), description: projectForm.description.trim() || null });
+      if (!ok) { addToast('Bijwerken mislukt', 'error'); setSavingProject(false); return; }
+      setProjects(prev => prev.map(p => p.id === editingProjectId ? { ...p, name: projectForm.name.trim(), description: projectForm.description.trim() || null } : p));
+    } else {
+      const project = await createBandProject(id, user.id, projectForm.name.trim(), projectForm.description.trim() || undefined);
+      if (!project) { addToast('Aanmaken mislukt', 'error'); setSavingProject(false); return; }
+      setProjects(prev => [...prev, project]);
+    }
+    setSavingProject(false); setShowProjectModal(false); setEditingProjectId(null);
+  }
+
+  async function handleDeleteProject(projectId: string) {
+    if (!window.confirm('Dit project en alle chat, taken, doelen en ideeën erin verwijderen?')) return;
+    const ok = await deleteBandProject(projectId);
+    if (!ok) { addToast('Verwijderen mislukt', 'error'); return; }
+    setProjects(prev => prev.filter(p => p.id !== projectId));
+    if (activeProjectId === projectId) { setActiveProjectId(null); setActiveView('projects'); }
+  }
+
+  // ── Handlers: assignments ────────────────────────────────────────────────
+  async function handleCreateAssignment() {
+    if (!newAssignment.content.trim() || !user || !activeProjectId) return;
+    setAddingAssignment(true);
+    const created = await createProjectAssignment(
+      activeProjectId, user.id, newAssignment.content.trim(),
+      newAssignment.assigneeId || null, newAssignment.dueDate || null,
+    );
+    if (created) { setAssignments(prev => [...prev, created]); setNewAssignment({ content: '', assigneeId: '', dueDate: '' }); }
     else addToast('Aanmaken mislukt', 'error');
-    setAddingTodo(false);
+    setAddingAssignment(false);
   }
 
-  async function handleToggleTodo(todo: BandTodo) {
+  async function handleToggleAssignment(a: BandProjectAssignment) {
     if (!user) return;
-    const updated = !todo.completed;
-    setTodos(prev => prev.map(t => t.id === todo.id ? { ...t, completed: updated } : t));
-    const ok = await toggleBandTodo(todo.id, updated, user.id);
-    if (!ok) setTodos(prev => prev.map(t => t.id === todo.id ? { ...t, completed: todo.completed } : t));
+    const updated = !a.completed;
+    setAssignments(prev => prev.map(x => x.id === a.id ? { ...x, completed: updated } : x));
+    const ok = await toggleProjectAssignment(a.id, updated, user.id);
+    if (!ok) setAssignments(prev => prev.map(x => x.id === a.id ? { ...x, completed: a.completed } : x));
   }
 
-  async function handleDeleteTodo(todoId: string) {
-    setTodos(prev => prev.filter(t => t.id !== todoId));
-    const ok = await deleteBandTodo(todoId);
-    if (!ok) { addToast('Verwijderen mislukt', 'error'); if (id) getBandTodos(id).then(setTodos); }
+  async function handlePinAssignment(a: BandProjectAssignment) {
+    const next = !a.is_pinned;
+    setAssignments(prev => prev.map(x => x.id === a.id ? { ...x, is_pinned: next } : x));
+    const ok = await pinProjectAssignment(a.id, next);
+    if (!ok) setAssignments(prev => prev.map(x => x.id === a.id ? { ...x, is_pinned: a.is_pinned } : x));
   }
 
-  function startEditTodo(todo: BandTodo) {
-    setEditingTodoId(todo.id);
-    setEditingTodoText(todo.content);
+  async function handleDeleteAssignment(assignmentId: string) {
+    setAssignments(prev => prev.filter(a => a.id !== assignmentId));
+    const ok = await deleteProjectAssignment(assignmentId);
+    if (!ok) { addToast('Verwijderen mislukt', 'error'); if (activeProjectId) getProjectAssignments(activeProjectId).then(setAssignments); }
   }
 
-  async function handleSaveTodoEdit(todoId: string) {
-    const content = editingTodoText.trim();
+  function startEditAssignment(a: BandProjectAssignment) {
+    setEditingAssignmentId(a.id); setEditingAssignmentText(a.content);
+  }
+
+  async function handleSaveAssignmentEdit(assignmentId: string) {
+    const content = editingAssignmentText.trim();
     if (!content) return;
-    const ok = await updateBandTodo(todoId, content);
+    const ok = await updateProjectAssignment(assignmentId, { content });
     if (!ok) { addToast('Bijwerken mislukt', 'error'); return; }
-    setTodos(prev => prev.map(t => t.id === todoId ? { ...t, content } : t));
-    setEditingTodoId(null);
+    setAssignments(prev => prev.map(a => a.id === assignmentId ? { ...a, content } : a));
+    setEditingAssignmentId(null);
+  }
+
+  // ── Handlers: goals ───────────────────────────────────────────────────────
+  async function handleCreateGoal() {
+    if (!newGoal.content.trim() || !user || !activeProjectId) return;
+    setAddingGoal(true);
+    const created = await createProjectGoal(activeProjectId, user.id, newGoal.content.trim(), newGoal.dueDate || null);
+    if (created) { setGoals(prev => [...prev, created]); setNewGoal({ content: '', dueDate: '' }); }
+    else addToast('Aanmaken mislukt', 'error');
+    setAddingGoal(false);
+  }
+
+  async function handleToggleGoal(g: BandProjectGoal) {
+    if (!user) return;
+    const updated = !g.completed;
+    setGoals(prev => prev.map(x => x.id === g.id ? { ...x, completed: updated } : x));
+    const ok = await toggleProjectGoal(g.id, updated, user.id);
+    if (!ok) setGoals(prev => prev.map(x => x.id === g.id ? { ...x, completed: g.completed } : x));
+  }
+
+  async function handleDeleteGoal(goalId: string) {
+    setGoals(prev => prev.filter(g => g.id !== goalId));
+    const ok = await deleteProjectGoal(goalId);
+    if (!ok) { addToast('Verwijderen mislukt', 'error'); if (activeProjectId) getProjectGoals(activeProjectId).then(setGoals); }
+  }
+
+  function startEditGoal(g: BandProjectGoal) {
+    setEditingGoalId(g.id); setEditingGoalText(g.content);
+  }
+
+  async function handleSaveGoalEdit(goalId: string) {
+    const content = editingGoalText.trim();
+    if (!content) return;
+    const ok = await updateProjectGoal(goalId, { content });
+    if (!ok) { addToast('Bijwerken mislukt', 'error'); return; }
+    setGoals(prev => prev.map(g => g.id === goalId ? { ...g, content } : g));
+    setEditingGoalId(null);
+  }
+
+  // ── Handlers: ideas ───────────────────────────────────────────────────────
+  async function handleCreateIdea() {
+    if (!newIdea.trim() || !user || !activeProjectId) return;
+    setAddingIdea(true);
+    const created = await createProjectIdea(activeProjectId, user.id, newIdea.trim());
+    if (created) { setIdeas(prev => [created, ...prev]); setNewIdea(''); }
+    else addToast('Aanmaken mislukt', 'error');
+    setAddingIdea(false);
+  }
+
+  async function handlePinIdea(idea: BandProjectIdea) {
+    const next = !idea.is_pinned;
+    setIdeas(prev => prev.map(x => x.id === idea.id ? { ...x, is_pinned: next } : x));
+    const ok = await pinProjectIdea(idea.id, next);
+    if (!ok) setIdeas(prev => prev.map(x => x.id === idea.id ? { ...x, is_pinned: idea.is_pinned } : x));
+  }
+
+  async function handleDeleteIdea(ideaId: string) {
+    setIdeas(prev => prev.filter(i => i.id !== ideaId));
+    const ok = await deleteProjectIdea(ideaId);
+    if (!ok) { addToast('Verwijderen mislukt', 'error'); if (activeProjectId) getProjectIdeas(activeProjectId).then(setIdeas); }
   }
 
   // ── Handlers: pin event ──────────────────────────────────────────────────
@@ -713,7 +888,7 @@ export default function BandSpaceDetailPage() {
 
   // ── Sidebar nav item ─────────────────────────────────────────────────────
   function NavItem({ view, icon: Icon, label, color }: { view: ActiveView; icon: any; label: string; color?: string }) {
-    const active = activeView === view && (view !== 'channel');
+    const active = (activeView === view || (view === 'projects' && activeView === 'project')) && view !== 'channel';
     return (
       <button onClick={() => { setActiveView(view); setShowMobileSidebar(false); }} disabled={!isMember && view !== 'home'}
         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all relative disabled:opacity-40 group ${active ? 'bg-white/8' : 'hover:bg-white/4'}`}>
@@ -764,7 +939,7 @@ export default function BandSpaceDetailPage() {
         <div className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
           <NavItem view="home" icon={LayoutDashboard} label="Home" />
           <NavItem view="calendar" icon={Calendar} label="Kalender" />
-          <NavItem view="todos" icon={ListTodo} label="Taken" />
+          <NavItem view="projects" icon={FolderKanban} label="Projecten" />
 
           <div className="pt-3 pb-1">
             <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-wider px-3">Kanalen</p>
@@ -1187,38 +1362,37 @@ export default function BandSpaceDetailPage() {
                     </div>
                   )}
 
-                  {/* Taken (todos) tile */}
+                  {/* Projecten tile */}
                   <div className="bg-white/3 border border-white/8 rounded-2xl p-4 lg:p-5">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
-                        <ListTodo size={13} className="text-violet-400" />
-                        <h3 className="text-sm font-semibold text-white">Taken</h3>
+                        <FolderKanban size={13} className="text-indigo-400" />
+                        <h3 className="text-sm font-semibold text-white">Projecten</h3>
                       </div>
-                      <button onClick={() => setActiveView('todos')} className="text-[11px] text-violet-400 hover:text-violet-300 transition-colors">Alles →</button>
+                      <button onClick={() => setActiveView('projects')} className="text-[11px] text-violet-400 hover:text-violet-300 transition-colors">Alles →</button>
                     </div>
-                    {todosLoading ? (
+                    {projectsLoading ? (
                       <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-violet-400/50" /></div>
-                    ) : todos.filter(t => !t.completed).length === 0 ? (
-                      <p className="text-xs text-slate-600 py-1">Geen openstaande taken.</p>
+                    ) : projects.length === 0 ? (
+                      <p className="text-xs text-slate-600 py-1">Nog geen projecten.</p>
                     ) : (
                       <div className="space-y-2">
-                        {todos.filter(t => !t.completed).slice(0, 4).map(todo => (
-                          <div key={todo.id} className="flex items-start gap-2.5">
-                            <button onClick={() => handleToggleTodo(todo)} className="mt-0.5 shrink-0 text-slate-500 hover:text-violet-400 transition-colors">
-                              <Square size={13} />
-                            </button>
-                            <p className="text-xs text-slate-300 leading-relaxed">{todo.content}</p>
-                          </div>
+                        {projects.slice(0, 4).map(project => (
+                          <button key={project.id} onClick={() => openProject(project.id)}
+                            className="flex items-start gap-2.5 w-full text-left hover:bg-white/4 rounded-lg -mx-1 px-1 py-0.5 transition-colors">
+                            <FolderKanban size={13} className="mt-0.5 shrink-0 text-indigo-400/70" />
+                            <p className="text-xs text-slate-300 leading-relaxed truncate">{project.name}</p>
+                          </button>
                         ))}
-                        {todos.filter(t => !t.completed).length > 4 && (
-                          <p className="text-[11px] text-slate-600 pt-0.5">+{todos.filter(t => !t.completed).length - 4} meer</p>
+                        {projects.length > 4 && (
+                          <p className="text-[11px] text-slate-600 pt-0.5">+{projects.length - 4} meer</p>
                         )}
                       </div>
                     )}
                     {isMember && (
-                      <button onClick={() => setActiveView('todos')}
+                      <button onClick={startCreateProject}
                         className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-violet-400 transition-colors mt-3 pt-3 border-t border-white/8 w-full">
-                        <Plus size={12} /> Taak toevoegen
+                        <Plus size={12} /> Project toevoegen
                       </button>
                     )}
                   </div>
@@ -1333,130 +1507,503 @@ export default function BandSpaceDetailPage() {
           </div>
         )}
 
-        {/* ── TODOS VIEW ────────────────────────────────────────────────────── */}
-        {activeView === 'todos' && (
+        {/* ── PROJECTS VIEW (grid of tiles) ───────────────────────────────────── */}
+        {activeView === 'projects' && (
           <div className="flex-1 overflow-y-auto">
-            <div className="max-w-2xl mx-auto px-4 lg:px-8 py-6 lg:py-8">
-              <div className="flex items-center justify-between mb-6">
+            <div className="max-w-5xl mx-auto px-4 lg:px-8 py-6 lg:py-8">
+              <div className="flex items-center justify-between mb-6 gap-3">
                 <div>
-                  <h2 className="text-xl font-bold text-white flex items-center gap-2"><ListTodo size={20} className="text-violet-400" /> Taken</h2>
-                  <p className="text-sm text-slate-500 mt-0.5">{band.name} · gedeelde takenlijst</p>
+                  <h2 className="text-xl font-bold text-white flex items-center gap-2"><FolderKanban size={20} className="text-indigo-400" /> Projecten</h2>
+                  <p className="text-sm text-slate-500 mt-0.5">{band.name} · chat, taken, doelen en ideeën per project</p>
                 </div>
-                <span className="text-xs text-slate-500 bg-white/5 border border-white/8 rounded-full px-2.5 py-1">
-                  {todos.filter(t => !t.completed).length} open
-                </span>
+                {isMember && (
+                  <button onClick={startCreateProject}
+                    className="flex items-center gap-1.5 bg-violet-600 hover:bg-violet-500 text-white font-semibold px-4 py-2.5 rounded-xl transition-colors text-sm shrink-0">
+                    <Plus size={15} /> Nieuw project
+                  </button>
+                )}
               </div>
 
-              {/* Add todo */}
-              {isMember && (
-                <div className="flex gap-2 mb-6">
-                  <input
-                    type="text"
-                    value={newTodo}
-                    onChange={e => setNewTodo(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') handleCreateTodo(); }}
-                    placeholder="Nieuwe taak toevoegen…"
-                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500/50 transition-colors"
-                  />
-                  <button onClick={handleCreateTodo} disabled={!newTodo.trim() || addingTodo}
-                    className="flex items-center gap-1.5 bg-violet-600 hover:bg-violet-500 text-white font-semibold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-40 shrink-0 text-sm">
-                    {addingTodo ? <Loader2 size={14} className="animate-spin" /> : <Plus size={15} />}
-                  </button>
-                </div>
-              )}
-
-              {/* Todo list */}
-              {todosLoading ? (
+              {projectsLoading ? (
                 <div className="flex justify-center py-16"><Loader2 size={22} className="animate-spin text-violet-400/60" /></div>
-              ) : todos.length === 0 ? (
+              ) : projects.length === 0 ? (
                 <div className="text-center py-16 text-slate-600">
-                  <CheckSquare size={36} className="mx-auto mb-3 opacity-30" />
-                  <p className="text-sm">Geen taken. Voeg de eerste taak toe!</p>
+                  <FolderKanban size={36} className="mx-auto mb-3 opacity-30" />
+                  <p className="text-sm">Nog geen projecten. Maak het eerste project aan!</p>
                 </div>
               ) : (
-                <div className="space-y-1">
-                  {/* Open todos */}
-                  {todos.filter(t => !t.completed).map(todo => (
-                    <div key={todo.id} className="flex items-start gap-3 p-3.5 rounded-xl bg-white/3 border border-white/8 hover:bg-white/5 transition-colors group">
-                      <button onClick={() => handleToggleTodo(todo)} className="mt-0.5 shrink-0 text-slate-500 hover:text-violet-400 transition-colors">
-                        <Square size={16} />
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {projects.map(project => (
+                    <div key={project.id} className="flex flex-col gap-3 p-5 rounded-2xl border bg-white/[0.03] border-white/10 hover:border-white/20 transition-all group">
+                      <button onClick={() => openProject(project.id)} className="text-left flex-1">
+                        <div className="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center mb-3">
+                          <FolderKanban size={18} className="text-indigo-400" />
+                        </div>
+                        <p className="font-semibold text-white leading-tight">{project.name}</p>
+                        {project.description && <p className="text-sm text-slate-500 mt-1 line-clamp-2">{project.description}</p>}
                       </button>
-                      <div className="flex-1 min-w-0">
-                        {editingTodoId === todo.id ? (
-                          <div className="flex items-center gap-2">
-                            <input
-                              autoFocus
-                              value={editingTodoText}
-                              onChange={e => setEditingTodoText(e.target.value)}
-                              onKeyDown={e => { if (e.key === 'Enter') handleSaveTodoEdit(todo.id); if (e.key === 'Escape') setEditingTodoId(null); }}
-                              className="flex-1 bg-white/5 border border-violet-500/40 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none"
-                            />
-                            <button onClick={() => handleSaveTodoEdit(todo.id)} className="text-violet-400 hover:text-violet-300 shrink-0"><Check size={14} /></button>
-                            <button onClick={() => setEditingTodoId(null)} className="text-slate-500 hover:text-white shrink-0"><X size={14} /></button>
+                      <div className="flex items-center justify-between pt-2 border-t border-white/8">
+                        <p className="text-[11px] text-slate-600 truncate">{project.creator?.display_name || project.creator?.username}</p>
+                        {(isAdmin || project.created_by === user?.id) && (
+                          <div className="flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all shrink-0">
+                            <button onClick={() => startEditProject(project)} className="text-slate-600 hover:text-white p-0.5"><Pencil size={13} /></button>
+                            <button onClick={() => handleDeleteProject(project.id)} className="text-slate-600 hover:text-red-400 p-0.5"><Trash2 size={13} /></button>
                           </div>
-                        ) : (
-                          <>
-                            <p className="text-sm text-white leading-relaxed">{todo.content}</p>
-                            <p className="text-[11px] text-slate-600 mt-0.5">{todo.creator?.display_name || todo.creator?.username}</p>
-                          </>
                         )}
                       </div>
-                      {editingTodoId !== todo.id && (isAdmin || todo.created_by === user?.id) && (
-                        <div className="flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all shrink-0">
-                          <button onClick={() => startEditTodo(todo)} className="text-slate-600 hover:text-white p-0.5"><Pencil size={13} /></button>
-                          <button onClick={() => handleDeleteTodo(todo.id)} className="text-slate-600 hover:text-red-400 p-0.5">
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      )}
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
-                  {/* Completed todos */}
-                  {todos.filter(t => t.completed).length > 0 && (
-                    <>
-                      <div className="flex items-center gap-2 pt-4 pb-1">
-                        <div className="flex-1 h-px bg-white/8" />
-                        <span className="text-[11px] text-slate-600 font-medium">{todos.filter(t => t.completed).length} voltooid</span>
-                        <div className="flex-1 h-px bg-white/8" />
+        {/* ── PROJECT VIEW (single tile: chat / assignments / goals / ideas) ─── */}
+        {activeView === 'project' && activeProject && (
+          <div className="flex-1 flex flex-col overflow-hidden" onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
+
+            {/* Project header */}
+            <div className="flex items-center gap-3 px-5 lg:px-6 py-3.5 border-b border-white/8 shrink-0 bg-[#16132650]">
+              <button onClick={() => { setActiveView('projects'); setActiveProjectId(null); }} className="text-slate-400 hover:text-white shrink-0 p-0.5">
+                <ChevronLeft size={16} />
+              </button>
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-indigo-500/20">
+                <FolderKanban size={15} className="text-indigo-400" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="font-semibold text-white text-sm truncate">{activeProject.name}</h2>
+                <p className="text-[11px] text-slate-500 truncate">Project · {band.name}</p>
+              </div>
+              {(isAdmin || activeProject.created_by === user?.id) && (
+                <button onClick={() => startEditProject(activeProject)} className="text-slate-500 hover:text-white p-1 shrink-0"><Pencil size={13} /></button>
+              )}
+              <div className="flex-1" />
+              {projectTab === 'chat' && pinnedMessages.length > 0 && (
+                <button onClick={() => setShowPinned(v => !v)}
+                  className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border transition-all ${showPinned ? 'bg-violet-600/20 border-violet-500/30 text-violet-300' : 'border-white/8 text-slate-500 hover:text-violet-300'}`}>
+                  <Pin size={11} />{pinnedMessages.length}<ChevronDown size={11} className={`transition-transform ${showPinned ? 'rotate-180' : ''}`} />
+                </button>
+              )}
+            </div>
+
+            {/* Sub-tab bar */}
+            <div className="flex items-center gap-1 px-5 lg:px-6 py-2 border-b border-white/8 shrink-0 overflow-x-auto">
+              {([
+                { key: 'chat' as const,        label: 'Chat',       icon: MessageSquare },
+                { key: 'assignments' as const, label: 'Taken',      icon: CheckSquare },
+                { key: 'goals' as const,       label: 'Doelen',     icon: Target },
+                { key: 'ideas' as const,       label: 'Ideeën',     icon: Lightbulb },
+              ]).map(tab => {
+                const Icon = tab.icon;
+                const active = projectTab === tab.key;
+                return (
+                  <button key={tab.key} onClick={() => setProjectTab(tab.key)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${active ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-slate-300'}`}>
+                    <Icon size={12} /> {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Pinned bar (chat only) */}
+            {projectTab === 'chat' && pinnedMessages.length > 0 && showPinned && (
+              <div className="border-b border-violet-500/20 bg-violet-950/40 px-5 lg:px-6 py-3 space-y-2 shrink-0">
+                <p className="text-[10px] font-semibold text-violet-400/60 uppercase tracking-wider mb-1.5">Vastgepind</p>
+                {pinnedMessages.map(msg => (
+                  <div key={msg.id} className="flex items-start gap-2.5 bg-white/4 border border-violet-500/15 rounded-xl px-3 py-2.5 text-xs">
+                    <Pin size={10} className="text-violet-400 mt-0.5 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-violet-300 font-semibold">{msg.sender?.display_name || msg.sender?.username}</span>
+                      <span className="text-slate-600 text-[10px] ml-2">{formatTime(msg.created_at)}</span>
+                      <p className="text-slate-300 truncate mt-0.5">{msg.content}</p>
+                    </div>
+                    {isAdmin && <button onClick={() => handleTogglePin(msg)} className="text-slate-600 hover:text-red-400 transition-colors p-0.5"><X size={12} /></button>}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* CHAT TAB */}
+            {projectTab === 'chat' ? (
+              <>
+                <div className="flex-1 overflow-y-auto min-h-0">
+                  <div className="max-w-3xl mx-auto px-4 lg:px-6 py-5 space-y-1">
+                    {msgLoading ? (
+                      <div className="flex justify-center py-16"><Loader2 size={22} className="animate-spin text-violet-400/60" /></div>
+                    ) : messages.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-64 gap-4">
+                        <div className="w-16 h-16 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center"><MessageSquare size={28} className="text-indigo-400" /></div>
+                        <div className="text-center">
+                          <p className="text-sm font-semibold text-white">{activeProject.name}</p>
+                          <p className="text-xs text-slate-500 mt-1">Nog geen berichten. Stuur het eerste!</p>
+                        </div>
                       </div>
-                      {todos.filter(t => t.completed).map(todo => (
-                        <div key={todo.id} className="flex items-start gap-3 p-3.5 rounded-xl bg-white/2 border border-white/5 transition-colors group opacity-60">
-                          <button onClick={() => handleToggleTodo(todo)} className="mt-0.5 shrink-0 text-emerald-500 hover:text-slate-500 transition-colors">
-                            <CheckSquare size={16} />
+                    ) : (
+                      <>
+                        {messages.map((msg, i) => {
+                          const isMe = msg.sender_id === user?.id;
+                          const sameAsPrev = messages[i - 1]?.sender_id === msg.sender_id;
+                          const sameAsNext = messages[i + 1]?.sender_id === msg.sender_id;
+                          const isMentioned = user?.id && msg.mentions?.includes(user.id);
+                          return (
+                            <div key={msg.id} className={`flex gap-3 group ${isMe ? 'flex-row-reverse' : ''} ${sameAsPrev ? 'mt-0.5' : 'mt-5'} ${isMentioned ? 'bg-amber-500/5 -mx-3 px-3 rounded-xl' : ''}`}>
+                              <div className="w-9 shrink-0 flex items-end">
+                                {!sameAsPrev && <UserAvatar src={msg.sender?.avatar_url} name={msg.sender?.display_name || msg.sender?.username} size={34} />}
+                              </div>
+                              <div className={`flex flex-col max-w-[82%] lg:max-w-[55%] ${isMe ? 'items-end' : 'items-start'}`}>
+                                {!sameAsPrev && (
+                                  <div className={`flex items-center gap-2 mb-1.5 px-1 ${isMe ? 'flex-row-reverse' : ''}`}>
+                                    <span className="text-[13px] font-semibold text-slate-300">{msg.sender?.display_name || msg.sender?.username}</span>
+                                    <span className="text-[11px] text-slate-600">{formatTime(msg.created_at)}</span>
+                                    {msg.is_pinned && <Pin size={9} className="text-violet-400" />}
+                                    {isMentioned && <AtSign size={9} className="text-amber-400" />}
+                                  </div>
+                                )}
+                                <div className={`relative group/bubble px-4 py-2.5 text-[13px] lg:text-sm leading-relaxed break-words ${
+                                  isMe
+                                    ? `bg-violet-600 text-white ${!sameAsPrev ? 'rounded-2xl rounded-tr-sm' : sameAsNext ? 'rounded-2xl rounded-tr-sm' : 'rounded-2xl'}`
+                                    : `bg-white/8 text-slate-100 border border-white/8 ${!sameAsPrev ? 'rounded-2xl rounded-tl-sm' : sameAsNext ? 'rounded-2xl rounded-tl-sm' : 'rounded-2xl'}`
+                                }`}>
+                                  <span className="whitespace-pre-wrap">{renderContent(msg.content)}</span>
+                                  {msg.attachment_url && (
+                                    <div className="mt-2.5">
+                                      {msg.attachment_type === 'image'
+                                        ? <img src={msg.attachment_url} alt="bijlage" className="max-w-[280px] rounded-xl cursor-pointer hover:opacity-90 transition-opacity" onClick={() => window.open(msg.attachment_url, '_blank')} />
+                                        : msg.attachment_type === 'video'
+                                        ? <video src={msg.attachment_url} controls className="max-w-[320px] rounded-xl" />
+                                        : <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs bg-white/10 hover:bg-white/20 rounded-xl px-3 py-2.5 border border-white/10 transition-colors"><FileIcon size={13} className="shrink-0" /><span className="truncate">Bijlage</span></a>
+                                      }
+                                    </div>
+                                  )}
+                                  <div className={`absolute -top-2.5 ${isMe ? 'left-1' : 'right-1'} flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover/bubble:opacity-100 transition-opacity`}>
+                                    {isAdmin && (
+                                      <button onClick={() => handleTogglePin(msg)} title={msg.is_pinned ? 'Losmaken' : 'Vastpinnen'}
+                                        className="bg-[#1e1a30] border border-white/15 rounded-full p-1 shadow-lg">
+                                        <Pin size={10} className={msg.is_pinned ? 'text-violet-400' : 'text-slate-400'} />
+                                      </button>
+                                    )}
+                                    {(isMe || isAdmin) && (
+                                      <button onClick={() => handleDeleteMessage(msg)} title="Verwijderen"
+                                        className="bg-[#1e1a30] border border-white/15 rounded-full p-1 shadow-lg">
+                                        <Trash2 size={10} className="text-slate-400 hover:text-red-400 transition-colors" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        <div ref={bottomRef} />
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Input */}
+                <div className="border-t border-white/8 shrink-0 py-3 lg:py-4">
+                  <div className="max-w-3xl mx-auto px-4 lg:px-6 relative">
+                    {mentionSearch !== null && mentionSuggestions.length > 0 && (
+                      <div className="absolute bottom-full left-4 lg:left-6 right-4 lg:right-6 mb-2 bg-[#1e1a30] border border-white/15 rounded-xl shadow-2xl overflow-hidden z-10">
+                        <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-wider px-3 pt-2 pb-1">Leden</p>
+                        {mentionSuggestions.map((m, i) => (
+                          <button key={m.id} onClick={() => insertMention(m)}
+                            className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-colors ${i === mentionIndex ? 'bg-violet-600/20' : 'hover:bg-white/5'}`}>
+                            <UserAvatar src={m.profile?.avatar_url} name={m.profile?.display_name || m.profile?.username} size={26} />
+                            <div>
+                              <p className="text-sm font-medium text-white">{m.profile?.display_name || m.profile?.username}</p>
+                              {m.profile?.username && <p className="text-[10px] text-slate-500">@{m.profile.username}</p>}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <input ref={fileInputRef} type="file" accept="image/*,video/*,.pdf,.doc,.docx,.zip" className="hidden"
+                      onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(f); e.target.value = ''; }} />
+                    <div className="flex items-end gap-2.5 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 focus-within:border-violet-500/40 transition-colors">
+                      <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
+                        className="p-1 rounded-lg transition-colors shrink-0 mb-0.5 text-slate-500 hover:text-slate-300 hover:bg-white/8">
+                        {uploading ? <Loader2 size={16} className="animate-spin" /> : <Paperclip size={16} />}
+                      </button>
+                      <textarea ref={inputRef} value={input} onChange={handleInputChange} onKeyDown={handleKeyDown}
+                        placeholder={`Bericht in ${activeProject.name}… (@ om te taggen)`}
+                        rows={1} className="flex-1 bg-transparent text-sm text-white placeholder-slate-600 focus:outline-none resize-none py-0.5"
+                        style={{ minHeight: '22px', maxHeight: '120px' }} />
+                      <button onClick={handleSend} disabled={!input.trim() || sending || uploading}
+                        className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all shrink-0 ${input.trim() && !sending ? 'bg-violet-600 hover:bg-violet-500 text-white shadow-lg' : 'bg-white/5 text-slate-600 cursor-not-allowed'}`}>
+                        {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : projectTab === 'assignments' ? (
+              /* ASSIGNMENTS TAB */
+              <div className="flex-1 overflow-y-auto">
+                <div className="max-w-2xl mx-auto px-4 lg:px-6 py-6">
+                  <div className="flex flex-col gap-2 mb-6 p-3.5 rounded-xl bg-white/3 border border-white/8">
+                    <input type="text" value={newAssignment.content} onChange={e => setNewAssignment(f => ({ ...f, content: e.target.value }))}
+                      onKeyDown={e => { if (e.key === 'Enter') handleCreateAssignment(); }}
+                      placeholder="Nieuwe taak toevoegen…"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500/50 transition-colors" />
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <div className="flex-1">
+                        <Select value={newAssignment.assigneeId || 'none'} onValueChange={v => setNewAssignment(f => ({ ...f, assigneeId: v === 'none' ? '' : v }))}>
+                          <SelectTrigger><SelectValue placeholder="Toewijzen (optioneel)" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Niemand toegewezen</SelectItem>
+                            {members.map((m: any) => (
+                              <SelectItem key={m.user_id} value={m.user_id}>{m.profile?.display_name || m.profile?.username}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <input type="date" value={newAssignment.dueDate} onChange={e => setNewAssignment(f => ({ ...f, dueDate: e.target.value }))}
+                        className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-violet-500/50 transition-colors" />
+                      <button onClick={handleCreateAssignment} disabled={!newAssignment.content.trim() || addingAssignment}
+                        className="flex items-center justify-center gap-1.5 bg-violet-600 hover:bg-violet-500 text-white font-semibold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-40 shrink-0 text-sm">
+                        {addingAssignment ? <Loader2 size={14} className="animate-spin" /> : <Plus size={15} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {assignmentsLoading ? (
+                    <div className="flex justify-center py-16"><Loader2 size={22} className="animate-spin text-violet-400/60" /></div>
+                  ) : assignments.length === 0 ? (
+                    <div className="text-center py-16 text-slate-600">
+                      <CheckSquare size={36} className="mx-auto mb-3 opacity-30" />
+                      <p className="text-sm">Geen taken. Voeg de eerste taak toe!</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {assignments.filter(a => !a.completed).map(a => (
+                        <div key={a.id} className={`flex items-start gap-3 p-3.5 rounded-xl border transition-colors group ${a.is_pinned ? 'bg-violet-600/8 border-violet-500/20' : 'bg-white/3 border-white/8 hover:bg-white/5'}`}>
+                          <button onClick={() => handleToggleAssignment(a)} className="mt-0.5 shrink-0 text-slate-500 hover:text-violet-400 transition-colors">
+                            <Square size={16} />
                           </button>
                           <div className="flex-1 min-w-0">
-                            {editingTodoId === todo.id ? (
+                            {editingAssignmentId === a.id ? (
                               <div className="flex items-center gap-2">
-                                <input
-                                  autoFocus
-                                  value={editingTodoText}
-                                  onChange={e => setEditingTodoText(e.target.value)}
-                                  onKeyDown={e => { if (e.key === 'Enter') handleSaveTodoEdit(todo.id); if (e.key === 'Escape') setEditingTodoId(null); }}
-                                  className="flex-1 bg-white/5 border border-violet-500/40 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none"
-                                />
-                                <button onClick={() => handleSaveTodoEdit(todo.id)} className="text-violet-400 hover:text-violet-300 shrink-0"><Check size={14} /></button>
-                                <button onClick={() => setEditingTodoId(null)} className="text-slate-500 hover:text-white shrink-0"><X size={14} /></button>
+                                <input autoFocus value={editingAssignmentText} onChange={e => setEditingAssignmentText(e.target.value)}
+                                  onKeyDown={e => { if (e.key === 'Enter') handleSaveAssignmentEdit(a.id); if (e.key === 'Escape') setEditingAssignmentId(null); }}
+                                  className="flex-1 bg-white/5 border border-violet-500/40 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none" />
+                                <button onClick={() => handleSaveAssignmentEdit(a.id)} className="text-violet-400 hover:text-violet-300 shrink-0"><Check size={14} /></button>
+                                <button onClick={() => setEditingAssignmentId(null)} className="text-slate-500 hover:text-white shrink-0"><X size={14} /></button>
                               </div>
                             ) : (
-                              <p className="text-sm text-slate-500 line-through leading-relaxed">{todo.content}</p>
+                              <>
+                                <p className="text-sm text-white leading-relaxed">{a.content}</p>
+                                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                  {a.assignee && (
+                                    <span className="flex items-center gap-1 text-[11px] text-slate-500">
+                                      <UserCircle2 size={11} /> {a.assignee.display_name || a.assignee.username}
+                                    </span>
+                                  )}
+                                  {a.due_date && (
+                                    <span className="text-[11px] text-slate-600">{a.assignee ? '· ' : ''}{new Date(a.due_date + 'T00:00:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}</span>
+                                  )}
+                                </div>
+                              </>
                             )}
                           </div>
-                          {editingTodoId !== todo.id && (isAdmin || todo.created_by === user?.id) && (
+                          {editingAssignmentId !== a.id && (
                             <div className="flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all shrink-0">
-                              <button onClick={() => startEditTodo(todo)} className="text-slate-600 hover:text-white p-0.5"><Pencil size={13} /></button>
-                              <button onClick={() => handleDeleteTodo(todo.id)} className="text-slate-600 hover:text-red-400 p-0.5">
-                                <Trash2 size={13} />
+                              <button onClick={() => handlePinAssignment(a)} title={a.is_pinned ? 'Losmaken' : 'Vastpinnen'} className="p-0.5">
+                                <Pin size={13} className={a.is_pinned ? 'text-violet-400' : 'text-slate-600 hover:text-white'} />
                               </button>
+                              {(isAdmin || a.created_by === user?.id) && (
+                                <>
+                                  <button onClick={() => startEditAssignment(a)} className="text-slate-600 hover:text-white p-0.5"><Pencil size={13} /></button>
+                                  <button onClick={() => handleDeleteAssignment(a.id)} className="text-slate-600 hover:text-red-400 p-0.5"><Trash2 size={13} /></button>
+                                </>
+                              )}
                             </div>
                           )}
                         </div>
                       ))}
-                    </>
+
+                      {assignments.filter(a => a.completed).length > 0 && (
+                        <>
+                          <div className="flex items-center gap-2 pt-4 pb-1">
+                            <div className="flex-1 h-px bg-white/8" />
+                            <span className="text-[11px] text-slate-600 font-medium">{assignments.filter(a => a.completed).length} voltooid</span>
+                            <div className="flex-1 h-px bg-white/8" />
+                          </div>
+                          {assignments.filter(a => a.completed).map(a => (
+                            <div key={a.id} className="flex items-start gap-3 p-3.5 rounded-xl bg-white/2 border border-white/5 transition-colors group opacity-60">
+                              <button onClick={() => handleToggleAssignment(a)} className="mt-0.5 shrink-0 text-emerald-500 hover:text-slate-500 transition-colors">
+                                <CheckSquare size={16} />
+                              </button>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm text-slate-500 line-through leading-relaxed">{a.content}</p>
+                              </div>
+                              {(isAdmin || a.created_by === user?.id) && (
+                                <button onClick={() => handleDeleteAssignment(a.id)} className="text-slate-600 hover:text-red-400 p-0.5 shrink-0"><Trash2 size={13} /></button>
+                              )}
+                            </div>
+                          ))}
+                        </>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
+              </div>
+            ) : projectTab === 'goals' ? (
+              /* GOALS TAB */
+              <div className="flex-1 overflow-y-auto">
+                <div className="max-w-2xl mx-auto px-4 lg:px-6 py-6">
+                  <div className="flex flex-col sm:flex-row gap-2 mb-6">
+                    <input type="text" value={newGoal.content} onChange={e => setNewGoal(f => ({ ...f, content: e.target.value }))}
+                      onKeyDown={e => { if (e.key === 'Enter') handleCreateGoal(); }}
+                      placeholder="Nieuw doel toevoegen…"
+                      className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500/50 transition-colors" />
+                    <input type="date" value={newGoal.dueDate} onChange={e => setNewGoal(f => ({ ...f, dueDate: e.target.value }))}
+                      className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-violet-500/50 transition-colors" />
+                    <button onClick={handleCreateGoal} disabled={!newGoal.content.trim() || addingGoal}
+                      className="flex items-center justify-center gap-1.5 bg-violet-600 hover:bg-violet-500 text-white font-semibold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-40 shrink-0 text-sm">
+                      {addingGoal ? <Loader2 size={14} className="animate-spin" /> : <Plus size={15} />}
+                    </button>
+                  </div>
+
+                  {goalsLoading ? (
+                    <div className="flex justify-center py-16"><Loader2 size={22} className="animate-spin text-violet-400/60" /></div>
+                  ) : goals.length === 0 ? (
+                    <div className="text-center py-16 text-slate-600">
+                      <Target size={36} className="mx-auto mb-3 opacity-30" />
+                      <p className="text-sm">Geen doelen. Stel het eerste doel!</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {goals.filter(g => !g.completed).map(g => (
+                        <div key={g.id} className="flex items-start gap-3 p-3.5 rounded-xl bg-white/3 border border-white/8 hover:bg-white/5 transition-colors group">
+                          <button onClick={() => handleToggleGoal(g)} className="mt-0.5 shrink-0 text-slate-500 hover:text-violet-400 transition-colors">
+                            <Square size={16} />
+                          </button>
+                          <div className="flex-1 min-w-0">
+                            {editingGoalId === g.id ? (
+                              <div className="flex items-center gap-2">
+                                <input autoFocus value={editingGoalText} onChange={e => setEditingGoalText(e.target.value)}
+                                  onKeyDown={e => { if (e.key === 'Enter') handleSaveGoalEdit(g.id); if (e.key === 'Escape') setEditingGoalId(null); }}
+                                  className="flex-1 bg-white/5 border border-violet-500/40 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none" />
+                                <button onClick={() => handleSaveGoalEdit(g.id)} className="text-violet-400 hover:text-violet-300 shrink-0"><Check size={14} /></button>
+                                <button onClick={() => setEditingGoalId(null)} className="text-slate-500 hover:text-white shrink-0"><X size={14} /></button>
+                              </div>
+                            ) : (
+                              <>
+                                <p className="text-sm text-white leading-relaxed">{g.content}</p>
+                                {g.due_date && <p className="text-[11px] text-slate-600 mt-0.5">{new Date(g.due_date + 'T00:00:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}</p>}
+                              </>
+                            )}
+                          </div>
+                          {editingGoalId !== g.id && (isAdmin || g.created_by === user?.id) && (
+                            <div className="flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all shrink-0">
+                              <button onClick={() => startEditGoal(g)} className="text-slate-600 hover:text-white p-0.5"><Pencil size={13} /></button>
+                              <button onClick={() => handleDeleteGoal(g.id)} className="text-slate-600 hover:text-red-400 p-0.5"><Trash2 size={13} /></button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+
+                      {goals.filter(g => g.completed).length > 0 && (
+                        <>
+                          <div className="flex items-center gap-2 pt-4 pb-1">
+                            <div className="flex-1 h-px bg-white/8" />
+                            <span className="text-[11px] text-slate-600 font-medium">{goals.filter(g => g.completed).length} voltooid</span>
+                            <div className="flex-1 h-px bg-white/8" />
+                          </div>
+                          {goals.filter(g => g.completed).map(g => (
+                            <div key={g.id} className="flex items-start gap-3 p-3.5 rounded-xl bg-white/2 border border-white/5 transition-colors group opacity-60">
+                              <button onClick={() => handleToggleGoal(g)} className="mt-0.5 shrink-0 text-emerald-500 hover:text-slate-500 transition-colors">
+                                <CheckSquare size={16} />
+                              </button>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm text-slate-500 line-through leading-relaxed">{g.content}</p>
+                              </div>
+                              {(isAdmin || g.created_by === user?.id) && (
+                                <button onClick={() => handleDeleteGoal(g.id)} className="text-slate-600 hover:text-red-400 p-0.5 shrink-0"><Trash2 size={13} /></button>
+                              )}
+                            </div>
+                          ))}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              /* IDEAS TAB */
+              <div className="flex-1 overflow-y-auto">
+                <div className="max-w-2xl mx-auto px-4 lg:px-6 py-6">
+                  <div className="flex gap-2 mb-6">
+                    <textarea value={newIdea} onChange={e => setNewIdea(e.target.value)} rows={2}
+                      onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleCreateIdea(); } }}
+                      placeholder="Nieuw idee toevoegen…"
+                      className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500/50 transition-colors resize-none" />
+                    <button onClick={handleCreateIdea} disabled={!newIdea.trim() || addingIdea}
+                      className="flex items-center gap-1.5 bg-violet-600 hover:bg-violet-500 text-white font-semibold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-40 shrink-0 text-sm self-end">
+                      {addingIdea ? <Loader2 size={14} className="animate-spin" /> : <Plus size={15} />}
+                    </button>
+                  </div>
+
+                  {ideasLoading ? (
+                    <div className="flex justify-center py-16"><Loader2 size={22} className="animate-spin text-violet-400/60" /></div>
+                  ) : ideas.length === 0 ? (
+                    <div className="text-center py-16 text-slate-600">
+                      <Lightbulb size={36} className="mx-auto mb-3 opacity-30" />
+                      <p className="text-sm">Nog geen ideeën. Deel het eerste idee!</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {ideas.filter(i => i.is_pinned).length > 0 && (
+                        <div>
+                          <p className="text-[11px] font-semibold text-violet-400/60 uppercase tracking-wider mb-2">Vastgepind</p>
+                          <div className="space-y-2">
+                            {ideas.filter(i => i.is_pinned).map(idea => (
+                              <div key={idea.id} className="flex items-start gap-2.5 p-3.5 rounded-xl bg-violet-600/8 border border-violet-500/20 group">
+                                <Lightbulb size={14} className="text-violet-400 mt-0.5 shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm text-white leading-relaxed whitespace-pre-wrap">{idea.content}</p>
+                                  <p className="text-[11px] text-slate-600 mt-1">{idea.creator?.display_name || idea.creator?.username}</p>
+                                </div>
+                                <div className="flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all shrink-0">
+                                  <button onClick={() => handlePinIdea(idea)} className="p-0.5"><Pin size={13} className="text-violet-400" /></button>
+                                  {(isAdmin || idea.created_by === user?.id) && (
+                                    <button onClick={() => handleDeleteIdea(idea.id)} className="text-slate-600 hover:text-red-400 p-0.5"><Trash2 size={13} /></button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {ideas.filter(i => !i.is_pinned).length > 0 && (
+                        <div>
+                          {ideas.some(i => i.is_pinned) && <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-2">Overig</p>}
+                          <div className="space-y-2">
+                            {ideas.filter(i => !i.is_pinned).map(idea => (
+                              <div key={idea.id} className="flex items-start gap-2.5 p-3.5 rounded-xl bg-white/3 border border-white/8 group">
+                                <Lightbulb size={14} className="text-slate-500 mt-0.5 shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">{idea.content}</p>
+                                  <p className="text-[11px] text-slate-600 mt-1">{idea.creator?.display_name || idea.creator?.username}</p>
+                                </div>
+                                <div className="flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all shrink-0">
+                                  <button onClick={() => handlePinIdea(idea)} className="p-0.5"><Pin size={13} className="text-slate-600 hover:text-white" /></button>
+                                  {(isAdmin || idea.created_by === user?.id) && (
+                                    <button onClick={() => handleDeleteIdea(idea.id)} className="text-slate-600 hover:text-red-400 p-0.5"><Trash2 size={13} /></button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -1814,6 +2361,39 @@ export default function BandSpaceDetailPage() {
               <button onClick={handleAddEvent} disabled={savingEvent || !eventForm.title.trim() || !eventForm.date}
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold transition-colors disabled:opacity-50 text-sm">
                 {savingEvent ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Opslaan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Create/edit project modal ──────────────────────────────────────────── */}
+      {showProjectModal && (
+        <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center sm:p-4 bg-black/70 backdrop-blur-sm" onClick={() => { setShowProjectModal(false); setEditingProjectId(null); }}>
+          <div className="bg-[#1e1a30] border border-white/10 rounded-t-2xl sm:rounded-2xl p-6 w-full sm:max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-base font-semibold text-white">{editingProjectId ? 'Project bewerken' : 'Nieuw project'}</h2>
+              <button onClick={() => { setShowProjectModal(false); setEditingProjectId(null); }} className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/8 transition-colors"><X size={16} /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1.5">Naam *</label>
+                <input type="text" value={projectForm.name} onChange={e => setProjectForm(f => ({ ...f, name: e.target.value }))}
+                  placeholder="bijv. EP opname"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500/50 transition-colors" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1.5">Omschrijving</label>
+                <textarea value={projectForm.description} onChange={e => setProjectForm(f => ({ ...f, description: e.target.value }))}
+                  placeholder="Waar gaat dit project over?" rows={3}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500/50 transition-colors resize-none" />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => { setShowProjectModal(false); setEditingProjectId(null); }} className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-slate-300 hover:text-white hover:border-white/20 transition-colors text-sm">Annuleren</button>
+              <button onClick={handleSaveProject} disabled={savingProject || !projectForm.name.trim()}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold transition-colors disabled:opacity-50 text-sm">
+                {savingProject ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Opslaan
               </button>
             </div>
           </div>

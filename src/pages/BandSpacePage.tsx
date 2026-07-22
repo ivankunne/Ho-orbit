@@ -150,7 +150,7 @@ export default function BandSpacePage() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Band Space</h1>
           <p className="text-slate-400 max-w-xl text-sm sm:text-base">
-            Een privé werkruimte voor jouw band of crew. Zeven Orbit-kanalen per band: repetities, gigs, socials, muziekbladen, media, projecten en samenwerkingen — elk met eigen groepschat.
+            Een privé werkruimte voor jouw band of crew. Zes Orbit-kanalen per band: repetities, gigs, socials, muziekbladen, media en samenwerkingen — elk met eigen groepschat, plus je eigen projecttegels voor chat, taken, doelen en ideeën.
           </p>
         </div>
         {user && (
