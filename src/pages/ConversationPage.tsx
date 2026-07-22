@@ -124,7 +124,7 @@ export default function ConversationPage() {
   const otherName = other?.display_name || other?.username || '…';
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] max-w-2xl mx-auto">
+    <div className="flex flex-col h-[calc(100vh-8rem)] w-full max-w-2xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-white/8 bg-[#1a1528]/80 backdrop-blur-sm shrink-0">
         <button

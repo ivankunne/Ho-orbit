@@ -512,7 +512,7 @@ export default function RadioPage() {
   const offlineStations = stations.filter(s => !s.is_live);
 
   return (
-    <div className="min-h-screen max-w-7xl mx-auto px-4 lg:px-6 py-10">
+    <div className="min-h-screen w-full max-w-7xl mx-auto px-4 lg:px-6 py-10">
 
       {/* Header */}
       <div className="flex items-center justify-between gap-3 mb-8">

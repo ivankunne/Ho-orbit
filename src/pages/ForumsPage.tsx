@@ -305,7 +305,7 @@ export default function ForumsPage() {
   const allThreads = [...localThreads, ...threads];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 lg:px-6 py-10">
+    <div className="w-full max-w-7xl mx-auto px-4 lg:px-6 py-10">
       {view === 'categories' && (
         <>
           <div className="flex items-center justify-between mb-8">

@@ -59,7 +59,7 @@ export default function TutorialDetailPage() {
   const progress = tutorial.steps ? Math.round((completedSteps.size / tutorial.steps.length) * 100) : 0;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 lg:px-6 py-10">
+    <div className="w-full max-w-7xl mx-auto px-4 lg:px-6 py-10">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-slate-500 mb-6">
         <Link to="/tutorials" className="hover:text-violet-400 transition-colors flex items-center gap-1">

@@ -153,7 +153,7 @@ export default function UploadPage() {
 
   if (uploadState === 'success') {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-20 text-center">
+      <div className="w-full max-w-2xl mx-auto px-4 py-20 text-center">
         <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
           <CheckCircle size={40} className="text-green-400" />
         </div>
@@ -175,7 +175,7 @@ export default function UploadPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 lg:px-6 py-10">
+    <div className="w-full max-w-7xl mx-auto px-4 lg:px-6 py-10">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-white mb-2">Muziek uploaden</h1>
         <p className="text-slate-400">Deel je muziek met de h-orbit gemeenschap</p>

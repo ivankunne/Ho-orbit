@@ -23,7 +23,7 @@ export default function DutchScenePage() {
   }, []);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 lg:px-6 py-10">
+    <div className="w-full max-w-7xl mx-auto px-4 lg:px-6 py-10">
       {/* Header */}
       <div className="relative rounded-2xl overflow-hidden mb-12">
         <div className="h-56 lg:h-72 bg-gradient-to-r from-[#AE1C28] via-[#1a1a2e] to-[#21468B] relative">

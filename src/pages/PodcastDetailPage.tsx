@@ -179,7 +179,7 @@ export default function PodcastDetailPage() {
 
   if (!podcast) {
     return (
-      <div className="min-h-screen max-w-7xl mx-auto px-4 lg:px-6 py-10 text-center">
+      <div className="min-h-screen w-full max-w-7xl mx-auto px-4 lg:px-6 py-10 text-center">
         <p className="text-lg font-semibold text-white">Podcast niet gevonden</p>
         <Link to="/podcasts" className="text-violet-400 hover:text-violet-300 text-sm mt-2 inline-block">Terug naar Podcasts</Link>
       </div>
@@ -187,7 +187,7 @@ export default function PodcastDetailPage() {
   }
 
   return (
-    <div className="min-h-screen max-w-7xl mx-auto px-4 lg:px-6 py-10">
+    <div className="min-h-screen w-full max-w-7xl mx-auto px-4 lg:px-6 py-10">
       <Link to="/podcasts" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-white transition-colors mb-6">
         <ArrowLeft size={14} /> Podcasts
       </Link>

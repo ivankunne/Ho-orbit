@@ -39,7 +39,7 @@ export default function ArticleDetailPage() {
   const body = getBody(article);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 lg:px-6 py-8">
+    <div className="w-full max-w-7xl mx-auto px-4 lg:px-6 py-8">
       {/* Back */}
       <Link
         to="/magazine"

@@ -960,7 +960,7 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 lg:px-6 py-10">
+    <div className="w-full max-w-7xl mx-auto px-4 lg:px-6 py-10">
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
         <div className="w-10 h-10 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center">

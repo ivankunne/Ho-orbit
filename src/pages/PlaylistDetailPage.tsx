@@ -132,7 +132,7 @@ export default function PlaylistDetailPage() {
   if (!playlist) return null;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 lg:px-6 py-10">
+    <div className="w-full max-w-7xl mx-auto px-4 lg:px-6 py-10">
       <Link
         to="/library"
         className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white mb-6 transition-colors"

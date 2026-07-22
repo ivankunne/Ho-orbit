@@ -64,7 +64,7 @@ export default function ArtistsPage() {
   const featuredArtist = artists.find(a => a.featured);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 lg:px-6 py-10">
+    <div className="w-full max-w-7xl mx-auto px-4 lg:px-6 py-10">
       {/* Page header */}
       <header className="mb-8">
         <h1 className="text-3xl lg:text-4xl font-bold text-white mb-2">Artiesten</h1>

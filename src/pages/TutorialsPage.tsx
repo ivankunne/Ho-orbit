@@ -61,7 +61,7 @@ export default function TutorialsPage() {
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 lg:px-6 py-10">
+    <div className="w-full max-w-7xl mx-auto px-4 lg:px-6 py-10">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-white mb-2">Tutorials</h1>
         <p className="text-slate-400">Leer produceren, mixen, opnemen en meer van de gemeenschap</p>
