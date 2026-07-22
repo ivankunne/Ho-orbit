@@ -165,7 +165,7 @@ export default function LibraryPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 lg:px-6 py-10">
+    <div className="max-w-7xl mx-auto px-4 lg:px-6 py-10">
       <style>{`
         @keyframes eqBar0 { from { height: 20% } to { height: 90% } }
         @keyframes eqBar1 { from { height: 60% } to { height: 30% } }

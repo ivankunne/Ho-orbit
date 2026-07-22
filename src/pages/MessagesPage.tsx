@@ -39,7 +39,7 @@ export default function MessagesPage() {
   });
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 lg:px-6 py-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-white">Berichten</h1>
       </div>

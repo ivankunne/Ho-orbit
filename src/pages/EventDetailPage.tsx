@@ -118,7 +118,7 @@ export default function EventDetailPage() {
   const attendance = maxCapacity > 0 ? Math.round((attendeesCount / maxCapacity) * 100) : 0;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 lg:px-6 py-10">
+    <div className="max-w-7xl mx-auto px-4 lg:px-6 py-10">
       <Link
         to="/events"
         className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white mb-6 transition-colors"

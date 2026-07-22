@@ -96,7 +96,7 @@ export default function VenueDetailPage() {
           </Link>
         </div>
 
-        <div className="absolute bottom-0 left-0 right-0 px-6 lg:px-10 pb-8">
+        <div className="absolute bottom-0 left-0 right-0 px-4 lg:px-6 pb-8">
           <div className="max-w-7xl mx-auto">
             <div className="flex items-center gap-2 mb-2">
               <span
@@ -127,7 +127,7 @@ export default function VenueDetailPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 lg:px-10 py-10">
+      <div className="max-w-7xl mx-auto px-4 lg:px-6 py-10">
         <div className="grid lg:grid-cols-3 gap-10">
           {/* Main column */}
           <div className="lg:col-span-2 space-y-12">

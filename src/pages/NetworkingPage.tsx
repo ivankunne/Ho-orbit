@@ -165,7 +165,7 @@ export default function NetworkingPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 lg:px-6 py-10">
+    <div className="max-w-7xl mx-auto px-4 lg:px-6 py-10">
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div>

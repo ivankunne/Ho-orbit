@@ -250,7 +250,7 @@ export default function PodcastsPage() {
 
       {/* ── Studio — Podcast hosts & admins ── */}
       {isStudio && (
-        <div className="mt-6 pt-8 border-t border-white/8 max-w-3xl">
+        <div className="mt-6 pt-8 border-t border-white/8">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Settings2 size={16} className="text-slate-500" />

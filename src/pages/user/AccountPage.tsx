@@ -59,7 +59,7 @@ export default function AccountPage() {
   if (!user) return null;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 lg:px-6 py-10">
+    <div className="max-w-7xl mx-auto px-4 lg:px-6 py-10">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white mb-1">Accountinstellingen</h1>
         <p className="text-slate-400 text-sm">Beheer je profiel, meldingen en beveiliging</p>

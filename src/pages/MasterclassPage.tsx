@@ -109,7 +109,7 @@ export default function MasterclassPage() {
   const rest = masterclasses.slice(1);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 lg:px-6 py-10">
+    <div className="max-w-7xl mx-auto px-4 lg:px-6 py-10">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white mb-2">Masterclass Archief</h1>

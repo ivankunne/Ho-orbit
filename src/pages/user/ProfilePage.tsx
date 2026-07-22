@@ -231,7 +231,7 @@ export default function ProfilePage() {
         <div className="absolute inset-0 bg-gradient-to-t from-[#1a1528] via-[#1a1528]/20 to-transparent" />
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 lg:px-6">
+      <div className="max-w-7xl mx-auto px-4 lg:px-6">
         {/* Profielkop */}
         <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-16 mb-6 relative z-10">
           <UserAvatar

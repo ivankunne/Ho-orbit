@@ -387,7 +387,7 @@ export default function ForumThreadPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 lg:px-6 py-8">
+    <div className="max-w-7xl mx-auto px-4 lg:px-6 py-8">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-slate-500 mb-6">
         <Link to="/forums" className="hover:text-white transition-colors">Forums</Link>

@@ -931,7 +931,7 @@ export default function HubPage() {
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-amber-500/8 via-violet-600/5 to-transparent pointer-events-none" />
         <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-amber-400/5 blur-3xl pointer-events-none" />
-        <div className="max-w-4xl mx-auto px-4 lg:px-6 py-10 lg:py-14 relative">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6 py-10 lg:py-14 relative">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-xl bg-amber-400/15 border border-amber-400/30 flex items-center justify-center">
               <Zap size={18} className="text-amber-400" />
@@ -949,7 +949,7 @@ export default function HubPage() {
 
       {/* Section tabs */}
       <div className="sticky top-[calc(4rem+2.25rem)] z-30 bg-[#1a1528]/90 backdrop-blur-md border-b border-white/6">
-        <div className="max-w-4xl mx-auto px-4 lg:px-6">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6">
           <div className="flex gap-1 -mb-px overflow-x-auto scrollbar-hide">
             {SECTIONS.map(section => {
               const Icon = section.icon;
@@ -974,7 +974,7 @@ export default function HubPage() {
       </div>
 
       {/* Content */}
-      <div className="max-w-4xl mx-auto px-4 lg:px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 lg:px-6 py-8">
         {/* Section description */}
         <p className="text-sm text-slate-400 mb-6 leading-relaxed">{activeData.desc}</p>
 
