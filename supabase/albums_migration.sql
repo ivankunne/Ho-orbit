@@ -11,7 +11,25 @@
 -- Run in the Supabase Dashboard → SQL Editor. Safe to re-run — every
 -- statement is idempotent (CREATE TABLE IF NOT EXISTS / CREATE OR REPLACE /
 -- DROP POLICY IF EXISTS / ADD COLUMN IF NOT EXISTS).
+--
+-- NOTE: an unrelated `albums` table already existed in this project (old,
+-- unused dashboard scaffolding — never read/written by the app, which only
+-- ever read a dead `artist.albums` JSONB field, not a real table). Because
+-- `CREATE TABLE IF NOT EXISTS` no-ops when a table of that name already
+-- exists — regardless of its columns — the first run of this migration
+-- failed with `column "owner_id" does not exist`. The guard below drops that
+-- old table ONLY if it's confirmed empty, then this migration creates the
+-- real one fresh. If it ever has rows for some reason, the guard leaves it
+-- alone (so re-running this file is always safe either way).
 -- ============================================================================
+
+do $$
+begin
+  if to_regclass('public.albums') is not null
+     and (select count(*) from public.albums) = 0 then
+    execute 'drop table public.albums cascade';
+  end if;
+end $$;
 
 -- ─── Table ───────────────────────────────────────────────────────────────────
 
