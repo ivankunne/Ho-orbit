@@ -4,11 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import GenrePicker from '@components/GenrePicker';
 import { useAuth } from '@context/AuthContext';
 import { uploadTrack } from '@services/uploadService';
+import { getArtistAlbums, type Album } from '@services/albumService';
 import { addNotification } from '@services/notificationService';
 import { Input } from '@components/ui/input';
 import { Textarea } from '@components/ui/textarea';
 import { Checkbox } from '@components/ui/checkbox';
 import { Button } from '@components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@components/ui/select';
 
 const TAGS_OPTIONS = ['Instrumentaal', 'Akoestisch', 'Live opname', 'Demo', 'Remix', 'Cover', 'Origineel', 'Samenwerking'];
 
@@ -32,9 +34,16 @@ export default function UploadPage() {
     privateTrack: false,
     isrc: '',
     upc: '',
+    albumId: '',
   });
   const [isrcError, setIsrcError] = useState('');
   const [upcError, setUpcError] = useState('');
+  const [albums, setAlbums] = useState<Album[]>([]);
+
+  useEffect(() => {
+    if (typeof user?.id !== 'string') return;
+    getArtistAlbums(user.id).then(setAlbums);
+  }, [user?.id]);
 
   const fileRef = useRef();
   const artworkRef = useRef();
@@ -118,6 +127,7 @@ export default function UploadPage() {
         coverFile: artworkFile ?? undefined,
         isrc: form.isrc || undefined,
         upc: form.upc || undefined,
+        albumId: form.albumId || undefined,
         onStep: setUploadStep,
         onAudioProgress: setUploadProgress,
       });
@@ -146,7 +156,7 @@ export default function UploadPage() {
     setTrackFile(null);
     setArtworkFile(null);
     setSelectedTags([]);
-    setForm({ title: '', genre: '', description: '', explicit: false, privateTrack: false, isrc: '', upc: '' });
+    setForm({ title: '', genre: '', description: '', explicit: false, privateTrack: false, isrc: '', upc: '', albumId: '' });
     setIsrcError('');
     setUpcError('');
   };
@@ -284,6 +294,24 @@ export default function UploadPage() {
             <label className="block text-sm font-medium text-slate-300 mb-2">Genre</label>
             <GenrePicker value={form.genre} onChange={(val) => setForm({ ...form, genre: val })} />
           </div>
+
+          {albums.length > 0 && (
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Album <span className="text-slate-600 font-normal">(optioneel)</span>
+              </label>
+              <Select value={form.albumId || 'none'} onValueChange={(v) => setForm({ ...form, albumId: v === 'none' ? '' : v })}>
+                <SelectTrigger><SelectValue placeholder="Los nummer" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Los nummer</SelectItem>
+                  {albums.map(album => (
+                    <SelectItem key={album.id} value={album.id}>{album.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-600 mt-1">Nieuwe albums maak je aan vanaf je profiel</p>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">Artwork</label>

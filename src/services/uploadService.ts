@@ -37,6 +37,7 @@ export interface UploadedTrack {
   reviewedBy: string | null;
   isrc: string | null;
   upc: string | null;
+  albumId: string | null;
 }
 
 export function getAudioDuration(file: File): Promise<string> {
@@ -153,6 +154,16 @@ export async function uploadCoverFile(file: File, trackTitle: string): Promise<s
   return data.publicUrl;
 }
 
+export async function uploadAlbumCoverFile(file: File, albumTitle: string): Promise<string> {
+  const ext = file.name.split('.').pop() ?? 'jpg';
+  const safeName = albumTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+  const path = `albums/${Date.now()}_${safeName}.${ext}`;
+  const { error } = await supabase.storage.from('audio').upload(path, file, { contentType: file.type });
+  if (error) throw error;
+  const { data } = supabase.storage.from('audio').getPublicUrl(path);
+  return data.publicUrl;
+}
+
 export async function uploadEventPoster(file: File): Promise<string> {
   const ext = file.name.split('.').pop() ?? 'jpg';
   const path = `posters/${Date.now()}_${Math.round(Math.random() * 1e6)}.${ext}`;
@@ -163,11 +174,11 @@ export async function uploadEventPoster(file: File): Promise<string> {
 }
 
 export async function uploadTrack({
-  title, genre, description, tags, explicit, isPrivate, userId, artistName, audioFile, coverFile, isrc, upc, onStep, onAudioProgress,
+  title, genre, description, tags, explicit, isPrivate, userId, artistName, audioFile, coverFile, isrc, upc, albumId, onStep, onAudioProgress,
 }: {
   title: string; genre: string; description: string; tags: string[];
   explicit: boolean; isPrivate: boolean; userId: string; artistName: string;
-  audioFile?: File; coverFile?: File; isrc?: string; upc?: string;
+  audioFile?: File; coverFile?: File; isrc?: string; upc?: string; albumId?: string;
   onStep?: (step: 'audio' | 'cover' | 'saving') => void;
   onAudioProgress?: (pct: number) => void;
 }): Promise<UploadedTrack> {
@@ -209,6 +220,7 @@ export async function uploadTrack({
       upload_status: 'pending',
       isrc: isrc?.trim() || null,
       upc: upc?.trim() || null,
+      album_id: albumId || null,
     })
     .select()
     .single();
@@ -228,6 +240,7 @@ export async function uploadTrack({
 export async function updateTrack(trackId: string, userId: string, updates: {
   title?: string; genre?: string; description?: string; tags?: string[];
   explicit?: boolean; isPrivate?: boolean; coverFile?: File; isrc?: string; upc?: string;
+  albumId?: string | null;
 }): Promise<UploadedTrack> {
   let coverUrl: string | undefined;
   if (updates.coverFile) {
@@ -246,6 +259,7 @@ export async function updateTrack(trackId: string, userId: string, updates: {
   if (updates.isPrivate !== undefined) dbUpdates.is_private = updates.isPrivate;
   if (updates.isrc !== undefined) dbUpdates.isrc = updates.isrc?.trim() || null;
   if (updates.upc !== undefined) dbUpdates.upc = updates.upc?.trim() || null;
+  if (updates.albumId !== undefined) dbUpdates.album_id = updates.albumId || null;
   if (coverUrl) dbUpdates.cover_url = coverUrl;
 
   // Scope to the owner both in the filter (defense in depth) and via RLS —
@@ -322,7 +336,7 @@ export async function rejectUpload(trackId: string, reason?: string): Promise<vo
   if (error) throw error;
 }
 
-function mapTrack(d: Record<string, unknown>): UploadedTrack {
+export function mapTrack(d: Record<string, unknown>): UploadedTrack {
   return {
     id: String(d.id),
     title: d.title as string,
@@ -349,5 +363,6 @@ function mapTrack(d: Record<string, unknown>): UploadedTrack {
     reviewedBy: (d.reviewed_by as string) ?? null,
     isrc: (d.isrc as string) ?? null,
     upc: (d.upc as string) ?? null,
+    albumId: (d.album_id as string) ?? null,
   };
 }

@@ -29,8 +29,6 @@ function mapArtistRow(a: any) {
     social: a.social || {},
     tags: a.genre ? [a.genre] : [],
     featured: a.featured || false,
-    tracks: [],
-    albums: [],
   };
 }
 
@@ -54,8 +52,6 @@ export function mapProfileToArtist(p: any) {
     social: p.social || {},
     tags: genreIds.map(genreLabelById),
     featured: false,
-    tracks: [],
-    albums: [],
   };
 }
 

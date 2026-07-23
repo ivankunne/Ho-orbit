@@ -82,25 +82,7 @@ export interface Artist {
     donation?: string;
   };
   events: number[];
-  tracks: ArtistTrack[];
-  albums: Album[];
   featured: boolean;
-}
-
-export interface ArtistTrack {
-  id: number;
-  title: string;
-  plays: number;
-  duration: string;
-  album: string;
-}
-
-export interface Album {
-  id: number;
-  title: string;
-  year: number;
-  tracks: number;
-  cover: string;
 }
 
 // ============================================================

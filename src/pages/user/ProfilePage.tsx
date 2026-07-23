@@ -1,18 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { MapPin, Users, Music, Calendar, Heart, BadgeCheck, Settings, Share2, TrendingUp, Play, BarChart2, Clock, ExternalLink, Mail, Phone, Briefcase, MessageSquare, HandHeart, Pencil, Trash2 } from 'lucide-react';
+import { MapPin, Users, Music, Calendar, Heart, BadgeCheck, Settings, Share2, TrendingUp, Play, BarChart2, Clock, ExternalLink, Mail, Phone, Briefcase, MessageSquare, HandHeart, Pencil, Trash2, Plus } from 'lucide-react';
 import { normalizeDonationUrl, isTikkieUrl } from '@utils/donation';
 import { useAuth } from '@context/AuthContext';
 import UserAvatar from '@components/UserAvatar';
 import { useAppState } from '@context/AppStateContext';
 import { supabase } from '@/lib/supabase';
 import { fetchFollowedArtists, fetchFollowerProfiles, countFollowing } from '@utils/artistHelpers';
-import { getUploadedTracks, deleteTrack, type UploadedTrack } from '@services/uploadService';
+import { getUploadedTracks, deleteTrack, mapTrack, type UploadedTrack } from '@services/uploadService';
+import { getArtistAlbums, deleteAlbum, type Album } from '@services/albumService';
 import { getOrCreateConversation } from '@services/chatService';
 import { shareContent, buildShareUrl } from '@utils/share';
 import { coverPlaceholder } from '@utils/placeholder';
 import { useToast } from '@components/Toast';
 import EditTrackModal from '@components/EditTrackModal';
+import AlbumModal from '@components/AlbumModal';
+import AddTracksToAlbumModal from '@components/AddTracksToAlbumModal';
 
 
 const PLATFORM_CONFIG: Record<string, { label: string; badge: string; color: string; buildUrl: (v: string) => string }> = {
@@ -50,6 +53,10 @@ export default function ProfilePage() {
   const [followerList, setFollowerList] = useState<any[]>([]);
   const [editingTrack, setEditingTrack] = useState<UploadedTrack | null>(null);
   const [deletingTrackId, setDeletingTrackId] = useState<string | null>(null);
+  const [albums, setAlbums] = useState<Album[]>([]);
+  const [showAlbumModal, setShowAlbumModal] = useState(false);
+  const [editingAlbum, setEditingAlbum] = useState<Album | null>(null);
+  const [addingTracksToAlbum, setAddingTracksToAlbum] = useState<Album | null>(null);
   // Following count for *other* profiles (own-profile following = followedArtists.length).
   const [otherFollowingCount, setOtherFollowingCount] = useState(0);
 
@@ -82,6 +89,30 @@ export default function ProfilePage() {
     } finally {
       setDeletingTrackId(null);
     }
+  }
+
+  function handleAlbumSaved(album: Album) {
+    setAlbums(prev => prev.some(a => a.id === album.id) ? prev.map(a => a.id === album.id ? album : a) : [...prev, album]);
+    setShowAlbumModal(false);
+    setEditingAlbum(null);
+  }
+
+  async function handleDeleteAlbum(album: Album) {
+    if (!currentUser?.id) return;
+    if (!window.confirm(`Album "${album.title}" verwijderen? De nummers erin blijven bestaan als losse nummers.`)) return;
+    const ok = await deleteAlbum(album.id, currentUser.id);
+    if (!ok) { addToast('Verwijderen mislukt', 'error'); return; }
+    setAlbums(prev => prev.filter(a => a.id !== album.id));
+    setUploadedTracks(prev => prev.map(t => t.albumId === album.id ? { ...t, albumId: null } : t));
+    addToast('Album verwijderd', 'success');
+  }
+
+  function handleTracksAddedToAlbum(trackIds: string[]) {
+    if (!addingTracksToAlbum) return;
+    const albumId = addingTracksToAlbum.id;
+    setUploadedTracks(prev => prev.map(t => trackIds.includes(t.id) ? { ...t, albumId } : t));
+    setAddingTracksToAlbum(null);
+    addToast('Nummers toegevoegd aan album', 'success');
   }
 
   async function handleStartChat() {
@@ -129,7 +160,7 @@ export default function ProfilePage() {
             .eq('uploaded_by', data.id)
             .eq('upload_status', 'approved')
             .order('created_at', { ascending: false })
-            .then(({ data: tracks }) => setUploadedTracks((tracks ?? []) as any));
+            .then(({ data: tracks }) => setUploadedTracks((tracks ?? []).map(mapTrack)));
         }
         setProfileLoading(false);
       });
@@ -141,6 +172,14 @@ export default function ProfilePage() {
     getUploadedTracks(typeof currentUser?.id === 'string' ? currentUser.id : undefined)
       .then(setUploadedTracks);
   }, [isOwnProfile]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load this profile's albums — public read RLS means visitors see them too,
+  // not just the owner.
+  useEffect(() => {
+    const pid = isOwnProfile ? currentUser?.id : otherProfile?.id;
+    if (typeof pid !== 'string') { setAlbums([]); return; }
+    getArtistAlbums(pid).then(setAlbums);
+  }, [isOwnProfile, currentUser?.id, otherProfile?.id]);
 
   useEffect(() => {
     if (isOwnProfile) {
@@ -212,6 +251,54 @@ export default function ProfilePage() {
   if (profileLoading || !profileUser) return (
     <div className="flex items-center justify-center min-h-64 text-slate-500">Laden…</div>
   );
+
+  function renderTrackRow(track: UploadedTrack, i: number) {
+    return (
+      <div key={track.id} className="flex items-center gap-4 p-3 hover:bg-white/4 rounded-xl group transition-colors">
+        <span className="w-5 text-center text-sm text-slate-600 shrink-0">{i + 1}</span>
+        <img
+          src={track.cover || coverPlaceholder(String(track.id))}
+          alt={track.title}
+          className="w-10 h-10 rounded-lg object-cover shrink-0"
+        />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-white truncate">{track.title}</p>
+          <p className="text-xs text-slate-400">{track.artist || 'Onbekend'} · {track.genre}</p>
+        </div>
+        <span className="text-xs text-slate-500 shrink-0">{track.duration}</span>
+        {track.status === 'pending' && (
+          <span className="flex items-center gap-1 text-xs bg-yellow-500/15 text-yellow-400 px-2 py-0.5 rounded-full shrink-0">
+            <Clock size={10} /> In behandeling
+          </span>
+        )}
+        {track.status === 'approved' && (
+          <span className="text-xs bg-green-500/15 text-green-400 px-2 py-0.5 rounded-full shrink-0">Goedgekeurd</span>
+        )}
+        {track.status === 'rejected' && (
+          <span className="text-xs bg-red-500/15 text-red-400 px-2 py-0.5 rounded-full shrink-0">Afgewezen</span>
+        )}
+        {isOwnProfile && (
+          <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={() => setEditingTrack(track)}
+              title="Bewerken"
+              className="p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors"
+            >
+              <Pencil size={13} />
+            </button>
+            <button
+              onClick={() => handleDeleteTrack(track.id)}
+              disabled={deletingTrackId === track.id}
+              title="Verwijderen"
+              className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
+            >
+              <Trash2 size={13} />
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   const tabs = [
     { key: 'nummers', label: 'Nummers', count: uploadedTracks.length },
@@ -340,6 +427,17 @@ export default function ProfilePage() {
         {/* Nummers tab */}
         {activeTab === 'nummers' && (
           <div>
+            {isOwnProfile && (
+              <div className="flex justify-end mb-4">
+                <button
+                  onClick={() => { setEditingAlbum(null); setShowAlbumModal(true); }}
+                  className="flex items-center gap-1.5 bg-violet-600/15 hover:bg-violet-600/25 border border-violet-500/30 text-violet-400 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+                >
+                  <Plus size={13} /> Album toevoegen
+                </button>
+              </div>
+            )}
+
             {uploadedTracks.length === 0 ? (
               <div className="text-center py-16">
                 <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -353,54 +451,70 @@ export default function ProfilePage() {
                 )}
               </div>
             ) : (
-              <div className="space-y-2">
-                {uploadedTracks.map((track, i) => (
-                  <div key={track.id} className="flex items-center gap-4 p-3 hover:bg-white/4 rounded-xl group transition-colors">
-                    <span className="w-5 text-center text-sm text-slate-600 shrink-0">{i + 1}</span>
-                    <img
-                      src={track.cover || coverPlaceholder(String(track.id))}
-                      alt={track.title}
-                      className="w-10 h-10 rounded-lg object-cover shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white truncate">{track.title}</p>
-                      <p className="text-xs text-slate-400">{track.artist || 'Onbekend'} · {track.genre}</p>
-                    </div>
-                    <span className="text-xs text-slate-500 shrink-0">{track.duration}</span>
-                    {track.status === 'pending' && (
-                      <span className="flex items-center gap-1 text-xs bg-yellow-500/15 text-yellow-400 px-2 py-0.5 rounded-full shrink-0">
-                        <Clock size={10} /> In behandeling
-                      </span>
-                    )}
-                    {track.status === 'approved' && (
-                      <span className="text-xs bg-green-500/15 text-green-400 px-2 py-0.5 rounded-full shrink-0">Goedgekeurd</span>
-                    )}
-                    {track.status === 'rejected' && (
-                      <span className="text-xs bg-red-500/15 text-red-400 px-2 py-0.5 rounded-full shrink-0">Afgewezen</span>
-                    )}
-                    {isOwnProfile && (
-                      <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => setEditingTrack(track)}
-                          title="Bewerken"
-                          className="p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors"
-                        >
-                          <Pencil size={13} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteTrack(track.id)}
-                          disabled={deletingTrackId === track.id}
-                          title="Verwijderen"
-                          className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
-                        >
-                          <Trash2 size={13} />
-                        </button>
+              <div className="space-y-8">
+                {albums.map(album => {
+                  const albumTracks = uploadedTracks.filter(t => t.albumId === album.id);
+                  if (albumTracks.length === 0 && !isOwnProfile) return null;
+                  return (
+                    <div key={album.id}>
+                      <div className="flex items-center gap-3 mb-3">
+                        <img
+                          src={album.coverUrl || coverPlaceholder(album.title)}
+                          alt={album.title}
+                          className="w-12 h-12 rounded-xl object-cover shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-white truncate">{album.title}</p>
+                          <p className="text-xs text-slate-500">
+                            {album.releaseDate ? `${new Date(`${album.releaseDate}T00:00:00`).getFullYear()} · ` : ''}
+                            {albumTracks.length} {albumTracks.length === 1 ? 'nummer' : 'nummers'}
+                          </p>
+                        </div>
+                        {isOwnProfile && (
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button onClick={() => setAddingTracksToAlbum(album)} title="Nummers toevoegen"
+                              className="p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors">
+                              <Plus size={14} />
+                            </button>
+                            <button onClick={() => { setEditingAlbum(album); setShowAlbumModal(true); }} title="Album bewerken"
+                              className="p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors">
+                              <Pencil size={13} />
+                            </button>
+                            <button onClick={() => handleDeleteAlbum(album)} title="Album verwijderen"
+                              className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                ))}
+                      {albumTracks.length > 0 ? (
+                        <div className="space-y-2">
+                          {albumTracks.map((track, i) => renderTrackRow(track, i))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-600 pl-1">Nog geen nummers in dit album.</p>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {(() => {
+                  const singles = uploadedTracks.filter(t => !t.albumId);
+                  if (singles.length === 0) return null;
+                  return (
+                    <div>
+                      {albums.length > 0 && (
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Losse nummers</p>
+                      )}
+                      <div className="space-y-2">
+                        {singles.map((track, i) => renderTrackRow(track, i))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {isOwnProfile && (
-                  <div className="pt-4 text-center">
+                  <div className="pt-2 text-center">
                     <Link to="/upload" className="text-sm text-violet-400 hover:text-violet-300 transition-colors">
                       + Nog een nummer uploaden
                     </Link>
@@ -705,12 +819,32 @@ export default function ProfilePage() {
         <EditTrackModal
           track={editingTrack}
           userId={currentUser.id}
+          albums={albums}
           onClose={() => setEditingTrack(null)}
           onSaved={updated => {
             setUploadedTracks(prev => prev.map(t => t.id === updated.id ? updated : t));
             setEditingTrack(null);
             addToast('Nummer bijgewerkt', 'success');
           }}
+        />
+      )}
+
+      {showAlbumModal && currentUser?.id && (
+        <AlbumModal
+          album={editingAlbum}
+          userId={currentUser.id}
+          onClose={() => { setShowAlbumModal(false); setEditingAlbum(null); }}
+          onSaved={handleAlbumSaved}
+        />
+      )}
+
+      {addingTracksToAlbum && currentUser?.id && (
+        <AddTracksToAlbumModal
+          album={addingTracksToAlbum}
+          tracks={uploadedTracks.filter(t => !t.albumId)}
+          userId={currentUser.id}
+          onClose={() => setAddingTracksToAlbum(null)}
+          onAdded={handleTracksAddedToAlbum}
         />
       )}
     </div>

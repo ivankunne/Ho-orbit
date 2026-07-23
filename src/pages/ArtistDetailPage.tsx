@@ -18,6 +18,7 @@ import { mapProfileToArtist, countFollowers } from '@utils/artistHelpers';
 import { avatarPlaceholder, coverPlaceholder } from '@utils/placeholder';
 import { normalizeDonationUrl, isTikkieUrl } from '@utils/donation';
 import { getOrCreateConversation } from '@services/chatService';
+import { getArtistAlbums, type Album } from '@services/albumService';
 
 export default function ArtistDetailPage() {
   const { slug } = useParams();
@@ -27,6 +28,7 @@ export default function ArtistDetailPage() {
   const [artist, setArtist] = useState<any>(null);
   const [artistEvents, setArtistEvents] = useState<any[]>([]);
   const [uploadedTracks, setUploadedTracks] = useState<any[]>([]);
+  const [albums, setAlbums] = useState<Album[]>([]);
   const [loading, setLoading] = useState(true);
   const [startingChat, setStartingChat] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
@@ -100,6 +102,11 @@ export default function ArtistDetailPage() {
           : tracksQuery.ilike('artist_name', artistData.name)
         ).order('created_at', { ascending: false })
           .then(({ data: uTracks }) => { if (active) setUploadedTracks(uTracks ?? []); });
+
+        // Albums are owned by a real profile — only fetchable when linked.
+        if (artistData.profile_id) {
+          getArtistAlbums(artistData.profile_id).then(a => { if (active) setAlbums(a); });
+        }
       }
     }
 
@@ -188,7 +195,6 @@ export default function ArtistDetailPage() {
   const donationUrl = normalizeDonationUrl(social.donation);
   const isOwner = !!user && !!artist.profile_id && artist.profile_id === user.id;
   const tags: string[] = Array.isArray(artist.tags) ? artist.tags : [];
-  const albums: any[] = Array.isArray(artist.albums) ? artist.albums : [];
 
   return (
     <div>
@@ -394,7 +400,7 @@ export default function ArtistDetailPage() {
                           <span className="text-[10px] bg-violet-500/20 text-violet-400 border border-violet-500/25 px-1.5 py-0.5 rounded">Upload</span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-400">{track.album ?? track.genre}</p>
+                      <p className="text-xs text-slate-400">{albums.find(a => a.id === track.album_id)?.title ?? track.genre}</p>
                     </div>
                     <span className="text-xs text-slate-500 hidden sm:block">{formatPlays(track.plays ?? 0)} streams</span>
                     <span className="text-xs text-slate-500">{track.duration}</span>
@@ -450,25 +456,37 @@ export default function ArtistDetailPage() {
 
           {/* Tab: Albums */}
           <TabsContent value="albums" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {albums.map(album => (
-              <div
-                key={album.id}
-                className="group bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl overflow-hidden cursor-pointer transition-all"
-              >
-                <div className="relative aspect-square overflow-hidden">
-                  <img src={album.cover} alt={album.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                    <button className="w-12 h-12 bg-violet-600 rounded-full flex items-center justify-center">
-                      <Play size={20} className="text-white ml-0.5" fill="white" />
-                    </button>
+            {albums.length === 0 ? (
+              <p className="col-span-full text-sm text-slate-500 text-center py-10">Nog geen albums.</p>
+            ) : albums.map(album => {
+              const trackCount = uploadedTracks.filter(t => t.album_id === album.id).length;
+              return (
+                <div
+                  key={album.id}
+                  className="group bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl overflow-hidden cursor-pointer transition-all"
+                >
+                  <div className="relative aspect-square overflow-hidden">
+                    <img
+                      src={album.coverUrl || coverPlaceholder(album.title)}
+                      alt={album.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                      <button className="w-12 h-12 bg-violet-600 rounded-full flex items-center justify-center">
+                        <Play size={20} className="text-white ml-0.5" fill="white" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="p-3">
+                    <p className="text-sm font-semibold text-white">{album.title}</p>
+                    <p className="text-xs text-slate-400">
+                      {album.releaseDate ? `${new Date(`${album.releaseDate}T00:00:00`).getFullYear()} · ` : ''}
+                      {trackCount} {trackCount === 1 ? 'nummer' : 'nummers'}
+                    </p>
                   </div>
                 </div>
-                <div className="p-3">
-                  <p className="text-sm font-semibold text-white">{album.title}</p>
-                  <p className="text-xs text-slate-400">{album.year} · {album.tracks} nummers</p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </TabsContent>
 
           {/* Tab: Evenementen */}

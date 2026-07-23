@@ -2,18 +2,21 @@ import { useState, useRef } from 'react';
 import { X, Image, Loader } from 'lucide-react';
 import GenrePicker from '@components/GenrePicker';
 import { updateTrack, type UploadedTrack } from '@services/uploadService';
+import { type Album } from '@services/albumService';
 import { Input } from '@components/ui/input';
 import { Textarea } from '@components/ui/textarea';
 import { Checkbox } from '@components/ui/checkbox';
 import { Button } from '@components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@components/ui/select';
 
 const TAGS_OPTIONS = ['Instrumentaal', 'Akoestisch', 'Live opname', 'Demo', 'Remix', 'Cover', 'Origineel', 'Samenwerking'];
 
 export default function EditTrackModal({
-  track, userId, onClose, onSaved,
+  track, userId, albums, onClose, onSaved,
 }: {
   track: UploadedTrack;
   userId: string;
+  albums: Album[];
   onClose: () => void;
   onSaved: (updated: UploadedTrack) => void;
 }) {
@@ -26,6 +29,7 @@ export default function EditTrackModal({
     isPrivate: track.isPrivate || false,
     isrc: track.isrc || '',
     upc: track.upc || '',
+    albumId: track.albumId || '',
   });
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
@@ -98,6 +102,21 @@ export default function EditTrackModal({
             <label className="block text-sm font-medium text-slate-300 mb-2">Genre</label>
             <GenrePicker value={form.genre} onChange={val => set('genre', val)} />
           </div>
+
+          {albums.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Album</label>
+              <Select value={form.albumId || 'none'} onValueChange={v => set('albumId', v === 'none' ? '' : v)}>
+                <SelectTrigger><SelectValue placeholder="Geen album" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Geen album</SelectItem>
+                  {albums.map(album => (
+                    <SelectItem key={album.id} value={album.id}>{album.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">Omschrijving</label>
