@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { MapPin, Users, Music, Calendar, Heart, BadgeCheck, Settings, Share2, TrendingUp, Play, BarChart2, Clock, ExternalLink, Mail, Phone, Briefcase, MessageSquare, HandHeart, Pencil, Trash2, Plus } from 'lucide-react';
+import { MapPin, Users, Music, Calendar, Heart, BadgeCheck, Settings, Share2, TrendingUp, Play, BarChart2, Clock, ExternalLink, Mail, Phone, Briefcase, MessageSquare, HandHeart, Pencil, Trash2, Plus, ChevronUp, ChevronDown } from 'lucide-react';
 import { normalizeDonationUrl, isTikkieUrl } from '@utils/donation';
 import { useAuth } from '@context/AuthContext';
 import UserAvatar from '@components/UserAvatar';
 import { useAppState } from '@context/AppStateContext';
 import { supabase } from '@/lib/supabase';
 import { fetchFollowedArtists, fetchFollowerProfiles, countFollowing } from '@utils/artistHelpers';
-import { getUploadedTracks, deleteTrack, mapTrack, type UploadedTrack } from '@services/uploadService';
-import { getArtistAlbums, deleteAlbum, type Album } from '@services/albumService';
+import { getUploadedTracks, deleteTrack, mapTrack, reorderAlbumTracks, type UploadedTrack } from '@services/uploadService';
+import { getArtistAlbums, deleteAlbum, reorderAlbums, type Album } from '@services/albumService';
 import { getOrCreateConversation } from '@services/chatService';
 import { shareContent, buildShareUrl } from '@utils/share';
 import { coverPlaceholder } from '@utils/placeholder';
@@ -113,6 +113,32 @@ export default function ProfilePage() {
     setUploadedTracks(prev => prev.map(t => trackIds.includes(t.id) ? { ...t, albumId } : t));
     setAddingTracksToAlbum(null);
     addToast('Nummers toegevoegd aan album', 'success');
+  }
+
+  async function handleMoveAlbum(albumId: string, direction: 'up' | 'down') {
+    if (!currentUser?.id) return;
+    const idx = albums.findIndex(a => a.id === albumId);
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (idx === -1 || swapIdx < 0 || swapIdx >= albums.length) return;
+    const reordered = [...albums];
+    [reordered[idx], reordered[swapIdx]] = [reordered[swapIdx], reordered[idx]];
+    setAlbums(reordered); // optimistic
+    const ok = await reorderAlbums(currentUser.id, reordered.map(a => a.id));
+    if (!ok) { setAlbums(albums); addToast('Volgorde wijzigen mislukt', 'error'); }
+  }
+
+  async function handleMoveTrack(albumId: string, trackId: string, direction: 'up' | 'down') {
+    if (!currentUser?.id) return;
+    const albumTracks = uploadedTracks.filter(t => t.albumId === albumId);
+    const idx = albumTracks.findIndex(t => t.id === trackId);
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (idx === -1 || swapIdx < 0 || swapIdx >= albumTracks.length) return;
+    const reorderedAlbumTracks = [...albumTracks];
+    [reorderedAlbumTracks[idx], reorderedAlbumTracks[swapIdx]] = [reorderedAlbumTracks[swapIdx], reorderedAlbumTracks[idx]];
+    const otherTracks = uploadedTracks.filter(t => t.albumId !== albumId);
+    setUploadedTracks([...otherTracks, ...reorderedAlbumTracks]); // optimistic
+    const ok = await reorderAlbumTracks(currentUser.id, reorderedAlbumTracks.map(t => t.id));
+    if (!ok) { setUploadedTracks(uploadedTracks); addToast('Volgorde wijzigen mislukt', 'error'); }
   }
 
   async function handleStartChat() {
@@ -252,7 +278,10 @@ export default function ProfilePage() {
     <div className="flex items-center justify-center min-h-64 text-slate-500">Laden…</div>
   );
 
-  function renderTrackRow(track: UploadedTrack, i: number) {
+  function renderTrackRow(
+    track: UploadedTrack, i: number,
+    reorder?: { isFirst: boolean; isLast: boolean; onMoveUp: () => void; onMoveDown: () => void },
+  ) {
     return (
       <div key={track.id} className="flex items-center gap-4 p-3 hover:bg-white/4 rounded-xl group transition-colors">
         <span className="w-5 text-center text-sm text-slate-600 shrink-0">{i + 1}</span>
@@ -279,6 +308,26 @@ export default function ProfilePage() {
         )}
         {isOwnProfile && (
           <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+            {reorder && (
+              <>
+                <button
+                  onClick={reorder.onMoveUp}
+                  disabled={reorder.isFirst}
+                  title="Omhoog verplaatsen"
+                  className="p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors disabled:opacity-30 disabled:pointer-events-none"
+                >
+                  <ChevronUp size={13} />
+                </button>
+                <button
+                  onClick={reorder.onMoveDown}
+                  disabled={reorder.isLast}
+                  title="Omlaag verplaatsen"
+                  className="p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors disabled:opacity-30 disabled:pointer-events-none"
+                >
+                  <ChevronDown size={13} />
+                </button>
+              </>
+            )}
             <button
               onClick={() => setEditingTrack(track)}
               title="Bewerken"
@@ -453,7 +502,7 @@ export default function ProfilePage() {
               </div>
             ) : (
               <div className="space-y-8">
-                {albums.map(album => {
+                {albums.map((album, albumIdx) => {
                   const albumTracks = uploadedTracks.filter(t => t.albumId === album.id);
                   if (albumTracks.length === 0 && !isOwnProfile) return null;
                   return (
@@ -475,6 +524,14 @@ export default function ProfilePage() {
                         </Link>
                         {isOwnProfile && (
                           <div className="flex items-center gap-1 shrink-0">
+                            <button onClick={() => handleMoveAlbum(album.id, 'up')} disabled={albumIdx === 0} title="Album omhoog"
+                              className="p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors disabled:opacity-30 disabled:pointer-events-none">
+                              <ChevronUp size={13} />
+                            </button>
+                            <button onClick={() => handleMoveAlbum(album.id, 'down')} disabled={albumIdx === albums.length - 1} title="Album omlaag"
+                              className="p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors disabled:opacity-30 disabled:pointer-events-none">
+                              <ChevronDown size={13} />
+                            </button>
                             <button onClick={() => setAddingTracksToAlbum(album)} title="Nummers toevoegen"
                               className="p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors">
                               <Plus size={14} />
@@ -492,7 +549,11 @@ export default function ProfilePage() {
                       </div>
                       {albumTracks.length > 0 ? (
                         <div className="space-y-2">
-                          {albumTracks.map((track, i) => renderTrackRow(track, i))}
+                          {albumTracks.map((track, i) => renderTrackRow(track, i, isOwnProfile ? {
+                            isFirst: i === 0, isLast: i === albumTracks.length - 1,
+                            onMoveUp: () => handleMoveTrack(album.id, track.id, 'up'),
+                            onMoveDown: () => handleMoveTrack(album.id, track.id, 'down'),
+                          } : undefined))}
                         </div>
                       ) : (
                         <p className="text-xs text-slate-600 pl-1">Nog geen nummers in dit album.</p>
@@ -845,6 +906,7 @@ export default function ProfilePage() {
         <AddTracksToAlbumModal
           album={addingTracksToAlbum}
           tracks={uploadedTracks.filter(t => !t.albumId)}
+          existingTrackCount={uploadedTracks.filter(t => t.albumId === addingTracksToAlbum.id).length}
           userId={currentUser.id}
           onClose={() => setAddingTracksToAlbum(null)}
           onAdded={handleTracksAddedToAlbum}

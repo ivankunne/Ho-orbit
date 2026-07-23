@@ -6,10 +6,11 @@ import { Button } from '@components/ui/button';
 import { coverPlaceholder } from '@utils/placeholder';
 
 export default function AddTracksToAlbumModal({
-  album, tracks, userId, onClose, onAdded,
+  album, tracks, existingTrackCount, userId, onClose, onAdded,
 }: {
   album: Album;
   tracks: UploadedTrack[];
+  existingTrackCount: number;
   userId: string;
   onClose: () => void;
   onAdded: (trackIds: string[]) => void;
@@ -27,7 +28,11 @@ export default function AddTracksToAlbumModal({
     setSaving(true);
     setError('');
     try {
-      await Promise.all(selected.map(trackId => updateTrack(trackId, userId, { albumId: album.id })));
+      // Appends after whatever's already in the album, rather than letting
+      // sort_order default to 0 and collide with the album's existing first track.
+      await Promise.all(selected.map((trackId, i) =>
+        updateTrack(trackId, userId, { albumId: album.id, sortOrder: existingTrackCount + i }),
+      ));
       onAdded(selected);
     } catch (e: any) {
       setError(e?.message || 'Toevoegen is mislukt. Probeer het opnieuw.');

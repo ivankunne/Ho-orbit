@@ -38,6 +38,7 @@ export interface UploadedTrack {
   isrc: string | null;
   upc: string | null;
   albumId: string | null;
+  sortOrder: number;
 }
 
 export function getAudioDuration(file: File): Promise<string> {
@@ -240,7 +241,7 @@ export async function uploadTrack({
 export async function updateTrack(trackId: string, userId: string, updates: {
   title?: string; genre?: string; description?: string; tags?: string[];
   explicit?: boolean; isPrivate?: boolean; coverFile?: File; isrc?: string; upc?: string;
-  albumId?: string | null;
+  albumId?: string | null; sortOrder?: number;
 }): Promise<UploadedTrack> {
   let coverUrl: string | undefined;
   if (updates.coverFile) {
@@ -260,6 +261,7 @@ export async function updateTrack(trackId: string, userId: string, updates: {
   if (updates.isrc !== undefined) dbUpdates.isrc = updates.isrc?.trim() || null;
   if (updates.upc !== undefined) dbUpdates.upc = updates.upc?.trim() || null;
   if (updates.albumId !== undefined) dbUpdates.album_id = updates.albumId || null;
+  if (updates.sortOrder !== undefined) dbUpdates.sort_order = updates.sortOrder;
   if (coverUrl) dbUpdates.cover_url = coverUrl;
 
   // Scope to the owner both in the filter (defense in depth) and via RLS —
@@ -298,8 +300,19 @@ export async function getAlbumTracks(albumId: string): Promise<UploadedTrack[]> 
     .select('*')
     .eq('album_id', albumId)
     .eq('upload_status', 'approved')
-    .order('created_at', { ascending: true });
+    .order('sort_order', { ascending: true });
   return (data ?? []).map(mapTrack);
+}
+
+// Persists a new track order within an album (index in the array = new
+// sort_order). Scoped to userId both in the filter (defense in depth) and via RLS.
+export async function reorderAlbumTracks(userId: string, orderedTrackIds: string[]): Promise<boolean> {
+  const results = await Promise.all(
+    orderedTrackIds.map((trackId, index) =>
+      supabase.from('tracks').update({ sort_order: index }).eq('id', trackId).eq('uploaded_by', userId),
+    ),
+  );
+  return results.every(r => !r.error);
 }
 
 export async function getAllUploads(): Promise<UploadedTrack[]> {
@@ -375,5 +388,6 @@ export function mapTrack(d: Record<string, unknown>): UploadedTrack {
     isrc: (d.isrc as string) ?? null,
     upc: (d.upc as string) ?? null,
     albumId: (d.album_id as string) ?? null,
+    sortOrder: (d.sort_order as number) ?? 0,
   };
 }

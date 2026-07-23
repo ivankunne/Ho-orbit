@@ -11,6 +11,7 @@ export interface Album {
   genre: string | null;
   coverUrl: string | null;
   releaseDate: string | null;
+  sortOrder: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -24,6 +25,7 @@ function mapAlbum(d: Record<string, unknown>): Album {
     genre: (d.genre as string) ?? null,
     coverUrl: (d.cover_url as string) ?? null,
     releaseDate: (d.release_date as string) ?? null,
+    sortOrder: (d.sort_order as number) ?? 0,
     createdAt: d.created_at as string,
     updatedAt: d.updated_at as string,
   };
@@ -34,8 +36,7 @@ export async function getArtistAlbums(ownerId: string): Promise<Album[]> {
     .from('albums')
     .select('*')
     .eq('owner_id', ownerId)
-    .order('release_date', { ascending: false, nullsFirst: false })
-    .order('created_at', { ascending: false });
+    .order('sort_order', { ascending: true });
   return (data ?? []).map(mapAlbum);
 }
 
@@ -43,6 +44,17 @@ export async function getArtistAlbums(ownerId: string): Promise<Album[]> {
 export async function getAlbum(albumId: string): Promise<Album | null> {
   const { data } = await supabase.from('albums').select('*').eq('id', albumId).maybeSingle();
   return data ? mapAlbum(data) : null;
+}
+
+// Persists a new album order (index in the array = new sort_order). Scoped
+// to ownerId both in the filter (defense in depth) and via RLS.
+export async function reorderAlbums(ownerId: string, orderedAlbumIds: string[]): Promise<boolean> {
+  const results = await Promise.all(
+    orderedAlbumIds.map((albumId, index) =>
+      supabase.from('albums').update({ sort_order: index }).eq('id', albumId).eq('owner_id', ownerId),
+    ),
+  );
+  return results.every(r => !r.error);
 }
 
 export async function createAlbum(ownerId: string, input: {
@@ -57,6 +69,11 @@ export async function createAlbum(ownerId: string, input: {
     }
   }
 
+  // New albums go to the end of the manually-ordered list, not sort_order's
+  // default of 0 (which would collide with whatever is currently first).
+  const { count } = await supabase
+    .from('albums').select('id', { count: 'exact', head: true }).eq('owner_id', ownerId);
+
   const { data, error } = await supabase
     .from('albums')
     .insert({
@@ -66,6 +83,7 @@ export async function createAlbum(ownerId: string, input: {
       genre: input.genre || null,
       release_date: input.releaseDate || null,
       cover_url: coverUrl,
+      sort_order: count ?? 0,
     })
     .select()
     .single();
