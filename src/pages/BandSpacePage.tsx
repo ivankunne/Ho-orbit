@@ -112,9 +112,9 @@ export default function BandSpacePage() {
       return;
     }
 
-    // Creator is automatically an active admin — no approval needed
+    // Creator is automatically the active owner — no approval needed
     const { error: memberError } = await supabase.from('band_members').insert({
-      band_id: band.id, user_id: user.id, role: 'admin', status: 'active',
+      band_id: band.id, user_id: user.id, role: 'owner', status: 'active',
     });
 
     if (memberError) {
