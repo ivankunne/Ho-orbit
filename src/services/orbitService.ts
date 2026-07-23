@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { type RecurrenceRule, generateOccurrenceDates } from '@lib/recurrence';
 
 export type ChannelKey = 'rehearsals' | 'gigs' | 'socials' | 'magazine' | 'media' | 'collabs';
 
@@ -76,6 +77,30 @@ export async function uploadBandMedia(
   const type: 'image' | 'video' | 'file' = file.type.startsWith('image/')
     ? 'image' : file.type.startsWith('video/') ? 'video' : 'file';
   return { url: publicUrl, type };
+}
+
+export async function uploadBandAvatar(file: File, bandId: string): Promise<string> {
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+  const path = `avatars/${bandId}_${Date.now()}.${ext}`;
+  const { error } = await supabase.storage
+    .from('band-media')
+    .upload(path, file, { contentType: file.type, upsert: true });
+  if (error) throw error;
+  const { data } = supabase.storage.from('band-media').getPublicUrl(path);
+  await supabase.from('bands').update({ image_url: data.publicUrl }).eq('id', bandId);
+  return data.publicUrl;
+}
+
+export async function uploadBandCover(file: File, bandId: string): Promise<string> {
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+  const path = `covers/${bandId}_${Date.now()}.${ext}`;
+  const { error } = await supabase.storage
+    .from('band-media')
+    .upload(path, file, { contentType: file.type, upsert: true });
+  if (error) throw error;
+  const { data } = supabase.storage.from('band-media').getPublicUrl(path);
+  await supabase.from('bands').update({ cover_url: data.publicUrl }).eq('id', bandId);
+  return data.publicUrl;
 }
 
 /** Delete the file behind a band-media public URL (best-effort). */
@@ -180,11 +205,57 @@ export interface BandEvent {
   description: string | null;
   event_date: string;
   event_time: string | null;
+  end_time: string | null;
   type: EventType;
   channel: string | null;
   created_by: string | null;
   is_pinned?: boolean;
   created_at: string;
+  location: string | null;
+  address: string | null;
+  maps_link: string | null;
+  gage: number | null;
+  travel_cost: number | null;
+  other_costs: number | null;
+  is_paid: boolean;
+  invoice_sent: boolean;
+  agreements: string | null;
+  profit_split_mode: 'equal' | 'manual';
+  parent_event_id?: string | null;
+  recurrence_freq?: RecurrenceRule['freq'] | null;
+  recurrence_interval?: number;
+  recurrence_days_of_week?: number[] | null;
+  recurrence_until?: string | null;
+  recurrence_count?: number | null;
+  is_occurrence_modified?: boolean;
+  is_cancelled?: boolean;
+}
+
+export interface BandEventProfitSplit {
+  event_id: string;
+  user_id: string;
+  amount: number;
+  updated_at: string;
+}
+
+export interface BandEventContact {
+  id: string;
+  event_id: string;
+  name: string;
+  role: string | null;
+  phone: string | null;
+  email: string | null;
+  created_at: string;
+}
+
+export type RsvpStatus = 'yes' | 'no' | 'maybe';
+
+export interface BandEventRsvp {
+  event_id: string;
+  user_id: string;
+  status: RsvpStatus;
+  updated_at: string;
+  profile?: { id: string; username: string | null; display_name: string | null; avatar_url: string | null };
 }
 
 export async function getBandEvents(
@@ -206,6 +277,7 @@ export async function getUpcomingEvents(bandId: string, limit = 5): Promise<Band
   const { data } = await supabase
     .from('band_events').select('*')
     .eq('band_id', bandId)
+    .eq('is_cancelled', false)
     .gte('event_date', today)
     .order('event_date', { ascending: true })
     .limit(limit);
@@ -222,7 +294,11 @@ export async function createBandEvent(
 
 export async function updateBandEvent(
   eventId: string,
-  updates: Partial<Pick<BandEvent, 'title' | 'description' | 'event_date' | 'event_time' | 'type'>>,
+  updates: Partial<Pick<BandEvent,
+    'title' | 'description' | 'event_date' | 'event_time' | 'end_time' | 'type' |
+    'location' | 'address' | 'maps_link' |
+    'gage' | 'travel_cost' | 'other_costs' | 'is_paid' | 'invoice_sent' | 'agreements'
+  >>,
 ): Promise<boolean> {
   const { error } = await supabase.from('band_events').update(updates).eq('id', eventId);
   return !error;
@@ -230,6 +306,90 @@ export async function updateBandEvent(
 
 export async function deleteBandEvent(eventId: string): Promise<boolean> {
   const { error } = await supabase.from('band_events').delete().eq('id', eventId);
+  return !error;
+}
+
+// ── Recurring events ─────────────────────────────────────────────────────────
+// One real band_events row per occurrence (see band_recurring_events_migration.sql)
+// — the first generated date becomes the parent (carries the recurrence_*
+// config), every later date becomes a child row linked via parent_event_id.
+
+export async function createRecurringBandEvent(
+  fields: Omit<BandEvent, 'id' | 'created_at' | 'parent_event_id' | 'is_occurrence_modified' | 'is_cancelled'>,
+  rule: RecurrenceRule,
+): Promise<BandEvent[] | null> {
+  const dates = generateOccurrenceDates(fields.event_date, rule);
+  if (dates.length === 0) return null;
+  const [firstDate, ...restDates] = dates;
+
+  const { data: parent, error } = await supabase.from('band_events').insert({
+    ...fields, event_date: firstDate,
+    recurrence_freq: rule.freq, recurrence_interval: rule.interval,
+    recurrence_days_of_week: rule.daysOfWeek ?? null, recurrence_until: rule.until ?? null, recurrence_count: rule.count ?? null,
+  }).select().single();
+  if (error || !parent) return null;
+  if (restDates.length === 0) return [parent];
+
+  const { data: children, error: childError } = await supabase.from('band_events')
+    .insert(restDates.map(date => ({ ...fields, event_date: date, parent_event_id: parent.id })))
+    .select();
+  if (childError) return [parent];
+  return [parent, ...(children ?? [])];
+}
+
+type SeriesEditScope = 'this' | 'this_and_future' | 'all';
+
+export async function updateEventSeries(
+  eventId: string,
+  updates: Partial<Pick<BandEvent,
+    'title' | 'description' | 'event_time' | 'end_time' | 'type' |
+    'location' | 'address' | 'maps_link' |
+    'gage' | 'travel_cost' | 'other_costs' | 'is_paid' | 'invoice_sent' | 'agreements'
+  >>,
+  scope: SeriesEditScope,
+): Promise<boolean> {
+  const { data: event } = await supabase.from('band_events').select('id, parent_event_id, event_date').eq('id', eventId).single();
+  if (!event) return false;
+
+  if (scope === 'this') {
+    const { error } = await supabase.from('band_events').update({ ...updates, is_occurrence_modified: true }).eq('id', eventId);
+    return !error;
+  }
+
+  // Always apply to the occurrence actually being edited, regardless of
+  // whether it was previously customized.
+  const { error: thisError } = await supabase.from('band_events').update(updates).eq('id', eventId);
+  if (thisError) return false;
+
+  // Then the rest of the series — but never silently overwrite an occurrence
+  // someone already individually customized via scope 'this'.
+  const seriesRootId = event.parent_event_id ?? event.id;
+  let query = supabase.from('band_events').update(updates)
+    .or(`id.eq.${seriesRootId},parent_event_id.eq.${seriesRootId}`)
+    .neq('id', eventId)
+    .eq('is_occurrence_modified', false);
+  if (scope === 'this_and_future') query = query.gte('event_date', event.event_date);
+
+  const { error } = await query;
+  return !error;
+}
+
+export async function skipOccurrence(eventId: string): Promise<boolean> {
+  const { error } = await supabase.from('band_events').update({ is_cancelled: true }).eq('id', eventId);
+  return !error;
+}
+
+export async function unskipOccurrence(eventId: string): Promise<boolean> {
+  const { error } = await supabase.from('band_events').update({ is_cancelled: false }).eq('id', eventId);
+  return !error;
+}
+
+/** Deletes the whole series (parent + every occurrence), regardless of which occurrence's id is passed in. */
+export async function deleteEventSeries(eventId: string): Promise<boolean> {
+  const { data: event } = await supabase.from('band_events').select('id, parent_event_id').eq('id', eventId).single();
+  if (!event) return false;
+  const seriesRootId = event.parent_event_id ?? event.id;
+  const { error } = await supabase.from('band_events').delete().eq('id', seriesRootId);
   return !error;
 }
 
@@ -243,6 +403,95 @@ export async function getPinnedEvents(bandId: string): Promise<BandEvent[]> {
 
 export async function pinBandEvent(eventId: string, isPinned: boolean): Promise<boolean> {
   const { error } = await supabase.from('band_events').update({ is_pinned: isPinned }).eq('id', eventId);
+  return !error;
+}
+
+/** Rotates a band's ICS feed token (see supabase/functions/ics-feed), invalidating the old subscription URL. */
+export async function regenerateCalendarFeedToken(bandId: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc('regenerate_calendar_feed_token', { p_band_id: bandId });
+  if (error) return null;
+  return data;
+}
+
+/** Single event with its contacts joined — for the expanded edit view. */
+export async function getBandEvent(eventId: string): Promise<(BandEvent & { contacts: BandEventContact[] }) | null> {
+  const [{ data: event }, contacts] = await Promise.all([
+    supabase.from('band_events').select('*').eq('id', eventId).single(),
+    getEventContacts(eventId),
+  ]);
+  if (!event) return null;
+  return { ...event, contacts };
+}
+
+// ── Event contacts ──────────────────────────────────────────────────────────────
+
+export async function getEventContacts(eventId: string): Promise<BandEventContact[]> {
+  const { data } = await supabase
+    .from('band_event_contacts').select('*')
+    .eq('event_id', eventId).order('created_at', { ascending: true });
+  return data ?? [];
+}
+
+export async function addEventContact(
+  eventId: string, contact: Pick<BandEventContact, 'name' | 'role' | 'phone' | 'email'>,
+): Promise<BandEventContact | null> {
+  const { data, error } = await supabase
+    .from('band_event_contacts').insert({ event_id: eventId, ...contact }).select().single();
+  if (error) return null;
+  return data;
+}
+
+export async function updateEventContact(
+  contactId: string, updates: Partial<Pick<BandEventContact, 'name' | 'role' | 'phone' | 'email'>>,
+): Promise<boolean> {
+  const { error } = await supabase.from('band_event_contacts').update(updates).eq('id', contactId);
+  return !error;
+}
+
+export async function deleteEventContact(contactId: string): Promise<boolean> {
+  const { error } = await supabase.from('band_event_contacts').delete().eq('id', contactId);
+  return !error;
+}
+
+// ── RSVP ─────────────────────────────────────────────────────────────────────────
+
+export async function getRsvps(eventId: string): Promise<BandEventRsvp[]> {
+  const { data } = await supabase
+    .from('band_event_rsvps')
+    .select('*, profile:profiles(id,username,display_name,avatar_url)')
+    .eq('event_id', eventId);
+  return data ?? [];
+}
+
+export async function setRsvp(eventId: string, userId: string, status: RsvpStatus): Promise<boolean> {
+  const { error } = await supabase
+    .from('band_event_rsvps')
+    .upsert({ event_id: eventId, user_id: userId, status, updated_at: new Date().toISOString() }, { onConflict: 'event_id,user_id' });
+  return !error;
+}
+
+// ── Profit calculator ───────────────────────────────────────────────────────────
+
+export async function setProfitSplitMode(eventId: string, mode: 'equal' | 'manual'): Promise<boolean> {
+  const { error } = await supabase.from('band_events').update({ profit_split_mode: mode }).eq('id', eventId);
+  return !error;
+}
+
+export async function getProfitSplits(eventId: string): Promise<BandEventProfitSplit[]> {
+  const { data } = await supabase.from('band_event_profit_splits').select('*').eq('event_id', eventId);
+  return data ?? [];
+}
+
+// Replaces the full set of manual splits for the event in one go — simpler
+// and safe than diffing individual member amounts (matches the delete-then-
+// reinsert pattern already used for event contacts).
+export async function saveProfitSplits(eventId: string, splits: { userId: string; amount: number }[]): Promise<boolean> {
+  const { error: deleteError } = await supabase.from('band_event_profit_splits').delete().eq('event_id', eventId);
+  if (deleteError) return false;
+  if (splits.length === 0) return true;
+  const { error } = await supabase.from('band_event_profit_splits').insert(
+    splits.map(s => ({ event_id: eventId, user_id: s.userId, amount: s.amount, updated_at: new Date().toISOString() })),
+  );
   return !error;
 }
 

@@ -32,3 +32,8 @@ export function notifyBandMention(bandId: string, messageId: string, recipientId
   if (recipientIds.length === 0) return Promise.resolve();
   return invokeNotify({ kind: 'band_mention', bandId, messageId, recipientIds });
 }
+
+/** Email a band invite to its (possibly not-yet-registered) recipient. */
+export function notifyBandInvite(inviteId: string) {
+  return invokeNotify({ kind: 'band_invite', inviteId });
+}

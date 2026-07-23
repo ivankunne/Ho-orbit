@@ -73,6 +73,7 @@ const ConversationPage = lazy(() => import('@pages/ConversationPage'));
 const BandSpacePage = lazy(() => import('@pages/BandSpacePage'));
 const BandSpaceDetailPage = lazy(() => import('@pages/BandSpaceDetailPage'));
 const JoinBandPage = lazy(() => import('@pages/JoinBandPage'));
+const PublicRiderPage = lazy(() => import('@pages/PublicRiderPage'));
 const NetworkingPage = lazy(() => import('@pages/NetworkingPage'));
 const MasterclassPage = lazy(() => import('@pages/MasterclassPage'));
 const PrivacyPage     = lazy(() => import('@pages/legal/PrivacyPage'));
@@ -190,6 +191,9 @@ function ProtectedApp() {
   // Drop the page footer + bottom padding here so the window doesn't scroll on
   // top of it (which produced a nested scrollbar).
   const isWorkspace = !!useMatch('/bandspace/:id');
+  // Public rider share page: same "no login, no app chrome" treatment as the
+  // invite landing page — external, logged-out visitors land here directly.
+  const isRiderShare = !!useMatch('/rider/:token');
 
   if (user?.needsOnboarding && sessionStorage.getItem('ho_show_onboarding') === 'true') {
     return (
@@ -207,8 +211,8 @@ function ProtectedApp() {
           onToggleShortcutsModal={() => setShowShortcuts(v => !v)}
         />
       )}
-      {!isLanding && <Navbar externalShowSearch={showSearch} onExternalSearchClose={() => setShowSearch(false)} onMobileMenuChange={setMobileMenuOpen} />}
-      <main className={isLanding ? '' : isWorkspace ? 'flex flex-col' : 'pb-28 lg:pb-20 flex flex-col'}>
+      {!isLanding && !isRiderShare && <Navbar externalShowSearch={showSearch} onExternalSearchClose={() => setShowSearch(false)} onMobileMenuChange={setMobileMenuOpen} />}
+      <main className={isLanding || isRiderShare ? '' : isWorkspace ? 'flex flex-col' : 'pb-28 lg:pb-20 flex flex-col'}>
         <ErrorBoundary>
           <Suspense fallback={<PageLoader />}>
             <Routes>
@@ -220,6 +224,7 @@ function ProtectedApp() {
               {/* Publiek — nodig zonder account */}
               <Route path="/wachtwoord-herstellen" element={<ResetPasswordPage />} />
               <Route path="/bandspace/join/:token" element={<JoinBandPage />} />
+              <Route path="/rider/:token" element={<PublicRiderPage />} />
               <Route path="/privacy"     element={<PrivacyPage />} />
               <Route path="/voorwaarden" element={<TermsPage />} />
               <Route path="/cookies"     element={<CookiesPage />} />
@@ -262,10 +267,10 @@ function ProtectedApp() {
             </Routes>
           </Suspense>
         </ErrorBoundary>
-        {!isLanding && !isWorkspace && <Footer />}
+        {!isLanding && !isWorkspace && !isRiderShare && <Footer />}
       </main>
-      {!isLanding && <MusicPlayer hidden={mobileMenuOpen} />}
-      {!isLanding && <MobileBottomNav />}
+      {!isLanding && !isRiderShare && <MusicPlayer hidden={mobileMenuOpen} />}
+      {!isLanding && !isRiderShare && <MobileBottomNav />}
 
       {/* Floating ? badge — desktop only, logged-in only */}
       {user && (

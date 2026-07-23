@@ -110,6 +110,27 @@ export function newMessageEmail(opts: {
   };
 }
 
+export function bandInviteEmail(opts: {
+  recipientName: string;
+  inviterName: string;
+  bandName: string;
+  token: string;
+}): { subject: string; html: string } {
+  return {
+    subject: `${opts.inviterName} nodigt je uit voor ${opts.bandName} op h-orbit`,
+    html: layout({
+      preheader: `${opts.inviterName} nodigt je uit om lid te worden van ${opts.bandName}`,
+      heading: `Je bent uitgenodigd voor ${escapeHtml(opts.bandName)} &#127908;`,
+      bodyHtml: `
+        <p style="margin:0 0 16px;">Hoi ${escapeHtml(opts.recipientName)},</p>
+        <p style="margin:0 0 16px;"><strong style="color:#ffffff;">${escapeHtml(opts.inviterName)}</strong> nodigt je uit om lid te worden van <strong style="color:#ffffff;">${escapeHtml(opts.bandName)}</strong> op h-orbit.</p>
+        <p style="margin:0 0 16px;">Deze uitnodiging is 7 dagen geldig en eenmalig te gebruiken. Heb je nog geen account? Dan maak je er tijdens het accepteren direct een aan.</p>`,
+      ctaLabel: 'Uitnodiging accepteren',
+      ctaUrl: `${SITE_URL}/bandspace/join/${opts.token}`,
+    }),
+  };
+}
+
 export function newFollowerEmail(opts: {
   recipientName: string;
   followerName: string;

@@ -10,6 +10,7 @@
 //   { kind: 'message',      conversationId: string, messageId: string }
 //   { kind: 'follow',       targetUserId: string }   // UUID of the followed profile
 //   { kind: 'band_mention', bandId: string, messageId: string, recipientIds: string[] }
+//   { kind: 'band_invite',  inviteId: string }       // UUID of a band_invites row
 //
 // Deploy:  supabase functions deploy notify
 // Secrets: RESEND_API_KEY, SITE_URL (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY
@@ -18,7 +19,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 import { sendEmail } from '../_shared/resend.ts';
-import { newFollowerEmail, newMessageEmail } from '../_shared/emails.ts';
+import { newFollowerEmail, newMessageEmail, bandInviteEmail } from '../_shared/emails.ts';
 import { sendPushToUser } from '../_shared/push.ts';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -72,6 +73,9 @@ Deno.serve(async (req) => {
     }
     if (payload.kind === 'band_mention') {
       return await handleBandMention(admin, callerId, payload);
+    }
+    if (payload.kind === 'band_invite') {
+      return await handleBandInvite(admin, callerId, payload);
     }
     return json({ error: 'Unknown kind' }, 400);
   } catch (e) {
@@ -278,4 +282,54 @@ async function handleBandMention(
   );
 
   return json({ ok: true, pushed });
+}
+
+async function handleBandInvite(
+  admin: ReturnType<typeof createClient>,
+  callerId: string,
+  payload: Record<string, unknown>,
+) {
+  const inviteId = String(payload.inviteId ?? '');
+  if (!UUID_RE.test(inviteId)) {
+    return json({ error: 'inviteId must be a UUID' }, 400);
+  }
+
+  const { data: invite } = await admin
+    .from('band_invites')
+    .select('id, band_id, email, invited_name, token, status')
+    .eq('id', inviteId)
+    .single();
+  if (!invite || invite.status !== 'pending') {
+    return json({ error: 'Invite not found' }, 404);
+  }
+
+  // The edge function runs with the service-role key (bypasses RLS), so the
+  // caller's rights must be checked explicitly here rather than relied on.
+  const { data: membership } = await admin
+    .from('band_members')
+    .select('role')
+    .eq('band_id', invite.band_id)
+    .eq('user_id', callerId)
+    .eq('status', 'active')
+    .maybeSingle();
+  if (!membership || !['owner', 'admin'].includes(membership.role)) {
+    return json({ error: 'Not authorized' }, 403);
+  }
+
+  const [{ data: band }, { data: inviter }] = await Promise.all([
+    admin.from('bands').select('name').eq('id', invite.band_id).single(),
+    admin.from('profiles').select('display_name, username').eq('id', callerId).single(),
+  ]);
+
+  const { subject, html } = bandInviteEmail({
+    recipientName: invite.invited_name || invite.email,
+    inviterName: displayName(inviter),
+    bandName: band?.name ?? 'een band',
+    token: invite.token,
+  });
+
+  const res = await sendEmail({ to: invite.email, subject, html });
+  if (!res.ok) console.warn('[notify] band_invite email failed:', res.error);
+
+  return json({ ok: true, emailed: res.ok });
 }
