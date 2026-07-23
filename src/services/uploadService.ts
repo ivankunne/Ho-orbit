@@ -291,6 +291,17 @@ export async function getUploadedTracks(userId?: string): Promise<UploadedTrack[
   return (data ?? []).map(mapTrack);
 }
 
+/** Approved tracks in a single album, for the public album detail page. */
+export async function getAlbumTracks(albumId: string): Promise<UploadedTrack[]> {
+  const { data } = await supabase
+    .from('tracks')
+    .select('*')
+    .eq('album_id', albumId)
+    .eq('upload_status', 'approved')
+    .order('created_at', { ascending: true });
+  return (data ?? []).map(mapTrack);
+}
+
 export async function getAllUploads(): Promise<UploadedTrack[]> {
   const { data } = await supabase
     .from('tracks')

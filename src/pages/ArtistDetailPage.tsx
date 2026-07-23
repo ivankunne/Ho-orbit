@@ -461,8 +461,9 @@ export default function ArtistDetailPage() {
             ) : albums.map(album => {
               const trackCount = uploadedTracks.filter(t => t.album_id === album.id).length;
               return (
-                <div
+                <Link
                   key={album.id}
+                  to={`/albums/${album.id}`}
                   className="group bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl overflow-hidden cursor-pointer transition-all"
                 >
                   <div className="relative aspect-square overflow-hidden">
@@ -472,9 +473,9 @@ export default function ArtistDetailPage() {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                      <button className="w-12 h-12 bg-violet-600 rounded-full flex items-center justify-center">
+                      <div className="w-12 h-12 bg-violet-600 rounded-full flex items-center justify-center">
                         <Play size={20} className="text-white ml-0.5" fill="white" />
-                      </button>
+                      </div>
                     </div>
                   </div>
                   <div className="p-3">
@@ -484,7 +485,7 @@ export default function ArtistDetailPage() {
                       {trackCount} {trackCount === 1 ? 'nummer' : 'nummers'}
                     </p>
                   </div>
-                </div>
+                </Link>
               );
             })}
           </TabsContent>

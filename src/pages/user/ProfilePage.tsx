@@ -459,18 +459,20 @@ export default function ProfilePage() {
                   return (
                     <div key={album.id}>
                       <div className="flex items-center gap-3 mb-3">
-                        <img
-                          src={album.coverUrl || coverPlaceholder(album.title)}
-                          alt={album.title}
-                          className="w-12 h-12 rounded-xl object-cover shrink-0"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-white truncate">{album.title}</p>
-                          <p className="text-xs text-slate-500">
-                            {album.releaseDate ? `${new Date(`${album.releaseDate}T00:00:00`).getFullYear()} · ` : ''}
-                            {albumTracks.length} {albumTracks.length === 1 ? 'nummer' : 'nummers'}
-                          </p>
-                        </div>
+                        <Link to={`/albums/${album.id}`} className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition-opacity">
+                          <img
+                            src={album.coverUrl || coverPlaceholder(album.title)}
+                            alt={album.title}
+                            className="w-12 h-12 rounded-xl object-cover shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-white truncate">{album.title}</p>
+                            <p className="text-xs text-slate-500">
+                              {album.releaseDate ? `${new Date(`${album.releaseDate}T00:00:00`).getFullYear()} · ` : ''}
+                              {albumTracks.length} {albumTracks.length === 1 ? 'nummer' : 'nummers'}
+                            </p>
+                          </div>
+                        </Link>
                         {isOwnProfile && (
                           <div className="flex items-center gap-1 shrink-0">
                             <button onClick={() => setAddingTracksToAlbum(album)} title="Nummers toevoegen"

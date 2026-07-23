@@ -43,6 +43,7 @@ function AppStateUserBridge() {
 const HomePage = lazy(() => import('@pages/HomePage'));
 const ArtistsPage = lazy(() => import('@pages/ArtistsPage'));
 const ArtistDetailPage = lazy(() => import('@pages/ArtistDetailPage'));
+const AlbumDetailPage = lazy(() => import('@pages/AlbumDetailPage'));
 const UploadPage = lazy(() => import('@pages/UploadPage'));
 const TutorialsPage = lazy(() => import('@pages/TutorialsPage'));
 const TutorialDetailPage = lazy(() => import('@pages/TutorialDetailPage'));
@@ -237,6 +238,7 @@ function ProtectedApp() {
               <Route path="/muziek" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
               <Route path="/artists" element={<ProtectedRoute><ArtistsPage /></ProtectedRoute>} />
               <Route path="/artists/:slug" element={<ProtectedRoute><ArtistDetailPage /></ProtectedRoute>} />
+              <Route path="/albums/:id" element={<ProtectedRoute><AlbumDetailPage /></ProtectedRoute>} />
               <Route path="/events" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
               <Route path="/events/:id" element={<ProtectedRoute><EventDetailPage /></ProtectedRoute>} />
               <Route path="/magazine" element={<ProtectedRoute><MagazinePage /></ProtectedRoute>} />

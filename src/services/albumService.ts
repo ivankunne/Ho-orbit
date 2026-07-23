@@ -39,6 +39,12 @@ export async function getArtistAlbums(ownerId: string): Promise<Album[]> {
   return (data ?? []).map(mapAlbum);
 }
 
+// .maybeSingle(), not .single() — .single() errors (406) on zero rows.
+export async function getAlbum(albumId: string): Promise<Album | null> {
+  const { data } = await supabase.from('albums').select('*').eq('id', albumId).maybeSingle();
+  return data ? mapAlbum(data) : null;
+}
+
 export async function createAlbum(ownerId: string, input: {
   title: string; description?: string; genre?: string; releaseDate?: string; coverFile?: File;
 }): Promise<Album | null> {
