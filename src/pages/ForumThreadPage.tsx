@@ -441,7 +441,7 @@ export default function ForumThreadPage() {
         ) : (
           <div className="flex items-start gap-3 mb-3">
             {thread.pinned && <Pin size={16} className="text-violet-400 mt-1 shrink-0" />}
-            <h1 className="text-xl lg:text-2xl font-bold text-white leading-snug flex-1">{thread.title}</h1>
+            <h1 className="text-xl lg:text-2xl font-bold text-white leading-snug flex-1 min-w-0 break-words">{thread.title}</h1>
             {canManageThread && (
               <div className="flex items-center gap-1 shrink-0">
                 <button

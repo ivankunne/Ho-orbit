@@ -856,10 +856,10 @@ function NetworkSection() {
     <div>
       {/* Type tabs + post button */}
       <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
-        <div className="flex gap-1 bg-white/4 p-1 rounded-xl border border-white/8">
+        <div className="flex gap-1 bg-white/4 p-1 rounded-xl border border-white/8 max-w-full overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
           {NETWORK_TABS.map(t => (
             <button key={t.key} onClick={() => setActiveTab(t.key)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${activeTab === t.key ? 'bg-violet-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>
+              className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${activeTab === t.key ? 'bg-violet-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>
               {t.label}
             </button>
           ))}

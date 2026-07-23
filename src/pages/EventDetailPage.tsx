@@ -189,11 +189,11 @@ export default function EventDetailPage() {
                 to={`/artists/${artist.slug || artist.id}`}
                 className="flex items-center gap-4 p-4 bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl transition-colors"
               >
-                <img src={artist.image_url} alt={artist.name} className="w-14 h-14 rounded-full object-cover" />
-                <div>
-                  <p className="font-semibold text-white">{artist.name}</p>
-                  <p className="text-sm text-violet-400">{artist.genre}</p>
-                  <p className="text-xs text-slate-400">{artist.location}</p>
+                <img src={artist.image_url} alt={artist.name} className="w-14 h-14 rounded-full object-cover shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-semibold text-white truncate">{artist.name}</p>
+                  <p className="text-sm text-violet-400 truncate">{artist.genre}</p>
+                  <p className="text-xs text-slate-400 truncate">{artist.location}</p>
                 </div>
               </Link>
             </div>

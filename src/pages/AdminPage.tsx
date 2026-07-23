@@ -305,10 +305,10 @@ function UsersSection() {
   return (
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex bg-white/[0.04] border border-white/8 rounded-xl p-1 gap-0.5">
+        <div className="flex bg-white/[0.04] border border-white/8 rounded-xl p-1 gap-0.5 max-w-full overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
           {(['all', 'active', 'suspended'] as const).map(f => (
             <button key={f} onClick={() => setFilter(f)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${filter === f ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${filter === f ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-slate-300'}`}
             >
               {{ all: 'Allemaal', active: 'Actief', suspended: 'Geschorst' }[f]}
               <span className={`text-xs px-1.5 py-0.5 rounded-full bg-white/8 ${filter === f ? (f === 'suspended' ? 'text-red-400' : 'text-slate-300') : 'text-slate-600'}`}>{counts[f]}</span>
@@ -452,10 +452,10 @@ function ForumSection() {
   return (
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex bg-white/[0.04] border border-white/8 rounded-xl p-1 gap-0.5">
+        <div className="flex bg-white/[0.04] border border-white/8 rounded-xl p-1 gap-0.5 max-w-full overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
           {(['threads', 'hidden'] as const).map(v => (
             <button key={v} onClick={() => setView(v)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${view === v ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+              className={`shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${view === v ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-slate-300'}`}
             >
               {{ threads: 'Threads', hidden: 'Verborgen' }[v]}
               {v === 'hidden' && hidden.length > 0 && <span className="text-xs px-1.5 py-0.5 rounded-full bg-white/8 text-amber-400">{hidden.length}</span>}

@@ -225,10 +225,10 @@ export default function ArtistDetailPage() {
             className="w-24 h-24 lg:w-32 lg:h-32 rounded-full object-cover ring-4 ring-[#1a1528] shrink-0"
             onError={(e) => { (e.currentTarget as HTMLImageElement).src = avatarPlaceholder(artist.name || 'Artiest'); }}
           />
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <h1 className="text-3xl lg:text-4xl font-bold text-white">{artist.name}</h1>
-              {artist.verified && <BadgeCheck size={24} className="text-blue-400" />}
+              <h1 className="text-3xl lg:text-4xl font-bold text-white min-w-0 break-words">{artist.name}</h1>
+              {artist.verified && <BadgeCheck size={24} className="text-blue-400 shrink-0" />}
             </div>
             <div className="flex items-center gap-3 text-sm text-slate-400 flex-wrap">
               <GenreBadge genre={artist.genre} size="md" />
@@ -360,12 +360,12 @@ export default function ArtistDetailPage() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
-          <TabsList className="border-b border-white/10 gap-0 rounded-none bg-transparent p-0 w-full h-auto">
+          <TabsList className="border-b border-white/10 gap-0 rounded-none bg-transparent p-0 w-full h-auto justify-start overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
             {tabs.map(tab => (
               <TabsTrigger
                 key={tab.key}
                 value={tab.key}
-                className="rounded-none border-b-2 border-transparent px-4 py-2.5 text-sm font-medium transition-colors data-[state=active]:border-violet-500 data-[state=active]:text-violet-400 data-[state=active]:bg-transparent data-[state=active]:shadow-none text-slate-400 hover:text-white"
+                className="shrink-0 whitespace-nowrap rounded-none border-b-2 border-transparent px-4 py-2.5 text-sm font-medium transition-colors data-[state=active]:border-violet-500 data-[state=active]:text-violet-400 data-[state=active]:bg-transparent data-[state=active]:shadow-none text-slate-400 hover:text-white"
               >
                 {tab.label}
               </TabsTrigger>

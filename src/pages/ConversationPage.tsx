@@ -129,19 +129,19 @@ export default function ConversationPage() {
       <div className="flex items-center gap-3 px-4 py-3 border-b border-white/8 bg-[#1a1528]/80 backdrop-blur-sm shrink-0">
         <button
           onClick={() => navigate('/berichten')}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors shrink-0"
         >
           <ArrowLeft size={18} />
         </button>
         {other ? (
           <Link
             to={`/profiel/${other.username}`}
-            className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
+            className="flex items-center gap-2.5 hover:opacity-80 transition-opacity min-w-0"
           >
-            <UserAvatar src={other.avatar_url} name={otherName} size={36} />
-            <div>
-              <p className="text-sm font-semibold text-white leading-tight">{otherName}</p>
-              <p className="text-xs text-slate-500">@{other.username}</p>
+            <UserAvatar src={other.avatar_url} name={otherName} size={36} className="shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-white leading-tight truncate">{otherName}</p>
+              <p className="text-xs text-slate-500 truncate">@{other.username}</p>
             </div>
           </Link>
         ) : (

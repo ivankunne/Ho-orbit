@@ -329,7 +329,7 @@ export default function ProfilePage() {
           />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-0.5">
-              <h1 className="text-2xl lg:text-3xl font-bold text-white">{profileUser.displayName}</h1>
+              <h1 className="text-2xl lg:text-3xl font-bold text-white min-w-0 break-words">{profileUser.displayName}</h1>
               {profileUser.verified && <BadgeCheck size={22} className="text-blue-400 shrink-0" />}
             </div>
             <p className="text-slate-400 text-sm">@{profileUser.username}</p>
@@ -383,7 +383,7 @@ export default function ProfilePage() {
 
         {/* Bio & rol */}
         {profileUser.bio && (
-          <p className="text-slate-300 text-sm leading-relaxed mb-4 max-w-xl">{profileUser.bio}</p>
+          <p className="text-slate-300 text-sm leading-relaxed mb-4 max-w-xl break-words">{profileUser.bio}</p>
         )}
 
         {/* Statistieken */}
@@ -402,13 +402,14 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 border-b border-white/10 mb-8">
+        {/* Tabs — horizontally scrollable so 5-7 tabs never force the whole
+            page wider than a mobile viewport */}
+        <div className="flex gap-1 border-b border-white/10 mb-8 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0" style={{ scrollbarWidth: 'none' }}>
           {tabs.map(tab => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
+              className={`shrink-0 whitespace-nowrap px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
                 activeTab === tab.key
                   ? 'border-violet-500 text-violet-400'
                   : 'border-transparent text-slate-400 hover:text-white'
@@ -715,7 +716,7 @@ export default function ProfilePage() {
             {profileUser.bio && (
               <div>
                 <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Biografie</p>
-                <p className="text-slate-300 leading-relaxed">{profileUser.bio}</p>
+                <p className="text-slate-300 leading-relaxed break-words">{profileUser.bio}</p>
               </div>
             )}
             <div>

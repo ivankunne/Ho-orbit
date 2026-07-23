@@ -1488,8 +1488,8 @@ export default function BandSpaceDetailPage() {
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h1 className="text-2xl lg:text-3xl font-bold text-white">{band.name}</h1>
+                  <div className="flex items-center gap-2 mb-1 min-w-0">
+                    <h1 className="text-2xl lg:text-3xl font-bold text-white min-w-0 break-words">{band.name}</h1>
                     {!band.is_public && <Lock size={14} className="text-slate-400 shrink-0" />}
                   </div>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-300">
@@ -2151,8 +2151,8 @@ export default function BandSpaceDetailPage() {
                               </div>
                               <div className={`flex flex-col max-w-[82%] lg:max-w-[55%] ${isMe ? 'items-end' : 'items-start'}`}>
                                 {!sameAsPrev && (
-                                  <div className={`flex items-center gap-2 mb-1.5 px-1 ${isMe ? 'flex-row-reverse' : ''}`}>
-                                    <span className="text-[13px] font-semibold text-slate-300">{msg.sender?.display_name || msg.sender?.username}</span>
+                                  <div className={`flex items-center gap-2 mb-1.5 px-1 min-w-0 ${isMe ? 'flex-row-reverse' : ''}`}>
+                                    <span className="text-[13px] font-semibold text-slate-300 truncate">{msg.sender?.display_name || msg.sender?.username}</span>
                                     <span className="text-[11px] text-slate-600">{formatTime(msg.created_at)}</span>
                                     {msg.is_pinned && <Pin size={9} className="text-violet-400" />}
                                     {isMentioned && <AtSign size={9} className="text-amber-400" />}
@@ -2600,8 +2600,8 @@ export default function BandSpaceDetailPage() {
                               </div>
                               <div className={`flex flex-col max-w-[82%] lg:max-w-[55%] ${isMe ? 'items-end' : 'items-start'}`}>
                                 {!sameAsPrev && (
-                                  <div className={`flex items-center gap-2 mb-1.5 px-1 ${isMe ? 'flex-row-reverse' : ''}`}>
-                                    <span className="text-[13px] font-semibold text-slate-300">{msg.sender?.display_name || msg.sender?.username}</span>
+                                  <div className={`flex items-center gap-2 mb-1.5 px-1 min-w-0 ${isMe ? 'flex-row-reverse' : ''}`}>
+                                    <span className="text-[13px] font-semibold text-slate-300 truncate">{msg.sender?.display_name || msg.sender?.username}</span>
                                     <span className="text-[11px] text-slate-600">{formatTime(msg.created_at)}</span>
                                     {msg.is_pinned && <Pin size={9} className="text-violet-400" />}
                                     {isMentioned && <AtSign size={9} className="text-amber-400" />}
@@ -2821,7 +2821,7 @@ export default function BandSpaceDetailPage() {
             </div>
 
             <Tabs value={eventModalTab} onValueChange={v => setEventModalTab(v as typeof eventModalTab)}>
-              <TabsList className="w-full grid grid-cols-4 mb-4">
+              <TabsList className="w-full grid grid-cols-2 sm:grid-cols-4 gap-1 mb-4 h-auto">
                 <TabsTrigger value="general" className="text-xs">Algemeen</TabsTrigger>
                 <TabsTrigger value="contacts" className="text-xs">Contact</TabsTrigger>
                 <TabsTrigger value="financial" className="text-xs">Financieel</TabsTrigger>

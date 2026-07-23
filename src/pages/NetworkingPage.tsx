@@ -185,12 +185,12 @@ export default function NetworkingPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-white/4 p-1 rounded-xl border border-white/8 w-fit">
+      <div className="flex gap-1 mb-6 bg-white/4 p-1 rounded-xl border border-white/8 w-full sm:w-fit overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
         {TABS.map(t => (
           <button
             key={t.key}
             onClick={() => setActiveTab(t.key)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               activeTab === t.key
                 ? 'bg-violet-600 text-white shadow'
                 : 'text-slate-400 hover:text-white'
@@ -435,11 +435,11 @@ function PostCard({
 
       <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-white/6">
         {post.poster ? (
-          <div className="flex items-center gap-2">
-            <UserAvatar src={post.poster.avatar_url} name={post.poster.display_name || post.poster.username} size={22} />
+          <div className="flex items-center gap-2 min-w-0">
+            <UserAvatar src={post.poster.avatar_url} name={post.poster.display_name || post.poster.username} size={22} className="shrink-0" />
             <Link
               to={`/profiel/${post.poster.username}`}
-              className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+              className="text-xs text-slate-500 hover:text-slate-300 transition-colors truncate"
             >
               {post.poster.display_name || post.poster.username}
             </Link>
@@ -447,7 +447,7 @@ function PostCard({
         ) : <span />}
         <button
           onClick={() => setShowComments(v => !v)}
-          className={`flex items-center gap-1.5 text-xs transition-colors ${showComments ? 'text-violet-400' : 'text-slate-500 hover:text-slate-300'}`}
+          className={`flex items-center gap-1.5 text-xs transition-colors shrink-0 ${showComments ? 'text-violet-400' : 'text-slate-500 hover:text-slate-300'}`}
         >
           <MessageSquare size={13} /> Reacties
         </button>
