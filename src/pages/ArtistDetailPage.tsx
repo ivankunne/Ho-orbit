@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
-  Play, Heart, Share2, MapPin, Users, Music, BadgeCheck,
+  Play, Heart, Share2, MapPin, Users, BadgeCheck,
   Calendar, ChevronLeft, ExternalLink, MessageSquare, Loader2, HandHeart, Settings,
   Pencil, Trash2, ChevronUp, ChevronDown, Plus,
 } from 'lucide-react';
@@ -42,6 +42,7 @@ export default function ArtistDetailPage() {
   const [showAlbumModal, setShowAlbumModal] = useState(false);
   const [editingAlbum, setEditingAlbum] = useState<Album | null>(null);
   const [addingTracksToAlbum, setAddingTracksToAlbum] = useState<Album | null>(null);
+  const [showAllTracks, setShowAllTracks] = useState(false);
 
   const { followedArtists, toggleFollow, likedTracks, toggleLike } = useAppState();
   const { user } = useAuth();
@@ -281,98 +282,105 @@ export default function ArtistDetailPage() {
 
   return (
     <div>
-      {/* Header */}
-      <div className="relative h-64 lg:h-80 overflow-hidden">
+      {/* Header — one large hero image, artist name overlaid at the bottom
+          (Spotify-style single-image hero, no separate circular avatar). */}
+      <div className="relative h-[42vh] min-h-[320px] max-h-[480px] overflow-hidden">
         <img
           src={artist.cover_url}
-          alt={artist.name}
+          alt=""
           fetchPriority="high"
           className="w-full h-full object-cover"
           onError={(e) => { (e.currentTarget as HTMLImageElement).src = coverPlaceholder(String(artist.id ?? artist.name)); }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#1a1528] via-[#1a1528]/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#1a1528] via-[#1a1528]/55 to-black/10" />
         <Link
           to="/artists"
           className="absolute top-4 left-4 lg:left-6 flex items-center gap-1.5 bg-black/40 backdrop-blur-sm text-white text-sm px-3 py-1.5 rounded-lg hover:bg-black/60 transition-colors"
         >
           <ChevronLeft size={16} /> Artiesten
         </Link>
+
+        <div className="absolute inset-x-0 bottom-0 px-4 lg:px-6 pb-6">
+          <div className="max-w-7xl mx-auto">
+            {artist.verified && (
+              <div className="flex items-center gap-1.5 mb-2">
+                <BadgeCheck size={16} className="text-blue-400 shrink-0" />
+                <span className="text-xs sm:text-sm font-semibold text-white">Geverifieerd artiest</span>
+              </div>
+            )}
+            <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black text-white break-words drop-shadow-sm">
+              {artist.name}
+            </h1>
+            <p className="mt-2 sm:mt-3 text-sm sm:text-base text-slate-200">
+              {formatPlays(totalPlays)} maandelijkse luisteraars
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 lg:px-6">
-        {/* Artiest info */}
-        <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-12 mb-6 relative z-10">
-          <img
-            src={artist.image_url}
-            alt={artist.name}
-            className="w-24 h-24 lg:w-32 lg:h-32 rounded-full object-cover ring-4 ring-[#1a1528] shrink-0"
-            onError={(e) => { (e.currentTarget as HTMLImageElement).src = avatarPlaceholder(artist.name || 'Artiest'); }}
-          />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h1 className="text-3xl lg:text-4xl font-bold text-white min-w-0 break-words">{artist.name}</h1>
-              {artist.verified && <BadgeCheck size={24} className="text-blue-400 shrink-0" />}
-            </div>
-            <div className="flex items-center gap-3 text-sm text-slate-400 flex-wrap">
-              <GenreBadge genre={artist.genre} size="md" />
-              <span className="flex items-center gap-1"><MapPin size={12} />{artist.location}</span>
-              <span className="flex items-center gap-1"><Users size={12} />{formatPlays(followerCount)} volgers</span>
-              <span className="flex items-center gap-1"><Music size={12} />{formatPlays(totalPlays)} maandelijkse luisteraars</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 sm:mb-1">
+        {/* Actiebalk — grote ronde afspeelknop, net als Spotify */}
+        <div className="flex items-center gap-3 sm:gap-4 pt-6 mb-2">
+          <button
+            onClick={() => allTracks[0] && playTrack(allTracks[0], allTracks)}
+            aria-label="Afspelen"
+            className="w-14 h-14 flex items-center justify-center bg-violet-600 hover:bg-violet-500 hover:scale-105 text-white rounded-full transition-all shadow-lg shadow-violet-600/30 shrink-0"
+          >
+            <Play size={22} fill="white" className="ml-0.5" />
+          </button>
+          {!isOwner && (
             <button
-              onClick={() => allTracks[0] && playTrack(allTracks[0], allTracks)}
-              className="flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white font-semibold px-4 py-2 rounded-xl transition-colors"
-            >
-              <Play size={16} fill="white" /> Afspelen
-            </button>
-            {!isOwner && (
-              <button
-                onClick={() => {
-                  const willFollow = !following;
-                  toggleFollow(artist.id);
-                  // Optimistic bump; the junction-table effect reconciles to the real count.
-                  setFollowerCount((c) => Math.max(0, c + (willFollow ? 1 : -1)));
-                  addToast(following ? `Je volgt ${artist.name} niet meer` : `Je volgt nu ${artist.name}`, following ? 'info' : 'success');
-                }}
-                className={`font-semibold px-4 py-2 rounded-xl transition-colors border ${
-                  following
-                    ? 'border-violet-500 text-violet-400 hover:border-violet-400'
-                    : 'border-white/20 text-slate-300 hover:border-white/40 hover:text-white'
-                }`}
-              >
-                {following ? 'Volgend' : 'Volgen'}
-              </button>
-            )}
-            {canMessage && (
-              <button
-                onClick={handleMessage}
-                disabled={startingChat}
-                className="flex items-center gap-2 bg-white/8 hover:bg-violet-600/20 border border-white/20 hover:border-violet-500/50 text-slate-300 hover:text-white font-medium px-4 py-2 rounded-xl transition-all disabled:opacity-50"
-              >
-                {startingChat
-                  ? <Loader2 size={16} className="animate-spin" />
-                  : <MessageSquare size={16} />
-                }
-                <span className="hidden sm:inline">Stuur bericht</span>
-              </button>
-            )}
-            <button
-              onClick={async () => {
-                const result = await shareContent({
-                  title: artist.name,
-                  text: `Ontdek ${artist.name} op h-orbit`,
-                  url: buildShareUrl(`/artists/${artist.slug || artist.id}`),
-                });
-                if (result === 'copied') addToast('Link gekopieerd naar klembord!', 'success');
-                else if (result === 'shared') addToast('Gedeeld!', 'success');
+              onClick={() => {
+                const willFollow = !following;
+                toggleFollow(artist.id);
+                // Optimistic bump; the junction-table effect reconciles to the real count.
+                setFollowerCount((c) => Math.max(0, c + (willFollow ? 1 : -1)));
+                addToast(following ? `Je volgt ${artist.name} niet meer` : `Je volgt nu ${artist.name}`, following ? 'info' : 'success');
               }}
-              className="p-2 rounded-xl border border-white/20 text-slate-400 hover:text-white hover:border-white/40 transition-colors"
+              className={`font-bold text-xs uppercase tracking-wider px-5 py-2.5 rounded-full transition-colors border ${
+                following
+                  ? 'border-violet-500 text-violet-400 hover:border-violet-400'
+                  : 'border-white/25 text-slate-200 hover:border-white/50 hover:text-white'
+              }`}
             >
-              <Share2 size={18} />
+              {following ? 'Volgend' : 'Volgen'}
             </button>
-          </div>
+          )}
+          {canMessage && (
+            <button
+              onClick={handleMessage}
+              disabled={startingChat}
+              className="flex items-center gap-2 bg-white/8 hover:bg-violet-600/20 border border-white/20 hover:border-violet-500/50 text-slate-300 hover:text-white font-medium px-4 py-2 rounded-xl transition-all disabled:opacity-50"
+            >
+              {startingChat
+                ? <Loader2 size={16} className="animate-spin" />
+                : <MessageSquare size={16} />
+              }
+              <span className="hidden sm:inline">Stuur bericht</span>
+            </button>
+          )}
+          <button
+            onClick={async () => {
+              const result = await shareContent({
+                title: artist.name,
+                text: `Ontdek ${artist.name} op h-orbit`,
+                url: buildShareUrl(`/artists/${artist.slug || artist.id}`),
+              });
+              if (result === 'copied') addToast('Link gekopieerd naar klembord!', 'success');
+              else if (result === 'shared') addToast('Gedeeld!', 'success');
+            }}
+            aria-label="Delen"
+            className="p-2 rounded-full text-slate-400 hover:text-white hover:bg-white/8 transition-colors"
+          >
+            <Share2 size={18} />
+          </button>
+        </div>
+
+        {/* Secundaire info — genre, locatie, volgers */}
+        <div className="flex items-center gap-3 text-sm text-slate-400 flex-wrap mb-6">
+          <GenreBadge genre={artist.genre} size="md" />
+          <span className="flex items-center gap-1"><MapPin size={12} />{artist.location}</span>
+          <span className="flex items-center gap-1"><Users size={12} />{formatPlays(followerCount)} volgers</span>
         </div>
 
         {/* Sociale links */}
@@ -457,11 +465,12 @@ export default function ArtistDetailPage() {
 
           {/* Tab: Nummers */}
           <TabsContent value="nummers">
+            <h2 className="text-xl sm:text-2xl font-bold text-white mb-4">Populair</h2>
             <div className="space-y-1 mb-6">
               {allTracks.length === 0 && (
                 <p className="text-slate-500 text-sm py-8 text-center">Geen nummers gevonden.</p>
               )}
-              {allTracks.map((track, i) => {
+              {(showAllTracks ? allTracks : allTracks.slice(0, 5)).map((track, i) => {
                 const isActive = currentTrack?.id === track.id;
                 const liked = likedTracks.includes(track.id);
                 const uploadedIdx = track.isUploaded
@@ -479,6 +488,11 @@ export default function ArtistDetailPage() {
                       ? <Play size={14} className="text-violet-400 w-5 shrink-0" fill="currentColor" />
                       : <span className="w-5 text-center text-sm text-slate-500 group-hover:hidden">{i + 1}</span>
                     }
+                    <img
+                      src={track.cover_url || coverPlaceholder(track.title)}
+                      alt=""
+                      className="w-10 h-10 rounded-md object-cover shrink-0"
+                    />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className={`text-sm font-medium ${isActive ? 'text-violet-400' : 'text-white'}`}>{track.title}</p>
@@ -536,6 +550,15 @@ export default function ArtistDetailPage() {
               })}
             </div>
 
+            {allTracks.length > 5 && (
+              <button
+                onClick={() => setShowAllTracks(v => !v)}
+                className="text-sm font-semibold text-slate-400 hover:text-white transition-colors mb-6"
+              >
+                {showAllTracks ? 'Minder weergeven' : 'Meer weergeven'}
+              </button>
+            )}
+
             {/* Waveform visualizer */}
             {artistTracks.length > 0 && (
               <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
@@ -577,75 +600,81 @@ export default function ArtistDetailPage() {
 
           {/* Tab: Albums */}
           <TabsContent value="albums">
-            {isOwner && (
-              <div className="flex justify-end mb-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl sm:text-2xl font-bold text-white">Discografie</h2>
+              {isOwner && (
                 <button
                   onClick={() => { setEditingAlbum(null); setShowAlbumModal(true); }}
                   className="flex items-center gap-1.5 bg-violet-600/15 hover:bg-violet-600/25 border border-violet-500/30 text-violet-400 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
                 >
                   <Plus size={13} /> Album toevoegen
                 </button>
-              </div>
-            )}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {albums.length === 0 ? (
-                <p className="col-span-full text-sm text-slate-500 text-center py-10">Nog geen albums.</p>
-              ) : albums.map((album, albumIdx) => {
-                const trackCount = uploadedTracks.filter(t => t.album_id === album.id).length;
-                return (
-                  <div
-                    key={album.id}
-                    className="group bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl overflow-hidden transition-all"
-                  >
-                    <Link to={`/albums/${album.id}`} className="block cursor-pointer">
-                      <div className="relative aspect-square overflow-hidden">
-                        <img
-                          src={album.coverUrl || coverPlaceholder(album.title)}
-                          alt={album.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                          <div className="w-12 h-12 bg-violet-600 rounded-full flex items-center justify-center">
-                            <Play size={20} className="text-white ml-0.5" fill="white" />
+              )}
+            </div>
+            {albums.length === 0 ? (
+              <p className="text-sm text-slate-500 text-center py-10">Nog geen albums.</p>
+            ) : (
+              <div
+                className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 -mx-4 px-4 lg:-mx-6 lg:px-6"
+                style={{ scrollbarWidth: 'none' }}
+              >
+                {albums.map((album, albumIdx) => {
+                  const trackCount = uploadedTracks.filter(t => t.album_id === album.id).length;
+                  return (
+                    <div
+                      key={album.id}
+                      className="group bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl overflow-hidden transition-all shrink-0 w-36 sm:w-44 snap-start"
+                    >
+                      <Link to={`/albums/${album.id}`} className="block cursor-pointer">
+                        <div className="relative aspect-square overflow-hidden">
+                          <img
+                            src={album.coverUrl || coverPlaceholder(album.title)}
+                            alt={album.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                            <div className="w-12 h-12 bg-violet-600 rounded-full flex items-center justify-center">
+                              <Play size={20} className="text-white ml-0.5" fill="white" />
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="p-3 pb-0">
-                        <p className="text-sm font-semibold text-white">{album.title}</p>
-                        <p className="text-xs text-slate-400">
-                          {album.releaseDate ? `${new Date(`${album.releaseDate}T00:00:00`).getFullYear()} · ` : ''}
-                          {trackCount} {trackCount === 1 ? 'nummer' : 'nummers'}
-                        </p>
-                      </div>
-                    </Link>
-                    {canManageContent && (
-                      <div className="flex items-center gap-1 p-3 pt-2 -ml-1">
-                        <button onClick={() => handleMoveAlbum(album.id, 'up')} disabled={albumIdx === 0} title="Album omhoog"
-                          className="p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors disabled:opacity-30 disabled:pointer-events-none">
-                          <ChevronUp size={13} />
-                        </button>
-                        <button onClick={() => handleMoveAlbum(album.id, 'down')} disabled={albumIdx === albums.length - 1} title="Album omlaag"
-                          className="p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors disabled:opacity-30 disabled:pointer-events-none">
-                          <ChevronDown size={13} />
-                        </button>
-                        <button onClick={() => setAddingTracksToAlbum(album)} title="Nummers toevoegen"
-                          className="p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors">
-                          <Plus size={14} />
-                        </button>
-                        <button onClick={() => { setEditingAlbum(album); setShowAlbumModal(true); }} title="Album bewerken"
-                          className="p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors">
-                          <Pencil size={13} />
-                        </button>
-                        <button onClick={() => handleDeleteAlbum(album)} title="Album verwijderen"
-                          className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                        <div className="p-3 pb-0">
+                          <p className="text-sm font-semibold text-white truncate">{album.title}</p>
+                          <p className="text-xs text-slate-400">
+                            {album.releaseDate ? `${new Date(`${album.releaseDate}T00:00:00`).getFullYear()} · ` : ''}
+                            {trackCount} {trackCount === 1 ? 'nummer' : 'nummers'}
+                          </p>
+                        </div>
+                      </Link>
+                      {canManageContent && (
+                        <div className="flex items-center gap-1 p-3 pt-2 -ml-1">
+                          <button onClick={() => handleMoveAlbum(album.id, 'up')} disabled={albumIdx === 0} title="Album omhoog"
+                            className="p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors disabled:opacity-30 disabled:pointer-events-none">
+                            <ChevronUp size={13} />
+                          </button>
+                          <button onClick={() => handleMoveAlbum(album.id, 'down')} disabled={albumIdx === albums.length - 1} title="Album omlaag"
+                            className="p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors disabled:opacity-30 disabled:pointer-events-none">
+                            <ChevronDown size={13} />
+                          </button>
+                          <button onClick={() => setAddingTracksToAlbum(album)} title="Nummers toevoegen"
+                            className="p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors">
+                            <Plus size={14} />
+                          </button>
+                          <button onClick={() => { setEditingAlbum(album); setShowAlbumModal(true); }} title="Album bewerken"
+                            className="p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors">
+                            <Pencil size={13} />
+                          </button>
+                          <button onClick={() => handleDeleteAlbum(album)} title="Album verwijderen"
+                            className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </TabsContent>
 
           {/* Tab: Evenementen */}
@@ -681,7 +710,27 @@ export default function ArtistDetailPage() {
 
           {/* Tab: Over */}
           <TabsContent value="over" className="max-w-2xl">
-            <p className="text-slate-300 leading-relaxed">{artist.bio}</p>
+            <div className="relative rounded-2xl overflow-hidden min-h-[280px] border border-white/5">
+              <img
+                src={artist.cover_url}
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 w-full h-full object-cover opacity-25 scale-110 blur-[2px]"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-[#1a1528]/80 to-[#1a1528]" />
+              <div className="relative p-6 sm:p-8">
+                <p className="text-3xl sm:text-4xl font-black text-white">{formatPlays(totalPlays)}</p>
+                <p className="text-sm text-slate-400 mb-5">maandelijkse luisteraars</p>
+                <p className="text-slate-200 leading-relaxed whitespace-pre-line">
+                  {artist.bio || 'Deze artiest heeft nog geen bio toegevoegd.'}
+                </p>
+                {artist.location && (
+                  <p className="flex items-center gap-1.5 text-sm text-slate-400 mt-5">
+                    <MapPin size={14} />{artist.location}
+                  </p>
+                )}
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
 
