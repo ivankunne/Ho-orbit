@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   Play, Heart, Share2, MapPin, Users, Music, BadgeCheck,
-  Calendar, ChevronLeft, ExternalLink, MessageSquare, Loader2, HandHeart, Settings
+  Calendar, ChevronLeft, ExternalLink, MessageSquare, Loader2, HandHeart, Settings,
+  Pencil, Trash2, ChevronUp, ChevronDown, Plus,
 } from 'lucide-react';
 import GenreBadge from '@components/GenreBadge';
 import { useAppState } from '@context/AppStateContext';
@@ -18,7 +19,11 @@ import { mapProfileToArtist, countFollowers } from '@utils/artistHelpers';
 import { avatarPlaceholder, coverPlaceholder } from '@utils/placeholder';
 import { normalizeDonationUrl, isTikkieUrl } from '@utils/donation';
 import { getOrCreateConversation } from '@services/chatService';
-import { getArtistAlbums, type Album } from '@services/albumService';
+import { getArtistAlbums, deleteAlbum, reorderAlbums, type Album } from '@services/albumService';
+import { deleteTrack, reorderAlbumTracks, mapTrack, type UploadedTrack } from '@services/uploadService';
+import EditTrackModal from '@components/EditTrackModal';
+import AlbumModal from '@components/AlbumModal';
+import AddTracksToAlbumModal from '@components/AddTracksToAlbumModal';
 
 export default function ArtistDetailPage() {
   const { slug } = useParams();
@@ -32,6 +37,11 @@ export default function ArtistDetailPage() {
   const [loading, setLoading] = useState(true);
   const [startingChat, setStartingChat] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
+  const [editingTrack, setEditingTrack] = useState<UploadedTrack | null>(null);
+  const [deletingTrackId, setDeletingTrackId] = useState<string | null>(null);
+  const [showAlbumModal, setShowAlbumModal] = useState(false);
+  const [editingAlbum, setEditingAlbum] = useState<Album | null>(null);
+  const [addingTracksToAlbum, setAddingTracksToAlbum] = useState<Album | null>(null);
 
   const { followedArtists, toggleFollow, likedTracks, toggleLike } = useAppState();
   const { user } = useAuth();
@@ -159,8 +169,14 @@ export default function ArtistDetailPage() {
     genre: artist.genre,
   }));
 
+  // Tracks come back ordered by created_at — sort_order is what the artist's
+  // manual reordering actually persists to, so re-sort locally before display.
+  const sortedUploadedTracks = [...uploadedTracks].sort(
+    (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0),
+  );
+
   // Approved user-uploaded tracks for this artist
-  const uploadedPlayerTracks = uploadedTracks.map(t => ({
+  const uploadedPlayerTracks = sortedUploadedTracks.map(t => ({
     ...t,
     artist: t.artist_name,
     cover_url: t.cover_url || artist.image_url,
@@ -194,7 +210,74 @@ export default function ArtistDetailPage() {
   const social = artist.social ?? {};
   const donationUrl = normalizeDonationUrl(social.donation);
   const isOwner = !!user && !!artist.profile_id && artist.profile_id === user.id;
+  // Master admin can manage any artist's existing tracks/albums here too, same
+  // as on the owner's own /profiel page — see [[master-admin-content-control]].
+  const canManageContent = isOwner || !!user?.isAdmin;
+  const ownerId = artist.profile_id ?? user?.id ?? '';
   const tags: string[] = Array.isArray(artist.tags) ? artist.tags : [];
+
+  async function handleDeleteTrack(trackId: string) {
+    if (!user?.id) return;
+    if (!window.confirm('Dit nummer definitief verwijderen?')) return;
+    setDeletingTrackId(trackId);
+    try {
+      await deleteTrack(trackId, ownerId, !!user.isAdmin);
+      setUploadedTracks(prev => prev.filter(t => String(t.id) !== trackId));
+      addToast('Nummer verwijderd', 'success');
+    } catch (e: any) {
+      addToast(e?.message || 'Verwijderen mislukt', 'error');
+    } finally {
+      setDeletingTrackId(null);
+    }
+  }
+
+  async function handleMoveTrack(trackId: string, direction: 'up' | 'down') {
+    if (!user?.id) return;
+    const idx = sortedUploadedTracks.findIndex(t => String(t.id) === trackId);
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (idx === -1 || swapIdx < 0 || swapIdx >= sortedUploadedTracks.length) return;
+    const reordered = [...sortedUploadedTracks];
+    [reordered[idx], reordered[swapIdx]] = [reordered[swapIdx], reordered[idx]];
+    setUploadedTracks(reordered.map((t, i) => ({ ...t, sort_order: i }))); // optimistic
+    const ok = await reorderAlbumTracks(ownerId, reordered.map(t => String(t.id)), !!user.isAdmin);
+    if (!ok) { setUploadedTracks(uploadedTracks); addToast('Volgorde wijzigen mislukt', 'error'); }
+  }
+
+  async function handleDeleteAlbum(album: Album) {
+    if (!user?.id) return;
+    if (!window.confirm(`Album "${album.title}" verwijderen? De nummers erin blijven bestaan als losse nummers.`)) return;
+    const ok = await deleteAlbum(album.id, album.ownerId, !!user.isAdmin);
+    if (!ok) { addToast('Verwijderen mislukt', 'error'); return; }
+    setAlbums(prev => prev.filter(a => a.id !== album.id));
+    setUploadedTracks(prev => prev.map(t => t.album_id === album.id ? { ...t, album_id: null } : t));
+    addToast('Album verwijderd', 'success');
+  }
+
+  async function handleMoveAlbum(albumId: string, direction: 'up' | 'down') {
+    if (!user?.id) return;
+    const idx = albums.findIndex(a => a.id === albumId);
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (idx === -1 || swapIdx < 0 || swapIdx >= albums.length) return;
+    const reordered = [...albums];
+    [reordered[idx], reordered[swapIdx]] = [reordered[swapIdx], reordered[idx]];
+    setAlbums(reordered); // optimistic
+    const ok = await reorderAlbums(ownerId, reordered.map(a => a.id), !!user.isAdmin);
+    if (!ok) { setAlbums(albums); addToast('Volgorde wijzigen mislukt', 'error'); }
+  }
+
+  function handleAlbumSaved(album: Album) {
+    setAlbums(prev => prev.some(a => a.id === album.id) ? prev.map(a => a.id === album.id ? album : a) : [...prev, album]);
+    setShowAlbumModal(false);
+    setEditingAlbum(null);
+  }
+
+  function handleTracksAddedToAlbum(trackIds: string[]) {
+    if (!addingTracksToAlbum) return;
+    const albumId = addingTracksToAlbum.id;
+    setUploadedTracks(prev => prev.map(t => trackIds.includes(String(t.id)) ? { ...t, album_id: albumId } : t));
+    setAddingTracksToAlbum(null);
+    addToast('Nummers toegevoegd aan album', 'success');
+  }
 
   return (
     <div>
@@ -381,6 +464,9 @@ export default function ArtistDetailPage() {
               {allTracks.map((track, i) => {
                 const isActive = currentTrack?.id === track.id;
                 const liked = likedTracks.includes(track.id);
+                const uploadedIdx = track.isUploaded
+                  ? sortedUploadedTracks.findIndex(t => String(t.id) === String(track.id))
+                  : -1;
                 return (
                   <div
                     key={track.id}
@@ -406,10 +492,45 @@ export default function ArtistDetailPage() {
                     <span className="text-xs text-slate-500">{track.duration}</span>
                     <button
                       onClick={e => { e.stopPropagation(); toggleLike(track.id); }}
-                      className={`p-1.5 opacity-0 group-hover:opacity-100 transition-all ${liked ? 'text-violet-400 !opacity-100' : 'text-slate-600 hover:text-slate-300'}`}
+                      className={`p-1.5 transition-all ${liked ? 'text-violet-400' : 'text-slate-600 hover:text-slate-300'}`}
                     >
                       <Heart size={14} fill={liked ? 'currentColor' : 'none'} />
                     </button>
+                    {canManageContent && track.isUploaded && (
+                      <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+                        <button
+                          onClick={() => handleMoveTrack(String(track.id), 'up')}
+                          disabled={uploadedIdx <= 0}
+                          title="Omhoog verplaatsen"
+                          className="p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors disabled:opacity-30 disabled:pointer-events-none"
+                        >
+                          <ChevronUp size={13} />
+                        </button>
+                        <button
+                          onClick={() => handleMoveTrack(String(track.id), 'down')}
+                          disabled={uploadedIdx === -1 || uploadedIdx === sortedUploadedTracks.length - 1}
+                          title="Omlaag verplaatsen"
+                          className="p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors disabled:opacity-30 disabled:pointer-events-none"
+                        >
+                          <ChevronDown size={13} />
+                        </button>
+                        <button
+                          onClick={() => setEditingTrack(mapTrack(track))}
+                          title="Bewerken"
+                          className="p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors"
+                        >
+                          <Pencil size={13} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTrack(String(track.id))}
+                          disabled={deletingTrackId === String(track.id)}
+                          title="Verwijderen"
+                          className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -455,39 +576,76 @@ export default function ArtistDetailPage() {
           </TabsContent>
 
           {/* Tab: Albums */}
-          <TabsContent value="albums" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {albums.length === 0 ? (
-              <p className="col-span-full text-sm text-slate-500 text-center py-10">Nog geen albums.</p>
-            ) : albums.map(album => {
-              const trackCount = uploadedTracks.filter(t => t.album_id === album.id).length;
-              return (
-                <Link
-                  key={album.id}
-                  to={`/albums/${album.id}`}
-                  className="group bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl overflow-hidden cursor-pointer transition-all"
+          <TabsContent value="albums">
+            {isOwner && (
+              <div className="flex justify-end mb-4">
+                <button
+                  onClick={() => { setEditingAlbum(null); setShowAlbumModal(true); }}
+                  className="flex items-center gap-1.5 bg-violet-600/15 hover:bg-violet-600/25 border border-violet-500/30 text-violet-400 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
                 >
-                  <div className="relative aspect-square overflow-hidden">
-                    <img
-                      src={album.coverUrl || coverPlaceholder(album.title)}
-                      alt={album.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                      <div className="w-12 h-12 bg-violet-600 rounded-full flex items-center justify-center">
-                        <Play size={20} className="text-white ml-0.5" fill="white" />
+                  <Plus size={13} /> Album toevoegen
+                </button>
+              </div>
+            )}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {albums.length === 0 ? (
+                <p className="col-span-full text-sm text-slate-500 text-center py-10">Nog geen albums.</p>
+              ) : albums.map((album, albumIdx) => {
+                const trackCount = uploadedTracks.filter(t => t.album_id === album.id).length;
+                return (
+                  <div
+                    key={album.id}
+                    className="group bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl overflow-hidden transition-all"
+                  >
+                    <Link to={`/albums/${album.id}`} className="block cursor-pointer">
+                      <div className="relative aspect-square overflow-hidden">
+                        <img
+                          src={album.coverUrl || coverPlaceholder(album.title)}
+                          alt={album.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                          <div className="w-12 h-12 bg-violet-600 rounded-full flex items-center justify-center">
+                            <Play size={20} className="text-white ml-0.5" fill="white" />
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                      <div className="p-3 pb-0">
+                        <p className="text-sm font-semibold text-white">{album.title}</p>
+                        <p className="text-xs text-slate-400">
+                          {album.releaseDate ? `${new Date(`${album.releaseDate}T00:00:00`).getFullYear()} · ` : ''}
+                          {trackCount} {trackCount === 1 ? 'nummer' : 'nummers'}
+                        </p>
+                      </div>
+                    </Link>
+                    {canManageContent && (
+                      <div className="flex items-center gap-1 p-3 pt-2 -ml-1">
+                        <button onClick={() => handleMoveAlbum(album.id, 'up')} disabled={albumIdx === 0} title="Album omhoog"
+                          className="p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors disabled:opacity-30 disabled:pointer-events-none">
+                          <ChevronUp size={13} />
+                        </button>
+                        <button onClick={() => handleMoveAlbum(album.id, 'down')} disabled={albumIdx === albums.length - 1} title="Album omlaag"
+                          className="p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors disabled:opacity-30 disabled:pointer-events-none">
+                          <ChevronDown size={13} />
+                        </button>
+                        <button onClick={() => setAddingTracksToAlbum(album)} title="Nummers toevoegen"
+                          className="p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors">
+                          <Plus size={14} />
+                        </button>
+                        <button onClick={() => { setEditingAlbum(album); setShowAlbumModal(true); }} title="Album bewerken"
+                          className="p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors">
+                          <Pencil size={13} />
+                        </button>
+                        <button onClick={() => handleDeleteAlbum(album)} title="Album verwijderen"
+                          className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  <div className="p-3">
-                    <p className="text-sm font-semibold text-white">{album.title}</p>
-                    <p className="text-xs text-slate-400">
-                      {album.releaseDate ? `${new Date(`${album.releaseDate}T00:00:00`).getFullYear()} · ` : ''}
-                      {trackCount} {trackCount === 1 ? 'nummer' : 'nummers'}
-                    </p>
-                  </div>
-                </Link>
-              );
-            })}
+                );
+              })}
+            </div>
           </TabsContent>
 
           {/* Tab: Evenementen */}
@@ -529,6 +687,56 @@ export default function ArtistDetailPage() {
 
         <div className="pb-16" />
       </div>
+
+      {editingTrack && user?.id && (
+        <EditTrackModal
+          track={editingTrack}
+          userId={editingTrack.uploadedBy || ownerId}
+          albums={albums}
+          isAdmin={!!user.isAdmin}
+          onClose={() => setEditingTrack(null)}
+          onSaved={updated => {
+            setUploadedTracks(prev => prev.map(t => String(t.id) === updated.id ? {
+              ...t,
+              title: updated.title,
+              genre: updated.genre,
+              description: updated.description,
+              tags: updated.tags,
+              explicit: updated.explicit,
+              is_private: updated.isPrivate,
+              isrc: updated.isrc,
+              upc: updated.upc,
+              album_id: updated.albumId,
+              sort_order: updated.sortOrder,
+              cover_url: updated.cover,
+            } : t));
+            setEditingTrack(null);
+            addToast('Nummer bijgewerkt', 'success');
+          }}
+        />
+      )}
+
+      {showAlbumModal && user?.id && (
+        <AlbumModal
+          album={editingAlbum}
+          userId={editingAlbum?.ownerId ?? ownerId}
+          isAdmin={!!user.isAdmin}
+          onClose={() => { setShowAlbumModal(false); setEditingAlbum(null); }}
+          onSaved={handleAlbumSaved}
+        />
+      )}
+
+      {addingTracksToAlbum && user?.id && (
+        <AddTracksToAlbumModal
+          album={addingTracksToAlbum}
+          tracks={uploadedTracks.filter(t => !t.album_id).map(mapTrack)}
+          existingTrackCount={uploadedTracks.filter(t => t.album_id === addingTracksToAlbum.id).length}
+          userId={ownerId}
+          isAdmin={!!user.isAdmin}
+          onClose={() => setAddingTracksToAlbum(null)}
+          onAdded={handleTracksAddedToAlbum}
+        />
+      )}
     </div>
   );
 }
