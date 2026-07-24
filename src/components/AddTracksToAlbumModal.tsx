@@ -6,7 +6,7 @@ import { Button } from '@components/ui/button';
 import { coverPlaceholder } from '@utils/placeholder';
 
 export default function AddTracksToAlbumModal({
-  album, tracks, existingTrackCount, userId, onClose, onAdded,
+  album, tracks, existingTrackCount, userId, onClose, onAdded, isAdmin = false,
 }: {
   album: Album;
   tracks: UploadedTrack[];
@@ -14,6 +14,7 @@ export default function AddTracksToAlbumModal({
   userId: string;
   onClose: () => void;
   onAdded: (trackIds: string[]) => void;
+  isAdmin?: boolean;
 }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -31,7 +32,7 @@ export default function AddTracksToAlbumModal({
       // Appends after whatever's already in the album, rather than letting
       // sort_order default to 0 and collide with the album's existing first track.
       await Promise.all(selected.map((trackId, i) =>
-        updateTrack(trackId, userId, { albumId: album.id, sortOrder: existingTrackCount + i }),
+        updateTrack(trackId, userId, { albumId: album.id, sortOrder: existingTrackCount + i }, isAdmin),
       ));
       onAdded(selected);
     } catch (e: any) {

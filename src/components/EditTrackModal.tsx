@@ -12,13 +12,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 const TAGS_OPTIONS = ['Instrumentaal', 'Akoestisch', 'Live opname', 'Demo', 'Remix', 'Cover', 'Origineel', 'Samenwerking'];
 
 export default function EditTrackModal({
-  track, userId, albums, onClose, onSaved,
+  track, userId, albums, onClose, onSaved, isAdmin = false,
 }: {
   track: UploadedTrack;
   userId: string;
   albums: Album[];
   onClose: () => void;
   onSaved: (updated: UploadedTrack) => void;
+  isAdmin?: boolean;
 }) {
   const [form, setForm] = useState({
     title: track.title || '',
@@ -46,7 +47,7 @@ export default function EditTrackModal({
     setSaving(true);
     setError('');
     try {
-      const updated = await updateTrack(track.id, userId, { ...form, coverFile: coverFile ?? undefined });
+      const updated = await updateTrack(track.id, userId, { ...form, coverFile: coverFile ?? undefined }, isAdmin);
       onSaved(updated);
     } catch (e: any) {
       setError(e?.message || 'Opslaan is mislukt. Probeer het opnieuw.');

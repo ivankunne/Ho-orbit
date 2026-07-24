@@ -7,12 +7,13 @@ import { Textarea } from '@components/ui/textarea';
 import { Button } from '@components/ui/button';
 
 export default function AlbumModal({
-  album, userId, onClose, onSaved,
+  album, userId, onClose, onSaved, isAdmin = false,
 }: {
   album?: Album | null;
   userId: string;
   onClose: () => void;
   onSaved: (album: Album) => void;
+  isAdmin?: boolean;
 }) {
   const [form, setForm] = useState({
     title: album?.title || '',
@@ -40,7 +41,7 @@ export default function AlbumModal({
         coverFile: coverFile ?? undefined,
       };
       const saved = album
-        ? await updateAlbum(album.id, userId, input)
+        ? await updateAlbum(album.id, userId, input, isAdmin)
         : await createAlbum(userId, input);
       if (!saved) throw new Error('Opslaan is mislukt. Probeer het opnieuw.');
       onSaved(saved);

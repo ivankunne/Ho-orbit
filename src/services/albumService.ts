@@ -47,12 +47,15 @@ export async function getAlbum(albumId: string): Promise<Album | null> {
 }
 
 // Persists a new album order (index in the array = new sort_order). Scoped
-// to ownerId both in the filter (defense in depth) and via RLS.
-export async function reorderAlbums(ownerId: string, orderedAlbumIds: string[]): Promise<boolean> {
+// to ownerId both in the filter (defense in depth) and via RLS, unless
+// isAdmin (master admin reordering another user's albums).
+export async function reorderAlbums(ownerId: string, orderedAlbumIds: string[], isAdmin = false): Promise<boolean> {
   const results = await Promise.all(
-    orderedAlbumIds.map((albumId, index) =>
-      supabase.from('albums').update({ sort_order: index }).eq('id', albumId).eq('owner_id', ownerId),
-    ),
+    orderedAlbumIds.map((albumId, index) => {
+      let query = supabase.from('albums').update({ sort_order: index }).eq('id', albumId);
+      if (!isAdmin) query = query.eq('owner_id', ownerId);
+      return query;
+    }),
   );
   return results.every(r => !r.error);
 }
@@ -93,7 +96,7 @@ export async function createAlbum(ownerId: string, input: {
 
 export async function updateAlbum(albumId: string, ownerId: string, updates: {
   title?: string; description?: string; genre?: string; releaseDate?: string | null; coverFile?: File;
-}): Promise<Album | null> {
+}, isAdmin = false): Promise<Album | null> {
   let coverUrl: string | undefined;
   if (updates.coverFile) {
     try {
@@ -110,22 +113,16 @@ export async function updateAlbum(albumId: string, ownerId: string, updates: {
   if (updates.releaseDate !== undefined) dbUpdates.release_date = updates.releaseDate;
   if (coverUrl) dbUpdates.cover_url = coverUrl;
 
-  const { data, error } = await supabase
-    .from('albums')
-    .update(dbUpdates)
-    .eq('id', albumId)
-    .eq('owner_id', ownerId)
-    .select()
-    .single();
+  let query = supabase.from('albums').update(dbUpdates).eq('id', albumId);
+  if (!isAdmin) query = query.eq('owner_id', ownerId);
+  const { data, error } = await query.select().single();
   if (error || !data) return null;
   return mapAlbum(data);
 }
 
-export async function deleteAlbum(albumId: string, ownerId: string): Promise<boolean> {
-  const { error } = await supabase
-    .from('albums')
-    .delete()
-    .eq('id', albumId)
-    .eq('owner_id', ownerId);
+export async function deleteAlbum(albumId: string, ownerId: string, isAdmin = false): Promise<boolean> {
+  let query = supabase.from('albums').delete().eq('id', albumId);
+  if (!isAdmin) query = query.eq('owner_id', ownerId);
+  const { error } = await query;
   return !error;
 }

@@ -242,7 +242,7 @@ export async function updateTrack(trackId: string, userId: string, updates: {
   title?: string; genre?: string; description?: string; tags?: string[];
   explicit?: boolean; isPrivate?: boolean; coverFile?: File; isrc?: string; upc?: string;
   albumId?: string | null; sortOrder?: number;
-}): Promise<UploadedTrack> {
+}, isAdmin = false): Promise<UploadedTrack> {
   let coverUrl: string | undefined;
   if (updates.coverFile) {
     try {
@@ -266,23 +266,20 @@ export async function updateTrack(trackId: string, userId: string, updates: {
 
   // Scope to the owner both in the filter (defense in depth) and via RLS —
   // never trust the client-supplied userId alone to gate a write like this.
-  const { data, error } = await supabase
-    .from('tracks')
-    .update(dbUpdates)
-    .eq('id', trackId)
-    .eq('uploaded_by', userId)
-    .select()
-    .single();
+  // The one exception is isAdmin: the caller's own is_admin flag (verified
+  // server-side by the tracks_update_own RLS policy's OR public.is_admin()
+  // clause), which lets the master admin edit tracks uploaded by others.
+  let query = supabase.from('tracks').update(dbUpdates).eq('id', trackId);
+  if (!isAdmin) query = query.eq('uploaded_by', userId);
+  const { data, error } = await query.select().single();
   if (error || !data) throw new Error(error?.message || 'Bijwerken van nummer mislukt');
   return mapTrack(data);
 }
 
-export async function deleteTrack(trackId: string, userId: string): Promise<void> {
-  const { error } = await supabase
-    .from('tracks')
-    .delete()
-    .eq('id', trackId)
-    .eq('uploaded_by', userId);
+export async function deleteTrack(trackId: string, userId: string, isAdmin = false): Promise<void> {
+  let query = supabase.from('tracks').delete().eq('id', trackId);
+  if (!isAdmin) query = query.eq('uploaded_by', userId);
+  const { error } = await query;
   if (error) throw new Error(error.message);
 }
 
@@ -305,12 +302,15 @@ export async function getAlbumTracks(albumId: string): Promise<UploadedTrack[]> 
 }
 
 // Persists a new track order within an album (index in the array = new
-// sort_order). Scoped to userId both in the filter (defense in depth) and via RLS.
-export async function reorderAlbumTracks(userId: string, orderedTrackIds: string[]): Promise<boolean> {
+// sort_order). Scoped to userId both in the filter (defense in depth) and via RLS,
+// unless isAdmin (master admin reordering another user's tracks).
+export async function reorderAlbumTracks(userId: string, orderedTrackIds: string[], isAdmin = false): Promise<boolean> {
   const results = await Promise.all(
-    orderedTrackIds.map((trackId, index) =>
-      supabase.from('tracks').update({ sort_order: index }).eq('id', trackId).eq('uploaded_by', userId),
-    ),
+    orderedTrackIds.map((trackId, index) => {
+      let query = supabase.from('tracks').update({ sort_order: index }).eq('id', trackId);
+      if (!isAdmin) query = query.eq('uploaded_by', userId);
+      return query;
+    }),
   );
   return results.every(r => !r.error);
 }

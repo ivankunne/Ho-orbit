@@ -61,6 +61,12 @@ export default function ProfilePage() {
   const [otherFollowingCount, setOtherFollowingCount] = useState(0);
 
   const isOwnProfile = !username || username === currentUser?.username;
+  // Master admin can manage any profile's existing tracks/albums (edit, delete,
+  // reorder) as if they were the owner, so the account can be used to test the
+  // full app the way a real user would. Creating brand-new content on someone
+  // else's behalf stays owner-only — this only unlocks acting on what already
+  // exists.
+  const canManageContent = isOwnProfile || !!currentUser?.isAdmin;
   const navigate = useNavigate();
   const addToast = useToast();
   const [startingChat, setStartingChat] = useState(false);
@@ -81,7 +87,8 @@ export default function ProfilePage() {
     if (!window.confirm('Dit nummer definitief verwijderen?')) return;
     setDeletingTrackId(trackId);
     try {
-      await deleteTrack(trackId, currentUser.id);
+      const ownerId = isOwnProfile ? currentUser.id : otherProfile?.id;
+      await deleteTrack(trackId, ownerId ?? currentUser.id, !!currentUser.isAdmin);
       setUploadedTracks(prev => prev.filter(t => t.id !== trackId));
       addToast('Nummer verwijderd', 'success');
     } catch (e: any) {
@@ -100,7 +107,7 @@ export default function ProfilePage() {
   async function handleDeleteAlbum(album: Album) {
     if (!currentUser?.id) return;
     if (!window.confirm(`Album "${album.title}" verwijderen? De nummers erin blijven bestaan als losse nummers.`)) return;
-    const ok = await deleteAlbum(album.id, currentUser.id);
+    const ok = await deleteAlbum(album.id, album.ownerId, !!currentUser.isAdmin);
     if (!ok) { addToast('Verwijderen mislukt', 'error'); return; }
     setAlbums(prev => prev.filter(a => a.id !== album.id));
     setUploadedTracks(prev => prev.map(t => t.albumId === album.id ? { ...t, albumId: null } : t));
@@ -123,7 +130,8 @@ export default function ProfilePage() {
     const reordered = [...albums];
     [reordered[idx], reordered[swapIdx]] = [reordered[swapIdx], reordered[idx]];
     setAlbums(reordered); // optimistic
-    const ok = await reorderAlbums(currentUser.id, reordered.map(a => a.id));
+    const ownerId = isOwnProfile ? currentUser.id : (otherProfile?.id ?? currentUser.id);
+    const ok = await reorderAlbums(ownerId, reordered.map(a => a.id), !!currentUser.isAdmin);
     if (!ok) { setAlbums(albums); addToast('Volgorde wijzigen mislukt', 'error'); }
   }
 
@@ -137,7 +145,8 @@ export default function ProfilePage() {
     [reorderedAlbumTracks[idx], reorderedAlbumTracks[swapIdx]] = [reorderedAlbumTracks[swapIdx], reorderedAlbumTracks[idx]];
     const otherTracks = uploadedTracks.filter(t => t.albumId !== albumId);
     setUploadedTracks([...otherTracks, ...reorderedAlbumTracks]); // optimistic
-    const ok = await reorderAlbumTracks(currentUser.id, reorderedAlbumTracks.map(t => t.id));
+    const ownerId = isOwnProfile ? currentUser.id : (otherProfile?.id ?? currentUser.id);
+    const ok = await reorderAlbumTracks(ownerId, reorderedAlbumTracks.map(t => t.id), !!currentUser.isAdmin);
     if (!ok) { setUploadedTracks(uploadedTracks); addToast('Volgorde wijzigen mislukt', 'error'); }
   }
 
@@ -306,7 +315,7 @@ export default function ProfilePage() {
         {track.status === 'rejected' && (
           <span className="text-xs bg-red-500/15 text-red-400 px-2 py-0.5 rounded-full shrink-0">Afgewezen</span>
         )}
-        {isOwnProfile && (
+        {canManageContent && (
           <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
             {reorder && (
               <>
@@ -504,7 +513,7 @@ export default function ProfilePage() {
               <div className="space-y-8">
                 {albums.map((album, albumIdx) => {
                   const albumTracks = uploadedTracks.filter(t => t.albumId === album.id);
-                  if (albumTracks.length === 0 && !isOwnProfile) return null;
+                  if (albumTracks.length === 0 && !canManageContent) return null;
                   return (
                     <div key={album.id}>
                       <div className="flex items-center gap-3 mb-3">
@@ -522,7 +531,7 @@ export default function ProfilePage() {
                             </p>
                           </div>
                         </Link>
-                        {isOwnProfile && (
+                        {canManageContent && (
                           <div className="flex items-center gap-1 shrink-0">
                             <button onClick={() => handleMoveAlbum(album.id, 'up')} disabled={albumIdx === 0} title="Album omhoog"
                               className="p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors disabled:opacity-30 disabled:pointer-events-none">
@@ -882,8 +891,9 @@ export default function ProfilePage() {
       {editingTrack && currentUser?.id && (
         <EditTrackModal
           track={editingTrack}
-          userId={currentUser.id}
+          userId={editingTrack.uploadedBy || currentUser.id}
           albums={albums}
+          isAdmin={!!currentUser.isAdmin}
           onClose={() => setEditingTrack(null)}
           onSaved={updated => {
             setUploadedTracks(prev => prev.map(t => t.id === updated.id ? updated : t));
@@ -896,7 +906,8 @@ export default function ProfilePage() {
       {showAlbumModal && currentUser?.id && (
         <AlbumModal
           album={editingAlbum}
-          userId={currentUser.id}
+          userId={editingAlbum?.ownerId ?? currentUser.id}
+          isAdmin={!!currentUser.isAdmin}
           onClose={() => { setShowAlbumModal(false); setEditingAlbum(null); }}
           onSaved={handleAlbumSaved}
         />
@@ -907,7 +918,8 @@ export default function ProfilePage() {
           album={addingTracksToAlbum}
           tracks={uploadedTracks.filter(t => !t.albumId)}
           existingTrackCount={uploadedTracks.filter(t => t.albumId === addingTracksToAlbum.id).length}
-          userId={currentUser.id}
+          userId={addingTracksToAlbum.ownerId ?? currentUser.id}
+          isAdmin={!!currentUser.isAdmin}
           onClose={() => setAddingTracksToAlbum(null)}
           onAdded={handleTracksAddedToAlbum}
         />
