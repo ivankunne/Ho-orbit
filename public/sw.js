@@ -2,7 +2,7 @@
    Keep it conservative: only same-origin GET requests are touched so Supabase
    API/auth/storage calls (and any other cross-origin traffic) pass straight through. */
 
-const CACHE = 'horbit-v6';
+const CACHE = 'horbit-v7';
 
 self.addEventListener('install', (event) => {
   // Precache the app shell so navigations have an offline fallback to serve.

@@ -316,7 +316,7 @@ export default function ProfilePage() {
     reorder?: { isFirst: boolean; isLast: boolean; onMoveUp: () => void; onMoveDown: () => void },
   ) {
     return (
-      <div key={track.id} className="flex items-center gap-4 p-3 hover:bg-white/4 rounded-xl group transition-colors">
+      <div key={track.id} className="flex items-center gap-4 p-3 hover:bg-white/4 rounded-xl transition-colors">
         <span className="w-5 text-center text-sm text-slate-600 shrink-0">{i + 1}</span>
         <img
           src={track.cover || coverPlaceholder(String(track.id))}
@@ -340,7 +340,7 @@ export default function ProfilePage() {
           <span className="text-xs bg-red-500/15 text-red-400 px-2 py-0.5 rounded-full shrink-0">Afgewezen</span>
         )}
         {canManageContent && (
-          <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-1 shrink-0">
             {reorder && (
               <>
                 <button
