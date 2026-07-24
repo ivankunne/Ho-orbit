@@ -33,6 +33,12 @@ const PLATFORM_CONFIG: Record<string, { label: string; badge: string; color: str
   website:    { label: 'Website',      badge: '🌐', color: 'text-violet-400',  buildUrl: v => v.startsWith('http') ? v : `https://${v}` },
 };
 
+// Tracks come back from the DB ordered by upload date; within an album (or
+// within the "no album" group) the artist's chosen order lives in sortOrder.
+function sortByOrder(tracks: UploadedTrack[]) {
+  return [...tracks].sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
 function formatNum(n) {
   if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
   if (n >= 1000) return (n / 1000).toFixed(0) + 'K';
@@ -137,16 +143,34 @@ export default function ProfilePage() {
 
   async function handleMoveTrack(albumId: string, trackId: string, direction: 'up' | 'down') {
     if (!currentUser?.id) return;
-    const albumTracks = uploadedTracks.filter(t => t.albumId === albumId);
+    const albumTracks = sortByOrder(uploadedTracks.filter(t => t.albumId === albumId));
     const idx = albumTracks.findIndex(t => t.id === trackId);
     const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
     if (idx === -1 || swapIdx < 0 || swapIdx >= albumTracks.length) return;
     const reorderedAlbumTracks = [...albumTracks];
     [reorderedAlbumTracks[idx], reorderedAlbumTracks[swapIdx]] = [reorderedAlbumTracks[swapIdx], reorderedAlbumTracks[idx]];
     const otherTracks = uploadedTracks.filter(t => t.albumId !== albumId);
-    setUploadedTracks([...otherTracks, ...reorderedAlbumTracks]); // optimistic
+    setUploadedTracks([...otherTracks, ...reorderedAlbumTracks.map((t, i) => ({ ...t, sortOrder: i }))]); // optimistic
     const ownerId = isOwnProfile ? currentUser.id : (otherProfile?.id ?? currentUser.id);
     const ok = await reorderAlbumTracks(ownerId, reorderedAlbumTracks.map(t => t.id), !!currentUser.isAdmin);
+    if (!ok) { setUploadedTracks(uploadedTracks); addToast('Volgorde wijzigen mislukt', 'error'); }
+  }
+
+  // Standalone tracks (no album) get their own independent order, kept in
+  // sortOrder — the same column/mechanism as album tracks, just scoped to the
+  // "no album" group instead of one album's tracks.
+  async function handleMoveSingleTrack(trackId: string, direction: 'up' | 'down') {
+    if (!currentUser?.id) return;
+    const singles = sortByOrder(uploadedTracks.filter(t => !t.albumId));
+    const idx = singles.findIndex(t => t.id === trackId);
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (idx === -1 || swapIdx < 0 || swapIdx >= singles.length) return;
+    const reorderedSingles = [...singles];
+    [reorderedSingles[idx], reorderedSingles[swapIdx]] = [reorderedSingles[swapIdx], reorderedSingles[idx]];
+    const otherTracks = uploadedTracks.filter(t => t.albumId);
+    setUploadedTracks([...otherTracks, ...reorderedSingles.map((t, i) => ({ ...t, sortOrder: i }))]); // optimistic
+    const ownerId = isOwnProfile ? currentUser.id : (otherProfile?.id ?? currentUser.id);
+    const ok = await reorderAlbumTracks(ownerId, reorderedSingles.map(t => t.id), !!currentUser.isAdmin);
     if (!ok) { setUploadedTracks(uploadedTracks); addToast('Volgorde wijzigen mislukt', 'error'); }
   }
 
@@ -512,7 +536,7 @@ export default function ProfilePage() {
             ) : (
               <div className="space-y-8">
                 {albums.map((album, albumIdx) => {
-                  const albumTracks = uploadedTracks.filter(t => t.albumId === album.id);
+                  const albumTracks = sortByOrder(uploadedTracks.filter(t => t.albumId === album.id));
                   if (albumTracks.length === 0 && !canManageContent) return null;
                   return (
                     <div key={album.id}>
@@ -558,7 +582,7 @@ export default function ProfilePage() {
                       </div>
                       {albumTracks.length > 0 ? (
                         <div className="space-y-2">
-                          {albumTracks.map((track, i) => renderTrackRow(track, i, isOwnProfile ? {
+                          {albumTracks.map((track, i) => renderTrackRow(track, i, canManageContent ? {
                             isFirst: i === 0, isLast: i === albumTracks.length - 1,
                             onMoveUp: () => handleMoveTrack(album.id, track.id, 'up'),
                             onMoveDown: () => handleMoveTrack(album.id, track.id, 'down'),
@@ -572,7 +596,7 @@ export default function ProfilePage() {
                 })}
 
                 {(() => {
-                  const singles = uploadedTracks.filter(t => !t.albumId);
+                  const singles = sortByOrder(uploadedTracks.filter(t => !t.albumId));
                   if (singles.length === 0) return null;
                   return (
                     <div>
@@ -580,7 +604,11 @@ export default function ProfilePage() {
                         <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Losse nummers</p>
                       )}
                       <div className="space-y-2">
-                        {singles.map((track, i) => renderTrackRow(track, i))}
+                        {singles.map((track, i) => renderTrackRow(track, i, canManageContent ? {
+                          isFirst: i === 0, isLast: i === singles.length - 1,
+                          onMoveUp: () => handleMoveSingleTrack(track.id, 'up'),
+                          onMoveDown: () => handleMoveSingleTrack(track.id, 'down'),
+                        } : undefined))}
                       </div>
                     </div>
                   );
