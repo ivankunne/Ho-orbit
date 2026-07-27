@@ -25,6 +25,7 @@ export default function EditTrackModal({
     title: track.title || '',
     genre: track.genre || '',
     description: track.description || '',
+    lyrics: track.lyrics || '',
     tags: track.tags || [],
     explicit: track.explicit || false,
     isPrivate: track.isPrivate || false,
@@ -126,6 +127,18 @@ export default function EditTrackModal({
               onChange={e => set('description', e.target.value)}
               placeholder="Vertel je luisteraars over dit nummer..."
               className="resize-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Songtekst <span className="text-slate-600 font-normal">(optioneel)</span>
+            </label>
+            <Textarea
+              value={form.lyrics}
+              onChange={e => set('lyrics', e.target.value)}
+              placeholder="Plak hier de songtekst..."
+              className="resize-none min-h-32"
             />
           </div>
 

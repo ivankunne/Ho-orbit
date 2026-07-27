@@ -43,6 +43,7 @@ export interface Track {
   weeklyRank: number | null;
   // Upload-only fields (optional on base tracks)
   description?: string;
+  lyrics?: string;
   tags?: string[];
   explicit?: boolean;
   isPrivate?: boolean;

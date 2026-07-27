@@ -18,6 +18,7 @@ export interface UploadedTrack {
   artistId: string;
   genre: string;
   description: string;
+  lyrics: string;
   tags: string[];
   explicit: boolean;
   isPrivate: boolean;
@@ -175,9 +176,9 @@ export async function uploadEventPoster(file: File): Promise<string> {
 }
 
 export async function uploadTrack({
-  title, genre, description, tags, explicit, isPrivate, userId, artistName, audioFile, coverFile, isrc, upc, albumId, onStep, onAudioProgress,
+  title, genre, description, lyrics, tags, explicit, isPrivate, userId, artistName, audioFile, coverFile, isrc, upc, albumId, onStep, onAudioProgress,
 }: {
-  title: string; genre: string; description: string; tags: string[];
+  title: string; genre: string; description: string; lyrics?: string; tags: string[];
   explicit: boolean; isPrivate: boolean; userId: string; artistName: string;
   audioFile?: File; coverFile?: File; isrc?: string; upc?: string; albumId?: string;
   onStep?: (step: 'audio' | 'cover' | 'saving') => void;
@@ -209,6 +210,7 @@ export async function uploadTrack({
       artist_name: artistName || 'Onbekend',
       genre: genre || 'Overig',
       description,
+      lyrics: lyrics || null,
       tags,
       explicit,
       is_private: isPrivate,
@@ -239,7 +241,7 @@ export async function uploadTrack({
 }
 
 export async function updateTrack(trackId: string, userId: string, updates: {
-  title?: string; genre?: string; description?: string; tags?: string[];
+  title?: string; genre?: string; description?: string; lyrics?: string; tags?: string[];
   explicit?: boolean; isPrivate?: boolean; coverFile?: File; isrc?: string; upc?: string;
   albumId?: string | null; sortOrder?: number;
 }, isAdmin = false): Promise<UploadedTrack> {
@@ -255,6 +257,7 @@ export async function updateTrack(trackId: string, userId: string, updates: {
   if (updates.title !== undefined) dbUpdates.title = updates.title;
   if (updates.genre !== undefined) dbUpdates.genre = updates.genre || 'Overig';
   if (updates.description !== undefined) dbUpdates.description = updates.description;
+  if (updates.lyrics !== undefined) dbUpdates.lyrics = updates.lyrics || null;
   if (updates.tags !== undefined) dbUpdates.tags = updates.tags;
   if (updates.explicit !== undefined) dbUpdates.explicit = updates.explicit;
   if (updates.isPrivate !== undefined) dbUpdates.is_private = updates.isPrivate;
@@ -368,6 +371,7 @@ export function mapTrack(d: Record<string, unknown>): UploadedTrack {
     artistId: (d.uploaded_by as string) ?? '',
     genre: (d.genre as string) ?? '',
     description: (d.description as string) ?? '',
+    lyrics: (d.lyrics as string) ?? '',
     tags: (d.tags as string[]) ?? [],
     explicit: (d.explicit as boolean) ?? false,
     isPrivate: (d.is_private as boolean) ?? false,

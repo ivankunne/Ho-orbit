@@ -30,6 +30,7 @@ export default function UploadPage() {
     title: '',
     genre: '',
     description: '',
+    lyrics: '',
     explicit: false,
     privateTrack: false,
     isrc: '',
@@ -118,6 +119,7 @@ export default function UploadPage() {
         title: form.title || (trackFile?.name ? trackFile.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').trim() : 'Naamloos'),
         genre: form.genre,
         description: form.description,
+        lyrics: form.lyrics,
         tags: selectedTags,
         explicit: form.explicit,
         isPrivate: form.privateTrack,
@@ -156,7 +158,7 @@ export default function UploadPage() {
     setTrackFile(null);
     setArtworkFile(null);
     setSelectedTags([]);
-    setForm({ title: '', genre: '', description: '', explicit: false, privateTrack: false, isrc: '', upc: '', albumId: '' });
+    setForm({ title: '', genre: '', description: '', lyrics: '', explicit: false, privateTrack: false, isrc: '', upc: '', albumId: '' });
     setIsrcError('');
     setUpcError('');
   };
@@ -370,6 +372,19 @@ export default function UploadPage() {
               onChange={e => setForm({ ...form, description: e.target.value })}
               className="resize-none"
             />
+          </div>
+
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Songtekst <span className="text-slate-600 font-normal">(optioneel)</span>
+            </label>
+            <Textarea
+              placeholder="Plak hier de songtekst..."
+              value={form.lyrics}
+              onChange={e => setForm({ ...form, lyrics: e.target.value })}
+              className="resize-none min-h-32"
+            />
+            <p className="text-xs text-slate-600 mt-1">Wordt getoond terwijl luisteraars het nummer afspelen</p>
           </div>
 
           <div>

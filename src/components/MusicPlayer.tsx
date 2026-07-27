@@ -49,6 +49,7 @@ export default function MusicPlayer({ hidden = false }: { hidden?: boolean }) {
 
   const [expanded, setExpanded] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
+  const [showLyrics, setShowLyrics] = useState(false);
 
   // Stop radio, podcast and recording playback when a track starts playing
   useEffect(() => {
@@ -102,12 +103,22 @@ export default function MusicPlayer({ hidden = false }: { hidden?: boolean }) {
               {isRadioPlaying ? (
                 <div className="w-[30px]" />
               ) : (
-                <button
-                  onClick={() => setShowQueue(!showQueue)}
-                  className={`p-1.5 rounded-lg transition-colors ${showQueue ? 'text-violet-400 bg-violet-600/10' : 'text-slate-400 hover:text-white'}`}
-                >
-                  <ListMusic size={18} />
-                </button>
+                <div className="flex items-center gap-1">
+                  {track?.lyrics && (
+                    <button
+                      onClick={() => { setShowLyrics(!showLyrics); setShowQueue(false); }}
+                      className={`p-1.5 rounded-lg transition-colors ${showLyrics ? 'text-violet-400 bg-violet-600/10' : 'text-slate-400 hover:text-white'}`}
+                    >
+                      <Mic2 size={18} />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => { setShowQueue(!showQueue); setShowLyrics(false); }}
+                    className={`p-1.5 rounded-lg transition-colors ${showQueue ? 'text-violet-400 bg-violet-600/10' : 'text-slate-400 hover:text-white'}`}
+                  >
+                    <ListMusic size={18} />
+                  </button>
+                </div>
               )}
             </div>
 
@@ -160,6 +171,14 @@ export default function MusicPlayer({ hidden = false }: { hidden?: boolean }) {
                   {queueDisplay.length === 0 && (
                     <p className="text-xs text-slate-500 py-4 text-center">Geen nummers in de wachtrij</p>
                   )}
+                </div>
+              </div>
+
+            ) : showLyrics ? (
+              <div>
+                <p className="text-sm font-semibold text-white mb-3">Songtekst</p>
+                <div className="max-h-72 overflow-y-auto pr-1">
+                  <p className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">{track?.lyrics}</p>
                 </div>
               </div>
 
@@ -218,12 +237,9 @@ export default function MusicPlayer({ hidden = false }: { hidden?: boolean }) {
               </div>
             ) : null}
 
-            {!showQueue && !isRadioPlaying && track && (
-              <div className="mt-4 p-3 bg-white/3 border border-white/8 rounded-xl flex items-center gap-3">
-                <Mic2 size={16} className="text-slate-500 shrink-0" />
-                <p className="text-xs text-slate-500 italic line-clamp-1">
-                  "{track.title}" — {track.artist}
-                </p>
+            {!showQueue && !showLyrics && !isRadioPlaying && track?.description && (
+              <div className="mt-4 p-3 bg-white/3 border border-white/8 rounded-xl">
+                <p className="text-xs text-slate-500 leading-relaxed">{track.description}</p>
               </div>
             )}
           </div>
