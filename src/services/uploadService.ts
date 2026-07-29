@@ -243,7 +243,10 @@ export async function uploadTrack({
   if (isUUID(userId)) {
     await Promise.all([
       upsertArtistFromProfile(userId, genre, artistName),
-      supabase.from('profiles').update({ role: 'Artiest' }).eq('id', userId).neq('role', 'Artiest'),
+      // Only auto-promote a plain listener — never clobber a specialized role
+      // (Radio, Podcast, Admin) that a Radio/Podcast host also uploading a
+      // track would otherwise lose, silently hiding their Studio access.
+      supabase.from('profiles').update({ role: 'Artiest' }).eq('id', userId).eq('role', 'Luisteraar'),
     ]);
   }
 
@@ -356,7 +359,9 @@ export async function approveUpload(trackId: string, adminId: string): Promise<v
     const { data: fullTrack } = await supabase.from('tracks').select('genre, artist_name').eq('id', trackId).single();
     await Promise.all([
       upsertArtistFromProfile(track.uploaded_by, fullTrack?.genre || 'Overig', fullTrack?.artist_name || 'Artiest'),
-      supabase.from('profiles').update({ role: 'Artiest' }).eq('id', track.uploaded_by).neq('role', 'Artiest'),
+      // Same guard as uploadTrack() — only promote a plain listener, never a
+      // specialized role (Radio, Podcast, Admin).
+      supabase.from('profiles').update({ role: 'Artiest' }).eq('id', track.uploaded_by).eq('role', 'Luisteraar'),
     ]);
   }
 }
