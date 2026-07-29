@@ -313,6 +313,31 @@ function StudioRow({ station, onRefresh }: { station: RadioStation; onRefresh: (
 
       {open && (
         <div className="border-t border-white/8 px-4 py-4 space-y-3 bg-white/[0.02]">
+          <div className="flex items-center gap-3">
+            <div
+              onClick={() => coverRef.current?.click()}
+              className="relative w-16 h-16 rounded-xl overflow-hidden flex items-center justify-center shrink-0 cursor-pointer group bg-white/5 border border-white/10"
+            >
+              {coverPreview ? (
+                <img src={coverPreview} alt="" className="absolute inset-0 w-full h-full object-cover" />
+              ) : (
+                <Radio size={22} className="text-slate-600" />
+              )}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                <ImageIcon size={18} className="text-white" />
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-400 mb-1">Cover afbeelding</p>
+              <button
+                type="button"
+                onClick={() => coverRef.current?.click()}
+                className="text-xs text-violet-400 hover:text-violet-300 font-medium underline underline-offset-2"
+              >
+                {coverPreview ? 'Cover wijzigen' : 'Cover toevoegen'}
+              </button>
+            </div>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-slate-400 mb-1.5">Zendernaam</label>
