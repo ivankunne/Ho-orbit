@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Radio, Play, Pause, WifiOff, Settings2, CheckCircle, RefreshCw, Plus, Trash2, ChevronDown, ChevronUp, History, Upload } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Radio, Play, Pause, WifiOff, Settings2, CheckCircle, RefreshCw, Plus, Trash2, ChevronDown, ChevronUp, History, Upload, Image as ImageIcon } from 'lucide-react';
 import { useRadio, type RadioStation, type RadioRecording } from '@context/RadioContext';
 import { useAuth } from '@context/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -7,7 +7,7 @@ import { EqBars } from '@components/Waveform';
 import { useToast } from '@components/Toast';
 import GenrePicker from '@components/GenrePicker';
 import GenreBadge from '@components/GenreBadge';
-import { getAudioDuration, uploadAudioFile } from '@services/uploadService';
+import { getAudioDuration, uploadAudioFile, uploadRadioCoverFile } from '@services/uploadService';
 
 // Fetches + subscribes to one station's past recordings. Shared by the public
 // StationCard (listen back) and the Studio row (upload/manage).
@@ -64,13 +64,23 @@ function StationCard({ station, recordingCount }: { station: RadioStation; recor
       )}
 
       <div className="flex items-center gap-4">
-        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${
+        <div className={`relative w-14 h-14 rounded-2xl overflow-hidden flex items-center justify-center shrink-0 ${
           isThisPlaying ? 'bg-red-500/20 border border-red-500/30' : 'bg-white/5 border border-white/10'
         }`}>
-          {isThisPlaying
-            ? <EqBars playing />
-            : <Radio size={22} className={station.is_live ? 'text-red-400' : 'text-slate-600'} />
-          }
+          {station.cover_url ? (
+            <>
+              <img src={station.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+              {isThisPlaying && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                  <EqBars playing />
+                </div>
+              )}
+            </>
+          ) : isThisPlaying ? (
+            <EqBars playing />
+          ) : (
+            <Radio size={22} className={station.is_live ? 'text-red-400' : 'text-slate-600'} />
+          )}
         </div>
         <div className="flex-1 min-w-0 pr-16">
           <p className="font-bold text-white text-lg leading-tight">{station.name}</p>
@@ -175,13 +185,25 @@ function StudioRow({ station, onRefresh }: { station: RadioStation; onRefresh: (
   const [saving, setSaving]       = useState(false);
   const [saved, setSaved]         = useState(false);
   const [deleting, setDeleting]   = useState(false);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const coverRef = useRef<HTMLInputElement>(null);
   const addToast = useToast();
 
   const save = async () => {
     setSaving(true);
+    let coverUrl: string | undefined;
+    if (coverFile) {
+      try {
+        coverUrl = await uploadRadioCoverFile(coverFile, name || station.name);
+      } catch {
+        setSaving(false);
+        addToast?.('Cover uploaden mislukt.', 'error');
+        return;
+      }
+    }
     // .select() verifies the row was actually updated — an RLS-blocked update returns success with 0 rows
     const { data, error } = await supabase.from('radio_streams')
-      .update({ name, description, stream_url: streamUrl, genre, is_live: isLive })
+      .update({ name, description, stream_url: streamUrl, genre, is_live: isLive, ...(coverUrl ? { cover_url: coverUrl } : {}) })
       .eq('id', station.id)
       .select('id');
     setSaving(false);
@@ -189,6 +211,7 @@ function StudioRow({ station, onRefresh }: { station: RadioStation; onRefresh: (
       addToast?.('Opslaan mislukt — de wijziging is niet doorgevoerd.', 'error');
       return;
     }
+    setCoverFile(null);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
     onRefresh();
@@ -218,11 +241,31 @@ function StudioRow({ station, onRefresh }: { station: RadioStation; onRefresh: (
     onRefresh();
   };
 
+  const coverPreview = coverFile ? URL.createObjectURL(coverFile) : station.cover_url;
+
   return (
     <div className="bg-white/[0.03] border border-white/8 rounded-2xl overflow-hidden">
       <div className="flex items-center gap-3 px-4 py-3">
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isLive ? 'bg-red-500/20 border border-red-500/30' : 'bg-white/5 border border-white/10'}`}>
-          <Radio size={14} className={isLive ? 'text-red-400' : 'text-slate-500'} />
+        <div
+          onClick={() => coverRef.current?.click()}
+          title="Klik om de cover te wijzigen"
+          className={`relative w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center shrink-0 cursor-pointer group ${isLive ? 'bg-red-500/20 border border-red-500/30' : 'bg-white/5 border border-white/10'}`}
+        >
+          {coverPreview ? (
+            <img src={coverPreview} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          ) : (
+            <Radio size={14} className={isLive ? 'text-red-400' : 'text-slate-500'} />
+          )}
+          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+            <ImageIcon size={12} className="text-white" />
+          </div>
+          <input
+            ref={coverRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={e => e.target.files?.[0] && setCoverFile(e.target.files[0])}
+          />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-white truncate">{station.name}</p>
@@ -433,15 +476,28 @@ function AddStationForm({ onRefresh, onClose, userId }: { onRefresh: () => void;
   const [genre, setGenre]         = useState('');
   const [streamUrl, setStreamUrl] = useState('');
   const [description, setDesc]    = useState('');
+  const [coverFile, setCoverFile] = useState<File | null>(null);
   const [saving, setSaving]       = useState(false);
+  const coverRef = useRef<HTMLInputElement>(null);
   const addToast = useToast();
 
   const save = async () => {
     if (!name.trim() || !streamUrl.trim()) return;
     setSaving(true);
+    let coverUrl: string | undefined;
+    if (coverFile) {
+      try {
+        coverUrl = await uploadRadioCoverFile(coverFile, name);
+      } catch {
+        setSaving(false);
+        addToast?.('Cover uploaden mislukt.', 'error');
+        return;
+      }
+    }
     const { error } = await supabase.from('radio_streams').insert({
       name, genre, stream_url: streamUrl, description, is_live: false,
       ...(userId ? { owner_id: userId } : {}),
+      ...(coverUrl ? { cover_url: coverUrl } : {}),
     });
     setSaving(false);
     if (error) {
@@ -456,6 +512,30 @@ function AddStationForm({ onRefresh, onClose, userId }: { onRefresh: () => void;
   return (
     <div className="bg-white/[0.03] border border-violet-500/20 rounded-2xl p-5 space-y-3">
       <p className="text-sm font-semibold text-white mb-1">Zender registreren</p>
+      <div className="flex items-center gap-3">
+        <div
+          onClick={() => coverRef.current?.click()}
+          title="Klik om een cover toe te voegen"
+          className="relative w-14 h-14 rounded-2xl overflow-hidden flex items-center justify-center shrink-0 cursor-pointer group bg-white/5 border border-white/10"
+        >
+          {coverFile ? (
+            <img src={URL.createObjectURL(coverFile)} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          ) : (
+            <Radio size={20} className="text-slate-600" />
+          )}
+          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+            <ImageIcon size={16} className="text-white" />
+          </div>
+          <input
+            ref={coverRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={e => e.target.files?.[0] && setCoverFile(e.target.files[0])}
+          />
+        </div>
+        <p className="text-xs text-slate-500">Klik om een cover afbeelding toe te voegen (optioneel)</p>
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-slate-400 mb-1.5">Naam *</label>

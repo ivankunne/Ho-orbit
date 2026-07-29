@@ -12,6 +12,7 @@ export interface RadioStation {
   genre: string;
   created_at: string;
   owner_id?: string;
+  cover_url?: string;
 }
 
 export interface RadioRecording {

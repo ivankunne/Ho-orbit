@@ -751,6 +751,7 @@ interface AdminRadioStation {
   description: string;
   stream_url: string;
   is_live: boolean;
+  cover_url?: string;
 }
 
 function RadioSection() {
@@ -796,8 +797,12 @@ function RadioSection() {
           {stations.map(station => (
             <div key={station.id} className={`bg-white/[0.03] border rounded-2xl p-4 transition-all ${station.is_live ? 'border-red-500/30' : 'border-white/8 hover:border-white/15'}`}>
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${station.is_live ? 'bg-red-500/20 border border-red-500/30' : 'bg-white/5 border border-white/10'}`}>
-                  <Radio size={16} className={station.is_live ? 'text-red-400' : 'text-slate-500'} />
+                <div className={`relative w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shrink-0 ${station.is_live ? 'bg-red-500/20 border border-red-500/30' : 'bg-white/5 border border-white/10'}`}>
+                  {station.cover_url ? (
+                    <img src={station.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                  ) : (
+                    <Radio size={16} className={station.is_live ? 'text-red-400' : 'text-slate-500'} />
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">

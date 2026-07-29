@@ -125,8 +125,12 @@ export default function MusicPlayer({ hidden = false }: { hidden?: boolean }) {
             {/* Radio expanded view */}
             {isRadioPlaying ? (
               <div className="flex flex-col items-center py-4 gap-5">
-                <div className="relative w-32 h-32 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
-                  <Radio size={48} className="text-red-400" />
+                <div className="relative w-32 h-32 rounded-2xl overflow-hidden bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+                  {currentStation?.cover_url ? (
+                    <img src={currentStation.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                  ) : (
+                    <Radio size={48} className="text-red-400" />
+                  )}
                   <div className="absolute inset-0 rounded-2xl border border-red-500/20 animate-ping opacity-20" />
                 </div>
                 <div className="text-center">
@@ -265,8 +269,12 @@ export default function MusicPlayer({ hidden = false }: { hidden?: boolean }) {
                 onClick={() => setExpanded(e => !e)}
               >
                 <div className="relative shrink-0">
-                  <div className="w-10 h-10 rounded-lg bg-red-500/15 border border-red-500/25 flex items-center justify-center">
-                    <Radio size={18} className="text-red-400" />
+                  <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-red-500/15 border border-red-500/25 flex items-center justify-center">
+                    {currentStation?.cover_url ? (
+                      <img src={currentStation.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                    ) : (
+                      <Radio size={18} className="text-red-400" />
+                    )}
                   </div>
                   <div className="absolute -top-1 -right-1">
                     <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping absolute opacity-75" />

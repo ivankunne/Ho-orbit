@@ -166,6 +166,16 @@ export async function uploadAlbumCoverFile(file: File, albumTitle: string): Prom
   return data.publicUrl;
 }
 
+export async function uploadRadioCoverFile(file: File, stationName: string): Promise<string> {
+  const ext = file.name.split('.').pop() ?? 'jpg';
+  const safeName = stationName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+  const path = `radio/${Date.now()}_${safeName}.${ext}`;
+  const { error } = await supabase.storage.from('audio').upload(path, file, { contentType: file.type });
+  if (error) throw error;
+  const { data } = supabase.storage.from('audio').getPublicUrl(path);
+  return data.publicUrl;
+}
+
 export async function uploadEventPoster(file: File): Promise<string> {
   const ext = file.name.split('.').pop() ?? 'jpg';
   const path = `posters/${Date.now()}_${Math.round(Math.random() * 1e6)}.${ext}`;
