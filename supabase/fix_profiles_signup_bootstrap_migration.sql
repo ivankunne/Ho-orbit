@@ -28,9 +28,29 @@
 -- Run in the Supabase Dashboard → SQL Editor. Safe to re-run.
 -- ============================================================================
 
+-- ============================================================================
+-- CORRECTION (still 2026-07-30) — the version below with created_at =
+-- updated_at in BOTH clauses does not actually work and was verified failing
+-- live (BLESZ's row got an explicit 42501 RLS error, not a successful write).
+--
+-- Reason: WITH CHECK is evaluated against the RESULT row, after any BEFORE
+-- UPDATE trigger has already run. This table has an updated_at auto-touch
+-- trigger, so by the time WITH CHECK runs, updated_at has already moved to
+-- now() while created_at hasn't — created_at = updated_at is false for
+-- every update, including the very one this policy is meant to allow. The
+-- bootstrap path was defeating itself.
+--
+-- Fix: keep the pristine-row check in USING (evaluated on the OLD row,
+-- before any trigger touches it — correct there), but drop it from WITH
+-- CHECK. This restrictive policy's job is to gate *which* rows can be
+-- touched at all (self, admin, or still-untouched-since-creation); once a
+-- row is eligible, the actual column values being written are unaffected by
+-- this layer either way — same as the self/admin cases already.
+-- ============================================================================
+
 DROP POLICY IF EXISTS "profiles_update_self_or_admin_restrictive" ON public.profiles;
 CREATE POLICY "profiles_update_self_or_admin_restrictive"
   ON public.profiles AS RESTRICTIVE FOR UPDATE
   TO public
   USING (auth.uid() = id OR public.is_admin() OR created_at = updated_at)
-  WITH CHECK (auth.uid() = id OR public.is_admin() OR created_at = updated_at);
+  WITH CHECK (true);
