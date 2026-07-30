@@ -231,7 +231,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { ok: false };
     }
 
+    // Supabase deliberately does NOT return an error for signUp() against an
+    // email that's already registered and confirmed — it returns a fake user
+    // object instead (email-enumeration protection). The tell is an empty
+    // `identities` array. Without this check, the upsert below would try to
+    // overwrite that real, existing account's profile row (followers_count,
+    // role, verified, etc.) back to blank signup defaults.
+    if (authData.user && Array.isArray(authData.user.identities) && authData.user.identities.length === 0) {
+      setError('Er bestaat al een account met dit e-mailadres. Log in plaats van opnieuw aan te melden.');
+      return { ok: false };
+    }
+
     if (authData.user) {
+      // This runs before email confirmation, so there is no session yet —
+      // the write below is unauthenticated. A DB-level policy allows it only
+      // for a still-pristine row matching this exact id (see
+      // fix_profiles_signup_bootstrap_migration.sql); any already-established
+      // profile stays fully locked down regardless.
       const { error: profileError } = await supabase.from('profiles').upsert({
         id: authData.user.id,
         username: data.username,
