@@ -9,6 +9,7 @@ import { EqBars } from '@components/Waveform';
 import GenreBadge from '@components/GenreBadge';
 import { coverPlaceholder } from '@utils/placeholder';
 import { getAudioDuration, uploadAudioFile } from '@services/uploadService';
+import { notifyAdminUpload } from '@services/emailService';
 
 function EpisodeRow({
   podcast, episode, canManage, onRefresh,
@@ -80,6 +81,7 @@ function AddEpisodeForm({ podcastId, onRefresh, onClose }: { podcastId: string; 
         duration,
       });
       if (error) throw error;
+      notifyAdminUpload('podcast_episode', title, `/podcasts/${podcastId}`);
       addToast?.('Aflevering toegevoegd.', 'success');
       onRefresh();
       onClose();

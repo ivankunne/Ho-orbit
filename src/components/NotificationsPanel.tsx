@@ -17,6 +17,7 @@ const TYPE_ICON = {
   comment:     { icon: MessageSquare, color: 'text-purple-400 bg-purple-500/15' },
   forum_reply: { icon: MessageSquare, color: 'text-orange-400 bg-orange-500/15' },
   system:      { icon: Upload,       color: 'text-pink-400 bg-pink-500/15' },
+  admin_upload:{ icon: Upload,       color: 'text-amber-400 bg-amber-500/15' },
   article:     { icon: FileText,     color: 'text-green-400 bg-green-500/15' },
   default:     { icon: Bell,         color: 'text-slate-400 bg-white/10' },
 };

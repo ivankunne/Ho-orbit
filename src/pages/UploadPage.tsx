@@ -6,6 +6,7 @@ import { useAuth } from '@context/AuthContext';
 import { uploadTrack } from '@services/uploadService';
 import { getArtistAlbums, type Album } from '@services/albumService';
 import { addNotification } from '@services/notificationService';
+import { notifyAdminUpload } from '@services/emailService';
 import { Input } from '@components/ui/input';
 import { Textarea } from '@components/ui/textarea';
 import { Checkbox } from '@components/ui/checkbox';
@@ -140,6 +141,7 @@ export default function UploadPage() {
           body: `"${track.title}" is ingediend en wacht op goedkeuring`,
           link: '/profiel',
         });
+        notifyAdminUpload('track', track.title, '/admin');
       }
       setUploadState('success');
     } catch (err: any) {

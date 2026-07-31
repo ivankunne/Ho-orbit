@@ -8,6 +8,7 @@ import { useToast } from '@components/Toast';
 import GenrePicker from '@components/GenrePicker';
 import GenreBadge from '@components/GenreBadge';
 import { coverPlaceholder } from '@utils/placeholder';
+import { notifyAdminUpload } from '@services/emailService';
 
 // ─── Podcast card (public browse view) ───────────────────────────────────────
 
@@ -152,6 +153,7 @@ function AddPodcastForm({ onRefresh, onClose, userId }: { onRefresh: () => void;
       addToast?.('Podcast toevoegen mislukt. Probeer het opnieuw.', 'error');
       return;
     }
+    notifyAdminUpload('podcast', title, '/podcasts');
     addToast?.('Podcast toegevoegd. Voeg nu je eerste aflevering toe.', 'success');
     onRefresh();
     onClose();

@@ -7,6 +7,7 @@ import { useAuth } from '@context/AuthContext';
 import { useToast } from '@components/Toast';
 import BlurImage from '@components/BlurImage';
 import { uploadEventPoster } from '@services/uploadService';
+import { notifyAdminUpload } from '@services/emailService';
 
 function calcCountdown(dateStr, nowMs) {
   const diff = new Date(dateStr + 'T00:00:00').getTime() - nowMs;
@@ -442,6 +443,7 @@ function CreateEventForm({ onCreated }: { onCreated?: () => void }) {
         submitted_at: new Date().toISOString(),
       });
       if (error) throw error;
+      notifyAdminUpload('event', form.title, '/events');
       setSubmitted(true);
       if (onCreated) onCreated();
     } catch (err: any) {

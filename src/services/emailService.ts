@@ -37,3 +37,8 @@ export function notifyBandMention(bandId: string, messageId: string, recipientId
 export function notifyBandInvite(inviteId: string) {
   return invokeNotify({ kind: 'band_invite', inviteId });
 }
+
+/** Notify every admin that a user uploaded new content (track, album, podcast, etc). */
+export function notifyAdminUpload(contentType: string, title: string, link: string) {
+  return invokeNotify({ kind: 'upload', contentType, title, link });
+}

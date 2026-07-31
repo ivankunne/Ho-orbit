@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { uploadAlbumCoverFile } from '@services/uploadService';
+import { notifyAdminUpload } from '@services/emailService';
 
 // DB table defined in supabase/albums_migration.sql
 
@@ -91,7 +92,9 @@ export async function createAlbum(ownerId: string, input: {
     .select()
     .single();
   if (error || !data) return null;
-  return mapAlbum(data);
+  const album = mapAlbum(data);
+  notifyAdminUpload('album', album.title, `/albums/${album.id}`);
+  return album;
 }
 
 export async function updateAlbum(albumId: string, ownerId: string, updates: {

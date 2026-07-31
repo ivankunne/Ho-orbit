@@ -8,6 +8,7 @@ import { useToast } from '@components/Toast';
 import GenrePicker from '@components/GenrePicker';
 import GenreBadge from '@components/GenreBadge';
 import { getAudioDuration, uploadAudioFile, uploadRadioCoverFile } from '@services/uploadService';
+import { notifyAdminUpload } from '@services/emailService';
 
 // Fetches + subscribes to one station's past recordings. Shared by the public
 // StationCard (listen back) and the Studio row (upload/manage).
@@ -455,6 +456,7 @@ function AddRecordingForm({ stationId, onRefresh, onClose }: { stationId: string
         duration,
       });
       if (error) throw error;
+      notifyAdminUpload('radio_recording', title, '/radio');
       addToast?.('Opname toegevoegd.', 'success');
       onRefresh();
       onClose();
@@ -529,6 +531,7 @@ function AddStationForm({ onRefresh, onClose, userId }: { onRefresh: () => void;
       addToast?.('Zender toevoegen mislukt. Probeer het opnieuw.', 'error');
       return;
     }
+    notifyAdminUpload('radio_stream', name, '/radio');
     addToast?.('Zender toegevoegd. Zet de schakelaar aan als je live gaat.', 'success');
     onRefresh();
     onClose();

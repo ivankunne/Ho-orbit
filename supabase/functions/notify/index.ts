@@ -11,6 +11,8 @@
 //   { kind: 'follow',       targetUserId: string }   // UUID of the followed profile
 //   { kind: 'band_mention', bandId: string, messageId: string, recipientIds: string[] }
 //   { kind: 'band_invite',  inviteId: string }       // UUID of a band_invites row
+//   { kind: 'upload',       contentType: string, title: string, link: string }
+//                                                    // fans out to every admin (profiles.is_admin = true)
 //
 // Deploy:  supabase functions deploy notify
 // Secrets: RESEND_API_KEY, SITE_URL (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY
@@ -76,6 +78,9 @@ Deno.serve(async (req) => {
     }
     if (payload.kind === 'band_invite') {
       return await handleBandInvite(admin, callerId, payload);
+    }
+    if (payload.kind === 'upload') {
+      return await handleUpload(admin, callerId, payload);
     }
     return json({ error: 'Unknown kind' }, 400);
   } catch (e) {
@@ -332,4 +337,54 @@ async function handleBandInvite(
   if (!res.ok) console.warn('[notify] band_invite email failed:', res.error);
 
   return json({ ok: true, emailed: res.ok });
+}
+
+const UPLOAD_LABELS: Record<string, string> = {
+  track: 'Nieuwe track',
+  album: 'Nieuw album',
+  podcast: 'Nieuwe podcast',
+  podcast_episode: 'Nieuwe aflevering',
+  radio_stream: 'Nieuw radiostation',
+  radio_recording: 'Nieuwe radio-opname',
+  event: 'Nieuw evenement',
+};
+
+// Fans out to every admin whenever a user uploads content. Deliberately
+// ignores each admin's notification_prefs opt-out (unlike every other
+// handler here) — admins need to see all uploads, so this ships unconditionally.
+async function handleUpload(
+  admin: ReturnType<typeof createClient>,
+  callerId: string,
+  payload: Record<string, unknown>,
+) {
+  const contentType = String(payload.contentType ?? '');
+  const contentTitle = String(payload.title ?? '').trim();
+  const link = String(payload.link ?? '') || '/admin';
+  const label = UPLOAD_LABELS[contentType];
+  if (!label) return json({ error: 'Unknown contentType' }, 400);
+  if (!contentTitle) return json({ error: 'title is required' }, 400);
+
+  const [{ data: uploader }, { data: admins }] = await Promise.all([
+    admin.from('profiles').select('display_name, username').eq('id', callerId).single(),
+    admin.from('profiles').select('id').eq('is_admin', true),
+  ]);
+
+  const uploaderName = displayName(uploader);
+  const title = `${label} geüpload`;
+  const body = `${uploaderName} uploadde "${contentTitle}"`;
+
+  const recipients = (admins ?? []).map((a) => a.id as string).filter((id) => id !== callerId);
+
+  let pushed = 0;
+  await Promise.all(
+    recipients.map(async (adminId) => {
+      await admin.from('notifications').insert({
+        user_id: adminId, type: 'admin_upload', title, body, link,
+      });
+      const res = await sendPushToUser(admin, adminId, { title, body, url: link, tag: `upload-${contentType}` });
+      pushed += res.sent;
+    }),
+  );
+
+  return json({ ok: true, notified: recipients.length, pushed });
 }
