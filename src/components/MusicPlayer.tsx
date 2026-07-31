@@ -2,7 +2,7 @@ import { useMemo, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Play, Pause, SkipBack, SkipForward, Heart, Volume2,
-  Shuffle, Repeat, Repeat1, ChevronDown, ListMusic, Mic2, Radio,
+  Shuffle, Repeat, Repeat1, ChevronDown, ListMusic, Mic2, Radio, Share2,
 } from 'lucide-react';
 import { usePlayer, usePlayerProgress } from '@context/PlayerContext';
 import { useRadio } from '@context/RadioContext';
@@ -12,6 +12,7 @@ import { useState } from 'react';
 import { getWaveform, EqBars } from '@components/Waveform';
 import { useToast } from '@components/Toast';
 import { coverPlaceholder } from '@utils/placeholder';
+import { shareContent, buildShareUrl } from '@utils/share';
 
 function formatTime(secs) {
   if (!secs || isNaN(secs)) return '0:00';
@@ -64,6 +65,31 @@ export default function MusicPlayer({ hidden = false }: { hidden?: boolean }) {
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
   const waveformBars = useMemo(() => getWaveform(currentIndex + 1, 60, 'player'), [currentIndex]);
 
+  // No dedicated /track/:id or /radio/:id page exists yet, so link to the
+  // closest real page (artist page for a track, the radio listing for a
+  // station) while the share text still names the specific track/show.
+  const shareTrack = useCallback(async () => {
+    if (!track) return;
+    const result = await shareContent({
+      title: track.title,
+      text: `Luister naar "${track.title}" van ${track.artist} op H-Orbit`,
+      url: buildShareUrl(track.artistId ? `/artists/${track.artistId}` : '/'),
+    });
+    if (result === 'copied') addToast?.('Link gekopieerd naar klembord', 'success');
+    else if (result === 'error') addToast?.('Delen mislukt', 'error');
+  }, [track]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const shareStation = useCallback(async () => {
+    if (!currentStation) return;
+    const result = await shareContent({
+      title: currentStation.name,
+      text: `Luister naar ${currentStation.name} op H-Orbit`,
+      url: buildShareUrl('/radio'),
+    });
+    if (result === 'copied') addToast?.('Link gekopieerd naar klembord', 'success');
+    else if (result === 'error') addToast?.('Delen mislukt', 'error');
+  }, [currentStation]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Hidden while the mobile menu is open so the bar doesn't float over the menu.
   // Audio lives in PlayerContext, so unmounting here never interrupts playback.
   if (hidden) return null;
@@ -101,7 +127,9 @@ export default function MusicPlayer({ hidden = false }: { hidden?: boolean }) {
                 {isRadioPlaying ? 'Live Radio' : 'Nu aan het spelen'}
               </p>
               {isRadioPlaying ? (
-                <div className="w-[30px]" />
+                <button onClick={shareStation} className="p-1.5 rounded-lg text-slate-400 hover:text-white transition-colors" aria-label="Delen">
+                  <Share2 size={18} />
+                </button>
               ) : (
                 <div className="flex items-center gap-1">
                   {track?.lyrics && (
@@ -206,12 +234,17 @@ export default function MusicPlayer({ hidden = false }: { hidden?: boolean }) {
                         {track.artist}
                       </Link>
                     </div>
-                    <button
-                      onClick={() => track && toggleLike(track.id)}
-                      className={`shrink-0 mt-1 transition-colors ${liked ? 'text-violet-400' : 'text-slate-500 hover:text-white'}`}
-                    >
-                      <Heart size={20} fill={liked ? 'currentColor' : 'none'} />
-                    </button>
+                    <div className="flex items-center gap-3 shrink-0 mt-1">
+                      <button onClick={shareTrack} className="text-slate-500 hover:text-white transition-colors" aria-label="Delen">
+                        <Share2 size={18} />
+                      </button>
+                      <button
+                        onClick={() => track && toggleLike(track.id)}
+                        className={`transition-colors ${liked ? 'text-violet-400' : 'text-slate-500 hover:text-white'}`}
+                      >
+                        <Heart size={20} fill={liked ? 'currentColor' : 'none'} />
+                      </button>
+                    </div>
                   </div>
                   <p className="text-xs text-slate-500 mb-4">{track.album || track.genre}</p>
 
