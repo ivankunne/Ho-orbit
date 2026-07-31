@@ -19,6 +19,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@components/ui/tabs';
 import { notifyBandMention } from '@services/emailService';
 import BandPushBanner from '@components/BandPushBanner';
 import BandRidersPanel from '@components/BandRidersPanel';
+import BandRehearsalsPanel from '@components/BandRehearsalsPanel';
 import ConfirmDialog from '@components/ConfirmDialog';
 import { avatarPlaceholder, coverPlaceholder } from '@utils/placeholder';
 import { getBandRole, isOwner as isOwnerRole, canRemoveRole, describeBandError, type BandRole } from '@lib/bandPermissions';
@@ -126,7 +127,7 @@ function formatEventDate(dateStr: string) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-type ActiveView = 'home' | 'channel' | 'calendar' | 'projects' | 'project' | 'riders';
+type ActiveView = 'home' | 'channel' | 'calendar' | 'projects' | 'project' | 'riders' | 'recordings';
 type ProjectTab = 'chat' | 'assignments' | 'goals' | 'ideas';
 
 export default function BandSpaceDetailPage() {
@@ -1342,6 +1343,7 @@ export default function BandSpaceDetailPage() {
           <NavItem view="calendar" icon={Calendar} label="Kalender" />
           <NavItem view="projects" icon={FolderKanban} label="Projecten" />
           <NavItem view="riders" icon={FileIcon} label="Riders" />
+          <NavItem view="recordings" icon={Mic2} label="Opnames" />
 
           <div className="pt-3 pb-1">
             <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-wider px-3">Kanalen</p>
@@ -1431,6 +1433,7 @@ export default function BandSpaceDetailPage() {
             : activeView === 'projects' ? 'Projecten'
             : activeView === 'project' ? (activeProject?.name ?? 'Project')
             : activeView === 'riders' ? 'Riders'
+            : activeView === 'recordings' ? 'Opnames'
             : activeCh.label}
         </span>
         <button onClick={() => setShowShareModal(true)} className="p-1.5 text-slate-400 hover:text-violet-400 transition-colors"><Share2 size={16} /></button>
@@ -2003,6 +2006,11 @@ export default function BandSpaceDetailPage() {
         {/* ── RIDERS VIEW ──────────────────────────────────────────────────────── */}
         {activeView === 'riders' && (
           <BandRidersPanel bandId={band.id} isAdmin={isAdmin} userId={user?.id} />
+        )}
+
+        {/* ── RECORDINGS VIEW ─────────────────────────────────────────────────── */}
+        {activeView === 'recordings' && (
+          <BandRehearsalsPanel bandId={band.id} isAdmin={isAdmin} isMember={isMember} userId={user?.id} />
         )}
 
         {/* ── PROJECTS VIEW (grid of tiles) ───────────────────────────────────── */}

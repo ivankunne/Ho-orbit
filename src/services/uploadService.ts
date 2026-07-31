@@ -146,6 +146,47 @@ export async function uploadAudioFile(file: File, trackTitle: string, onProgress
   return data.publicUrl;
 }
 
+// Same resumable/TUS path as uploadAudioFile (rehearsal clips can run long
+// too), just scoped under a per-band prefix so recordings from different
+// bands never collide in the shared `audio` bucket.
+export async function uploadRehearsalRecording(
+  file: File, bandId: string, title: string, onProgress?: (pct: number) => void,
+): Promise<string> {
+  const ext = (file.name.split('.').pop() ?? 'mp3').toLowerCase();
+  const safeName = title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+  const path = `rehearsals/${bandId}/${Date.now()}_${safeName}.${ext}`;
+  const EXT_MIME: Record<string, string> = {
+    mp3: 'audio/mpeg', wav: 'audio/wav', flac: 'audio/flac',
+    aac: 'audio/aac', m4a: 'audio/mp4', ogg: 'audio/ogg', oga: 'audio/ogg',
+  };
+  const contentType = EXT_MIME[ext] || file.type || `audio/${ext}`;
+
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Je bent uitgelogd — log opnieuw in en probeer het nogmaals.');
+
+  await new Promise<void>((resolve, reject) => {
+    const upload = new tus.Upload(file, {
+      endpoint: `https://${STORAGE_PROJECT_REF}.storage.supabase.co/storage/v1/upload/resumable`,
+      retryDelays: [0, 3000, 5000, 10000, 20000],
+      headers: { authorization: `Bearer ${session.access_token}`, 'x-upsert': 'false' },
+      uploadDataDuringCreation: true,
+      removeFingerprintOnSuccess: true,
+      metadata: { bucketName: 'audio', objectName: path, contentType, cacheControl: '3600' },
+      chunkSize: 6 * 1024 * 1024,
+      onProgress: (bytesUploaded, bytesTotal) => onProgress?.(Math.round((bytesUploaded / bytesTotal) * 100)),
+      onSuccess: () => resolve(),
+      onError: reject,
+    });
+    upload.findPreviousUploads().then(previousUploads => {
+      if (previousUploads.length) upload.resumeFromPreviousUpload(previousUploads[0]);
+      upload.start();
+    });
+  });
+
+  const { data } = supabase.storage.from('audio').getPublicUrl(path);
+  return data.publicUrl;
+}
+
 export async function uploadCoverFile(file: File, trackTitle: string): Promise<string> {
   const ext = file.name.split('.').pop() ?? 'jpg';
   const safeName = trackTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase();
