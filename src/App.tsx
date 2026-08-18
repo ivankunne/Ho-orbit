@@ -19,6 +19,7 @@ import Footer from '@components/Layout/Footer';
 import InviteResumer from '@components/InviteResumer';
 import InstallPrompt from '@components/InstallPrompt';
 import PushPrompt from '@components/PushPrompt';
+import AiPolicyBanner from '@components/AiPolicyBanner';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -212,6 +213,7 @@ function ProtectedApp() {
           onToggleShortcutsModal={() => setShowShortcuts(v => !v)}
         />
       )}
+      {!isLanding && !isRiderShare && <AiPolicyBanner />}
       {!isLanding && !isRiderShare && <Navbar externalShowSearch={showSearch} onExternalSearchClose={() => setShowSearch(false)} onMobileMenuChange={setMobileMenuOpen} />}
       <main className={isLanding || isRiderShare ? '' : isWorkspace ? 'flex flex-col' : 'pb-28 lg:pb-20 flex flex-col'}>
         <ErrorBoundary>
