@@ -85,6 +85,8 @@ export const FALLBACK_GENRE_GROUPS: GenreGroup[] = [
       { name: 'Adult contemporary', color: 'slate' },
       { name: 'Yacht music', color: 'sky' },
       { name: 'Vape wave', color: 'fuchsia' },
+      { name: 'Country', color: 'amber' },
+      { name: 'Folk', color: 'green' },
     ],
   },
 ];
@@ -183,4 +185,6 @@ export const FILTER_GENRES: string[] = [
   'House',
   'Drum & Bass',
   'Reggae',
+  'Country',
+  'Folk',
 ];

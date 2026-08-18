@@ -145,7 +145,9 @@ INSERT INTO public.genres (id, label, group_id, parent_id, color, sort_order) VA
   ('medicine-music',     'Medicine music',    'overig',            NULL,      'emerald', 2),
   ('adult-contemporary', 'Adult contemporary','overig',            NULL,      'slate',   3),
   ('yacht-music',        'Yacht music',       'overig',            NULL,      'sky',     4),
-  ('vape-wave',          'Vape wave',         'overig',            NULL,      'fuchsia', 5)
+  ('vape-wave',          'Vape wave',         'overig',            NULL,      'fuchsia', 5),
+  ('country',            'Country',           'overig',            NULL,      'amber',   6),
+  ('folk',               'Folk',              'overig',            NULL,      'green',   7)
 ON CONFLICT (id) DO UPDATE
   SET label     = EXCLUDED.label,
       group_id  = EXCLUDED.group_id,
