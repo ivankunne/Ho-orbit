@@ -480,13 +480,13 @@ export default function ArtistDetailPage() {
                   <div
                     key={track.id}
                     onClick={() => { setActiveTrack(i); playTrack(track, allTracks); }}
-                    className={`flex items-center gap-4 p-3 rounded-xl group cursor-pointer transition-colors ${
+                    className={`flex items-center gap-2 sm:gap-4 p-3 rounded-xl group cursor-pointer transition-colors ${
                       isActive ? 'bg-violet-600/10 border border-violet-500/20' : 'hover:bg-white/4'
                     }`}
                   >
                     {isActive
                       ? <Play size={14} className="text-violet-400 w-5 shrink-0" fill="currentColor" />
-                      : <span className="w-5 text-center text-sm text-slate-500 group-hover:hidden">{i + 1}</span>
+                      : <span className="w-5 text-center text-sm text-slate-500 shrink-0 group-hover:hidden">{i + 1}</span>
                     }
                     <img
                       src={track.cover_url || coverPlaceholder(track.title)}
@@ -494,29 +494,29 @@ export default function ArtistDetailPage() {
                       className="w-10 h-10 rounded-md object-cover shrink-0"
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className={`text-sm font-medium ${isActive ? 'text-violet-400' : 'text-white'}`}>{track.title}</p>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <p className={`text-sm font-medium truncate min-w-0 ${isActive ? 'text-violet-400' : 'text-white'}`}>{track.title}</p>
                         {track.isUploaded && (
-                          <span className="text-[10px] bg-violet-500/20 text-violet-400 border border-violet-500/25 px-1.5 py-0.5 rounded">Upload</span>
+                          <span className="text-[10px] bg-violet-500/20 text-violet-400 border border-violet-500/25 px-1.5 py-0.5 rounded shrink-0">Upload</span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-400">{albums.find(a => a.id === track.album_id)?.title ?? track.genre}</p>
+                      <p className="text-xs text-slate-400 truncate">{albums.find(a => a.id === track.album_id)?.title ?? track.genre}</p>
                     </div>
-                    <span className="text-xs text-slate-500 hidden sm:block">{formatPlays(track.plays ?? 0)} streams</span>
-                    <span className="text-xs text-slate-500">{track.duration}</span>
+                    <span className="text-xs text-slate-500 hidden sm:block shrink-0">{formatPlays(track.plays ?? 0)} streams</span>
+                    <span className="text-xs text-slate-500 shrink-0">{track.duration}</span>
                     <button
                       onClick={e => { e.stopPropagation(); toggleLike(track.id); }}
-                      className={`p-1.5 transition-all ${liked ? 'text-violet-400' : 'text-slate-600 hover:text-slate-300'}`}
+                      className={`p-1 sm:p-1.5 transition-all shrink-0 ${liked ? 'text-violet-400' : 'text-slate-600 hover:text-slate-300'}`}
                     >
                       <Heart size={14} fill={liked ? 'currentColor' : 'none'} />
                     </button>
                     {canManageContent && track.isUploaded && (
-                      <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+                      <div className="flex items-center gap-0.5 sm:gap-1 shrink-0" onClick={e => e.stopPropagation()}>
                         <button
                           onClick={() => handleMoveTrack(String(track.id), 'up')}
                           disabled={uploadedIdx <= 0}
                           title="Omhoog verplaatsen"
-                          className="p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors disabled:opacity-30 disabled:pointer-events-none"
+                          className="p-1 sm:p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors disabled:opacity-30 disabled:pointer-events-none"
                         >
                           <ChevronUp size={13} />
                         </button>
@@ -524,14 +524,14 @@ export default function ArtistDetailPage() {
                           onClick={() => handleMoveTrack(String(track.id), 'down')}
                           disabled={uploadedIdx === -1 || uploadedIdx === sortedUploadedTracks.length - 1}
                           title="Omlaag verplaatsen"
-                          className="p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors disabled:opacity-30 disabled:pointer-events-none"
+                          className="p-1 sm:p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors disabled:opacity-30 disabled:pointer-events-none"
                         >
                           <ChevronDown size={13} />
                         </button>
                         <button
                           onClick={() => setEditingTrack(mapTrack(track))}
                           title="Bewerken"
-                          className="p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors"
+                          className="p-1 sm:p-1.5 text-slate-400 hover:text-white hover:bg-white/8 rounded-lg transition-colors"
                         >
                           <Pencil size={13} />
                         </button>
@@ -539,7 +539,7 @@ export default function ArtistDetailPage() {
                           onClick={() => handleDeleteTrack(String(track.id))}
                           disabled={deletingTrackId === String(track.id)}
                           title="Verwijderen"
-                          className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
+                          className="p-1 sm:p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
                         >
                           <Trash2 size={13} />
                         </button>

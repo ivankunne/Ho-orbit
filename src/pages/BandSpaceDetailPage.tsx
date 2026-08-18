@@ -1061,11 +1061,18 @@ export default function BandSpaceDetailPage() {
     setPending(prev => prev.filter(m => m.id !== memberId));
     addToast(`${profile?.display_name || profile?.username} afgewezen`, 'info');
   }
-  async function handleRemoveMember(memberId: string, profile: any) {
-    const { ok, error } = await removeBandMember(memberId);
-    if (!ok) { addToast(describeBandError(error, 'Verwijderen mislukt'), 'error'); return; }
-    setMembers(prev => prev.filter(m => m.id !== memberId));
-    addToast(`${profile?.display_name || profile?.username} verwijderd`, 'info');
+  function handleRemoveMember(memberId: string, profile: any) {
+    const name = profile?.display_name || profile?.username || 'dit lid';
+    setConfirmDialog({
+      title: 'Lid verwijderen', description: `Weet je zeker dat je ${name} uit de band wilt verwijderen?`,
+      confirmLabel: 'Verwijderen', destructive: true,
+      onConfirm: async () => {
+        const { ok, error } = await removeBandMember(memberId);
+        if (!ok) { addToast(describeBandError(error, 'Verwijderen mislukt'), 'error'); return; }
+        setMembers(prev => prev.filter(m => m.id !== memberId));
+        addToast(`${name} verwijderd`, 'info');
+      },
+    });
   }
 
   async function handlePromote(memberId: string, profile: any) {
@@ -2791,16 +2798,16 @@ export default function BandSpaceDetailPage() {
                           {m.role === 'admin' && <span className="text-[10px] text-violet-400 flex items-center gap-0.5 mt-0.5"><ShieldCheck size={9} /> Admin</span>}
                         </div>
                         {isOwner && !isMe && m.role === 'member' && (
-                          <button onClick={() => handlePromote(m.id, m.profile)} title="Promoveer tot admin" className="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-violet-400 transition-all p-1"><ShieldCheck size={13} /></button>
+                          <button onClick={() => handlePromote(m.id, m.profile)} title="Promoveer tot admin" className="text-slate-600 hover:text-violet-400 transition-colors p-1"><ShieldCheck size={13} /></button>
                         )}
                         {isOwner && !isMe && m.role === 'admin' && (
-                          <button onClick={() => handleDemote(m.id, m.profile)} title="Degradeer tot lid" className="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-amber-400 transition-all p-1"><ShieldOff size={13} /></button>
+                          <button onClick={() => handleDemote(m.id, m.profile)} title="Degradeer tot lid" className="text-slate-600 hover:text-amber-400 transition-colors p-1"><ShieldOff size={13} /></button>
                         )}
                         {isOwner && !isMe && m.role !== 'owner' && (
-                          <button onClick={() => handleTransferOwnership(m.id, m.user_id, m.profile)} disabled={transferringId === m.id} title="Maak eigenaar" className="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-amber-400 transition-all p-1 disabled:opacity-50"><Crown size={13} /></button>
+                          <button onClick={() => handleTransferOwnership(m.id, m.user_id, m.profile)} disabled={transferringId === m.id} title="Maak eigenaar" className="text-slate-600 hover:text-amber-400 transition-colors p-1 disabled:opacity-50"><Crown size={13} /></button>
                         )}
                         {canRemove && (
-                          <button onClick={() => handleRemoveMember(m.id, m.profile)} title="Verwijderen" className="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-red-400 transition-all p-1"><Trash2 size={13} /></button>
+                          <button onClick={() => handleRemoveMember(m.id, m.profile)} title="Verwijderen" className="text-slate-600 hover:text-red-400 transition-colors p-1"><Trash2 size={13} /></button>
                         )}
                       </div>
                     );
