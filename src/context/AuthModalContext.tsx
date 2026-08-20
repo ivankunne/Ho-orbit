@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 
-type Tab = 'login' | 'signup';
+type Tab = 'login' | 'signup' | 'quick';
 
 interface AuthModalContextValue {
   isOpen: boolean;

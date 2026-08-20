@@ -33,7 +33,7 @@ const navItems = [
   { label: 'Hub', path: '/hub', icon: Zap },
   { label: 'Podcasts', path: '/podcasts', icon: Headphones },
   { label: 'Radio', path: '/radio', icon: Radio },
-  { label: 'Drop Your Demo', path: '/drop-your-demo', icon: Flame },
+  { label: 'Drop Demo', path: '/drop-your-demo', icon: Flame },
   { label: 'Community', path: '/dutch-scene', icon: Globe },
   { label: 'Leren', path: '/tutorials', icon: BookOpen },
 ];
@@ -235,7 +235,7 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap transition-colors ${
                     location.pathname === item.path
                       ? 'bg-violet-600/15 text-violet-400'
                       : 'text-slate-400 hover:text-white hover:bg-white/5'

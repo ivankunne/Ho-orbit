@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { X, Music, Eye, EyeOff, ArrowRight, Check, Camera } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
 import { useAuthModal } from '@context/AuthModalContext';
+import { supabase } from '@/lib/supabase';
 import UserAvatar from '@components/UserAvatar';
 import { Input } from '@components/ui/input';
 import { Button } from '@components/ui/button';
@@ -10,7 +11,7 @@ import { Checkbox } from '@components/ui/checkbox';
 
 // ─── Login form ──────────────────────────────────────────────────────────────
 
-export function LoginForm({ onSuccess, onSwitch }: { onSuccess: () => void; onSwitch: () => void }) {
+export function LoginForm({ onSuccess, onSwitch, onQuickSignup }: { onSuccess: () => void; onSwitch: () => void; onQuickSignup: () => void }) {
   const { login, error, setError, requestPasswordReset } = useAuth();
   const [form, setForm] = useState({ identifier: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
@@ -178,6 +179,12 @@ export function LoginForm({ onSuccess, onSwitch }: { onSuccess: () => void; onSw
           Aanmelden
         </button>
       </p>
+      <p className="text-center text-xs text-slate-500 mt-3">
+        Alleen luisteren en stemmen?{' '}
+        <button onClick={onQuickSignup} className="text-violet-400 hover:text-violet-300 font-medium transition-colors">
+          Snel account maken
+        </button>
+      </p>
     </div>
   );
 }
@@ -186,7 +193,7 @@ export function LoginForm({ onSuccess, onSwitch }: { onSuccess: () => void; onSw
 
 const STEPS = ['Account', 'Profiel', 'Klaar'];
 
-export function SignupForm({ onSuccess, onSwitch }: { onSuccess: () => void; onSwitch: () => void }) {
+export function SignupForm({ onSuccess, onSwitch, onQuickSignup }: { onSuccess: () => void; onSwitch: () => void; onQuickSignup: () => void }) {
   const { signup, error, setError } = useAuth();
   const [step, setStep] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
@@ -513,6 +520,100 @@ export function SignupForm({ onSuccess, onSwitch }: { onSuccess: () => void; onS
           Inloggen
         </button>
       </p>
+      <p className="text-center text-xs text-slate-500 mt-3">
+        Alleen luisteren en stemmen?{' '}
+        <button onClick={onQuickSignup} className="text-violet-400 hover:text-violet-300 font-medium transition-colors">
+          Snel account maken
+        </button>
+      </p>
+    </div>
+  );
+}
+
+// ─── Quick account form (username + password only, no email) ────────────────
+
+export function QuickSignupForm({ onSuccess, onBack }: { onSuccess: () => void; onBack: () => void }) {
+  const { login, error, setError } = useAuth();
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    const { error: rpcError } = await supabase.rpc('create_quick_account', {
+      p_username: username,
+      p_password: password,
+    });
+    if (rpcError) {
+      setError(rpcError.message);
+      setLoading(false);
+      return;
+    }
+    const ok = await login(username, password);
+    setLoading(false);
+    if (ok) onSuccess();
+  };
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold text-white mb-1">Snel account</h2>
+      <p className="text-slate-400 text-sm mb-6">Alleen luisteren en stemmen — geen e-mail nodig.</p>
+
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-4 py-3 rounded-xl mb-4">
+          {error}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-slate-300 mb-2">Gebruikersnaam</label>
+          <Input
+            value={username}
+            onChange={e => { setUsername(e.target.value); setError(''); }}
+            placeholder="bijv. jandevries"
+            autoComplete="username"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-300 mb-2">Wachtwoord</label>
+          <div className="relative">
+            <Input
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={e => { setPassword(e.target.value); setError(''); }}
+              placeholder="Minimaal 6 tekens"
+              autoComplete="new-password"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(v => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 p-1 transition-colors"
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
+        </div>
+
+        <Button type="submit" disabled={loading || !username.trim() || password.length < 6} className="w-full mt-1">
+          {loading ? (
+            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            <>Account maken <ArrowRight size={16} /></>
+          )}
+        </Button>
+      </form>
+
+      <p className="text-center text-sm text-slate-400 mt-5">
+        <button onClick={onBack} className="text-violet-400 hover:text-violet-300 font-medium transition-colors">
+          ← Terug
+        </button>
+      </p>
     </div>
   );
 }
@@ -536,7 +637,7 @@ export default function AuthModal() {
 
   if (!isOpen) return null;
 
-  const switchTab = (t: 'login' | 'signup') => {
+  const switchTab = (t: 'login' | 'signup' | 'quick') => {
     setError('');
     open(t);
   };
@@ -559,29 +660,33 @@ export default function AuthModal() {
             <img src="/H-orbit-logo.png" alt="h-orbit" className="h-8 w-auto" />
           </div>
 
-          <div className="flex border-b border-white/10 -mx-6 px-6 mb-6">
-            <button
-              onClick={() => switchTab('login')}
-              className={`pb-3 px-1 mr-6 text-sm font-medium border-b-2 transition-colors ${
-                tab === 'login' ? 'border-violet-500 text-white' : 'border-transparent text-slate-400 hover:text-slate-300'
-              }`}
-            >
-              Inloggen
-            </button>
-            <button
-              onClick={() => switchTab('signup')}
-              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
-                tab === 'signup' ? 'border-violet-500 text-white' : 'border-transparent text-slate-400 hover:text-slate-300'
-              }`}
-            >
-              Aanmelden
-            </button>
-          </div>
+          {tab !== 'quick' && (
+            <div className="flex border-b border-white/10 -mx-6 px-6 mb-6">
+              <button
+                onClick={() => switchTab('login')}
+                className={`pb-3 px-1 mr-6 text-sm font-medium border-b-2 transition-colors ${
+                  tab === 'login' ? 'border-violet-500 text-white' : 'border-transparent text-slate-400 hover:text-slate-300'
+                }`}
+              >
+                Inloggen
+              </button>
+              <button
+                onClick={() => switchTab('signup')}
+                className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
+                  tab === 'signup' ? 'border-violet-500 text-white' : 'border-transparent text-slate-400 hover:text-slate-300'
+                }`}
+              >
+                Aanmelden
+              </button>
+            </div>
+          )}
 
           {tab === 'login' ? (
-            <LoginForm onSuccess={close} onSwitch={() => switchTab('signup')} />
+            <LoginForm onSuccess={close} onSwitch={() => switchTab('signup')} onQuickSignup={() => switchTab('quick')} />
+          ) : tab === 'signup' ? (
+            <SignupForm onSuccess={close} onSwitch={() => switchTab('login')} onQuickSignup={() => switchTab('quick')} />
           ) : (
-            <SignupForm onSuccess={close} onSwitch={() => switchTab('login')} />
+            <QuickSignupForm onSuccess={close} onBack={() => switchTab('signup')} />
           )}
         </div>
       </div>
