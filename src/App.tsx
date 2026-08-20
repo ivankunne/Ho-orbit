@@ -70,6 +70,7 @@ const AdminLoginPage = lazy(() => import('@pages/AdminLoginPage'));
 const RadioPage = lazy(() => import('@pages/RadioPage'));
 const PodcastsPage = lazy(() => import('@pages/PodcastsPage'));
 const PodcastDetailPage = lazy(() => import('@pages/PodcastDetailPage'));
+const DropYourDemoPage = lazy(() => import('@pages/DropYourDemoPage'));
 const MessagesPage = lazy(() => import('@pages/MessagesPage'));
 const ConversationPage = lazy(() => import('@pages/ConversationPage'));
 const BandSpacePage = lazy(() => import('@pages/BandSpacePage'));
@@ -237,6 +238,7 @@ function ProtectedApp() {
               <Route path="/radio" element={<ProtectedRoute><RadioPage /></ProtectedRoute>} />
               <Route path="/podcasts" element={<ProtectedRoute><PodcastsPage /></ProtectedRoute>} />
               <Route path="/podcasts/:id" element={<ProtectedRoute><PodcastDetailPage /></ProtectedRoute>} />
+              <Route path="/drop-your-demo" element={<ProtectedRoute><DropYourDemoPage /></ProtectedRoute>} />
               <Route path="/muziek" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
               <Route path="/artists" element={<ProtectedRoute><ArtistsPage /></ProtectedRoute>} />
               <Route path="/artists/:slug" element={<ProtectedRoute><ArtistDetailPage /></ProtectedRoute>} />

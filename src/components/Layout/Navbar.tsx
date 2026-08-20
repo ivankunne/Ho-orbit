@@ -5,7 +5,7 @@ import {
   Upload, Home, Users, BookOpen, Globe, MessageSquare,
   Calendar, User, Settings, LogOut, Library, Zap,
   Headphones, ShieldCheck, Radio,
-  Music2, Handshake, GraduationCap,
+  Music2, Handshake, GraduationCap, Flame,
 } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
 import { useAuthModal } from '@context/AuthModalContext';
@@ -33,6 +33,7 @@ const navItems = [
   { label: 'Hub', path: '/hub', icon: Zap },
   { label: 'Podcasts', path: '/podcasts', icon: Headphones },
   { label: 'Radio', path: '/radio', icon: Radio },
+  { label: 'Drop Your Demo', path: '/drop-your-demo', icon: Flame },
   { label: 'Community', path: '/dutch-scene', icon: Globe },
   { label: 'Leren', path: '/tutorials', icon: BookOpen },
 ];
