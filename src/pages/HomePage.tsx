@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   TrendingUp, ChevronRight, Flame, Sparkles, Play, Pause,
-  MapPin, Newspaper, Users, Music2, Compass,
+  MapPin, Newspaper, Users, Music2, Compass, Shuffle,
   Handshake, Star, UserPlus,
   Search, Megaphone,
 } from 'lucide-react';
@@ -13,6 +13,7 @@ import { useAppState } from '@context/AppStateContext';
 import { useToast } from '@components/Toast';
 import { formatPlays } from '@utils/format';
 import { TrendingRow } from '@components/TrendingRow';
+import { MusicCard } from '@components/MusicCard';
 import { supabase } from '@/lib/supabase';
 import { fetchArtistProfiles } from '@utils/artistHelpers';
 import { useRadio } from '@context/RadioContext';
@@ -38,9 +39,11 @@ export default function HomePage() {
   const [venueCount, setVenueCount] = useState<number | null>(null);
   const [newsArticles, setNewsArticles] = useState<any[]>([]);
   const [localPosts, setLocalPosts] = useState<any[]>([]);
+  const [discoverPool, setDiscoverPool] = useState<any[]>([]);
+  const [discoverMix, setDiscoverMix] = useState<any[]>([]);
 
   const { user } = useAuth();
-  const { playTrack } = usePlayer();
+  const { playTrack, track: currentTrack, isPlaying } = usePlayer();
   const { followedArtists, toggleFollow } = useAppState();
   const addToast = useToast();
   const { isLive, isRadioPlaying, liveStations, currentStation, playStation, stopRadio } = useRadio();
@@ -50,6 +53,15 @@ export default function HomePage() {
   useEffect(() => {
     fetchArtistProfiles(12).then(setArtists);
     supabase.from('tracks').select('*').or('is_user_upload.is.null,is_user_upload.eq.false,upload_status.eq.approved').order('plays', { ascending: false }).limit(100).then(({ data }) => setTracks((data ?? []).map(t => ({ ...t, artist: t.artist || t.artist_name || '' }))));
+    // Separate, un-ranked pool for the Discover mix — the query above is
+    // sorted by plays, which would keep surfacing already-popular tracks and
+    // defeat the point of a "discover new music" row. Ordering by id (a
+    // random uuid) instead of plays/date gives an unbiased, evenly-spread
+    // sample of the whole catalog to shuffle from.
+    supabase.from('tracks').select('id, title, artist_name, uploaded_by, cover_url, stream_url, duration, plays, genre')
+      .or('is_user_upload.is.null,is_user_upload.eq.false,upload_status.eq.approved')
+      .order('id').limit(300)
+      .then(({ data }) => setDiscoverPool((data ?? []).map(t => ({ ...t, artist: t.artist_name || '', cover: t.cover_url }))));
     supabase.from('dutch_cities').select('*').limit(6).then(({ data }) => setCities(data ?? []));
     supabase.from('venues').select('id', { count: 'exact', head: true }).then(({ count }) => setVenueCount(count ?? null));
     supabase.from('articles').select('*').order('published_at', { ascending: false }).limit(3).then(({ data }) => setNewsArticles(data ?? []));
@@ -78,6 +90,32 @@ export default function HomePage() {
     [...artists].sort((a, b) => (a.followers_count ?? 0) - (b.followers_count ?? 0)).slice(0, 6),
     [artists]
   );
+
+  // Fisher-Yates shuffle + de-dupe to one track per artist, so the Discover
+  // mix spreads across different artists instead of clustering on whoever
+  // has uploaded the most songs.
+  function shuffleDiscoverMix() {
+    const pool = [...discoverPool];
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    const seen = new Set<string>();
+    const mix: any[] = [];
+    for (const t of pool) {
+      const key = t.uploaded_by || (t.artist_name || '').trim().toLowerCase();
+      if (key) {
+        if (seen.has(key)) continue;
+        seen.add(key);
+      }
+      mix.push(t);
+      if (mix.length >= 24) break;
+    }
+    setDiscoverMix(mix);
+  }
+
+  useEffect(() => { if (discoverPool.length) shuffleDiscoverMix(); }, [discoverPool]);
+  const isDiscoverPlaying = isPlaying && discoverMix.some(t => t.id === currentTrack?.id);
 
   const featuredArtist = artists[0];
 
@@ -385,6 +423,48 @@ export default function HomePage() {
             </section>
           );
         })}
+
+        {/* ── Discover mix ── */}
+        <section className="pb-12">
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              <Compass size={18} className="text-violet-400" />
+              <h2 className="text-xl font-bold text-white">Ontdek Nieuwe Muziek</h2>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={shuffleDiscoverMix}
+                className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white px-2 py-1.5 rounded-lg hover:bg-white/5 transition-colors"
+              >
+                <Shuffle size={13} /> <span className="hidden sm:inline">Nieuwe mix</span>
+              </button>
+              {discoverMix.length > 0 && (
+                <button
+                  onClick={() => playTrack(discoverMix[0], discoverMix)}
+                  className="flex items-center gap-1.5 bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                >
+                  {isDiscoverPlaying ? <Pause size={13} fill="white" /> : <Play size={13} fill="white" />}
+                  Speel alles
+                </button>
+              )}
+            </div>
+          </div>
+          <p className="text-sm text-slate-500 mb-4">Willekeurige mix van verschillende artiesten — elke bezoek weer anders.</p>
+
+          {discoverMix.length === 0 ? (
+            <div className="py-10 text-center text-slate-500 text-sm bg-white/2 border border-white/5 rounded-2xl">
+              Nog geen nummers om te ontdekken. Kom later terug!
+            </div>
+          ) : (
+            <div className="flex gap-4 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
+              {discoverMix.map(t => (
+                <div key={t.id} className="w-40 shrink-0">
+                  <MusicCard track={t} queue={discoverMix} />
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
 
         {/* ── Chart + Connect sidebar ── */}
         <section className="pb-12">
