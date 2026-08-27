@@ -6,6 +6,8 @@ import {
   Pencil, Trash2, ChevronUp, ChevronDown, Plus,
 } from 'lucide-react';
 import GenreBadge from '@components/GenreBadge';
+import ExpandableText from '@components/ExpandableText';
+import { SOCIAL_PLATFORM_MAP } from '@data/socialPlatforms';
 import { useAppState } from '@context/AppStateContext';
 import { usePlayer } from '@context/PlayerContext';
 import { useAuth } from '@context/AuthContext';
@@ -193,21 +195,6 @@ export default function ArtistDetailPage() {
     { key: 'over', label: 'Over' },
   ];
 
-  const PLATFORM_CONFIG: Record<string, { label: string; badge: string; color: string; buildUrl: (v: string) => string }> = {
-    spotify:    { label: 'Spotify',      badge: 'SP', color: 'text-green-400',   buildUrl: v => `https://open.spotify.com/artist/${v}` },
-    soundcloud: { label: 'SoundCloud',   badge: 'SC', color: 'text-orange-400',  buildUrl: v => `https://soundcloud.com/${v}` },
-    appleMusic: { label: 'Apple Music',  badge: 'AM', color: 'text-slate-300',   buildUrl: v => v.startsWith('http') ? v : `https://music.apple.com/nl/artist/${v}` },
-    youtube:    { label: 'YouTube',      badge: 'YT', color: 'text-red-400',     buildUrl: v => `https://youtube.com/@${v.replace('@', '')}` },
-    instagram:  { label: 'Instagram',    badge: 'IG', color: 'text-pink-400',    buildUrl: v => `https://instagram.com/${v.replace('@', '')}` },
-    twitter:    { label: 'X',            badge: '𝕏',  color: 'text-slate-200',   buildUrl: v => `https://x.com/${v.replace('@', '')}` },
-    tiktok:     { label: 'TikTok',       badge: 'TT', color: 'text-white',       buildUrl: v => `https://tiktok.com/@${v.replace('@', '')}` },
-    facebook:   { label: 'Facebook',     badge: 'fb', color: 'text-blue-400',    buildUrl: v => `https://facebook.com/${v}` },
-    bandcamp:   { label: 'Bandcamp',     badge: 'BC', color: 'text-teal-400',    buildUrl: v => `https://${v}.bandcamp.com` },
-    beatport:   { label: 'Beatport',     badge: 'BP', color: 'text-yellow-400',  buildUrl: v => `https://www.beatport.com/artist/${v}` },
-    shopify:    { label: 'Shop',         badge: 'SH', color: 'text-emerald-400', buildUrl: v => v.startsWith('http') ? v : `https://${v}` },
-    website:    { label: 'Website',      badge: '🌐', color: 'text-violet-400',  buildUrl: v => v.startsWith('http') ? v : `https://${v}` },
-  };
-
   const social = artist.social ?? {};
   const donationUrl = normalizeDonationUrl(social.donation);
   const isOwner = !!user && !!artist.profile_id && artist.profile_id === user.id;
@@ -388,7 +375,7 @@ export default function ArtistDetailPage() {
           <div className="flex gap-2 mb-6 flex-wrap">
             {Object.entries(social).map(([key, value]) => {
               if (!value) return null;
-              const cfg = PLATFORM_CONFIG[key];
+              const cfg = SOCIAL_PLATFORM_MAP[key];
               if (!cfg) return null;
               return (
                 <a
@@ -398,7 +385,7 @@ export default function ArtistDetailPage() {
                   rel="noopener noreferrer"
                   className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors"
                 >
-                  <span className={`font-bold text-[11px] ${cfg.color}`}>{cfg.badge}</span>
+                  <cfg.icon className={`w-3.5 h-3.5 ${cfg.color}`} />
                   {cfg.label}
                   <ExternalLink size={10} className="text-slate-600" />
                 </a>
@@ -721,9 +708,11 @@ export default function ArtistDetailPage() {
               <div className="relative p-6 sm:p-8">
                 <p className="text-3xl sm:text-4xl font-black text-white">{formatPlays(totalPlays)}</p>
                 <p className="text-sm text-slate-400 mb-5">maandelijkse luisteraars</p>
-                <p className="text-slate-200 leading-relaxed whitespace-pre-line">
-                  {artist.bio || 'Deze artiest heeft nog geen bio toegevoegd.'}
-                </p>
+                {artist.bio ? (
+                  <ExpandableText text={artist.bio} className="text-slate-200 leading-relaxed whitespace-pre-line" />
+                ) : (
+                  <p className="text-slate-200 leading-relaxed whitespace-pre-line">Deze artiest heeft nog geen bio toegevoegd.</p>
+                )}
                 {artist.location && (
                   <p className="flex items-center gap-1.5 text-sm text-slate-400 mt-5">
                     <MapPin size={14} />{artist.location}

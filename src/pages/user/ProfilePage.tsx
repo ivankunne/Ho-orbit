@@ -16,22 +16,8 @@ import { useToast } from '@components/Toast';
 import EditTrackModal from '@components/EditTrackModal';
 import AlbumModal from '@components/AlbumModal';
 import AddTracksToAlbumModal from '@components/AddTracksToAlbumModal';
-
-
-const PLATFORM_CONFIG: Record<string, { label: string; badge: string; color: string; buildUrl: (v: string) => string }> = {
-  spotify:    { label: 'Spotify',      badge: 'SP', color: 'text-green-400',   buildUrl: v => `https://open.spotify.com/artist/${v}` },
-  soundcloud: { label: 'SoundCloud',   badge: 'SC', color: 'text-orange-400',  buildUrl: v => `https://soundcloud.com/${v}` },
-  appleMusic: { label: 'Apple Music',  badge: 'AM', color: 'text-slate-300',   buildUrl: v => v.startsWith('http') ? v : `https://music.apple.com/nl/artist/${v}` },
-  youtube:    { label: 'YouTube',      badge: 'YT', color: 'text-red-400',     buildUrl: v => `https://youtube.com/@${v.replace('@', '')}` },
-  instagram:  { label: 'Instagram',    badge: 'IG', color: 'text-pink-400',    buildUrl: v => `https://instagram.com/${v.replace('@', '')}` },
-  twitter:    { label: 'X',            badge: '𝕏',  color: 'text-slate-200',   buildUrl: v => `https://x.com/${v.replace('@', '')}` },
-  tiktok:     { label: 'TikTok',       badge: 'TT', color: 'text-white',       buildUrl: v => `https://tiktok.com/@${v.replace('@', '')}` },
-  facebook:   { label: 'Facebook',     badge: 'fb', color: 'text-blue-400',    buildUrl: v => `https://facebook.com/${v}` },
-  bandcamp:   { label: 'Bandcamp',     badge: 'BC', color: 'text-teal-400',    buildUrl: v => `https://${v}.bandcamp.com` },
-  beatport:   { label: 'Beatport',     badge: 'BP', color: 'text-yellow-400',  buildUrl: v => `https://www.beatport.com/artist/${v}` },
-  shopify:    { label: 'Shop',         badge: 'SH', color: 'text-emerald-400', buildUrl: v => v.startsWith('http') ? v : `https://${v}` },
-  website:    { label: 'Website',      badge: '🌐', color: 'text-violet-400',  buildUrl: v => v.startsWith('http') ? v : `https://${v}` },
-};
+import ExpandableText from '@components/ExpandableText';
+import { SOCIAL_PLATFORM_MAP } from '@data/socialPlatforms';
 
 // Tracks come back from the DB ordered by upload date; within an album (or
 // within the "no album" group) the artist's chosen order lives in sortOrder.
@@ -465,7 +451,9 @@ export default function ProfilePage() {
 
         {/* Bio & rol */}
         {profileUser.bio && (
-          <p className="text-slate-300 text-sm leading-relaxed mb-4 max-w-xl break-words">{profileUser.bio}</p>
+          <div className="mb-4 max-w-xl">
+            <ExpandableText text={profileUser.bio} className="text-slate-300 text-sm leading-relaxed break-words" />
+          </div>
         )}
 
         {/* Statistieken */}
@@ -816,7 +804,7 @@ export default function ProfilePage() {
             {profileUser.bio && (
               <div>
                 <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Biografie</p>
-                <p className="text-slate-300 leading-relaxed break-words">{profileUser.bio}</p>
+                <ExpandableText text={profileUser.bio} className="text-slate-300 leading-relaxed break-words" />
               </div>
             )}
             <div>
@@ -873,7 +861,7 @@ export default function ProfilePage() {
                 <div className="flex flex-wrap gap-2">
                   {Object.entries(profileUser.social).map(([key, value]) => {
                     if (!value) return null;
-                    const cfg = PLATFORM_CONFIG[key];
+                    const cfg = SOCIAL_PLATFORM_MAP[key];
                     if (!cfg) return null;
                     return (
                       <a
@@ -883,7 +871,7 @@ export default function ProfilePage() {
                         rel="noopener noreferrer"
                         className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors"
                       >
-                        <span className={`font-bold text-[11px] ${cfg.color}`}>{cfg.badge}</span>
+                        <cfg.icon className={`w-3.5 h-3.5 ${cfg.color}`} />
                         {cfg.label}
                         <ExternalLink size={10} className="text-slate-600" />
                       </a>

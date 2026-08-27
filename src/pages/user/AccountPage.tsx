@@ -12,27 +12,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@components/ui/dialog';
 import GenreChips from '@components/GenreChips';
+import { SOCIAL_PLATFORMS } from '@data/socialPlatforms';
 
 const sidebarItems = [
   { key: 'profiel', label: 'Profiel', icon: User },
   { key: 'meldingen', label: 'Meldingen', icon: Bell },
   { key: 'beveiliging', label: 'Beveiliging', icon: Lock },
   { key: 'weergave', label: 'Weergave', icon: Palette },
-];
-
-const SOCIAL_PLATFORMS = [
-  { key: 'spotify',    label: 'Spotify',      badge: 'SP', color: 'text-green-400',  placeholder: 'Artiest-ID',         hint: 'open.spotify.com/artist/…' },
-  { key: 'soundcloud', label: 'SoundCloud',   badge: 'SC', color: 'text-orange-400', placeholder: 'gebruikersnaam',     hint: 'soundcloud.com/{handle}' },
-  { key: 'appleMusic', label: 'Apple Music',  badge: 'AM', color: 'text-slate-300',  placeholder: 'Volledige URL',      hint: 'music.apple.com/…' },
-  { key: 'youtube',    label: 'YouTube',      badge: 'YT', color: 'text-red-400',    placeholder: '@kanaalhandle',      hint: 'youtube.com/@{handle}' },
-  { key: 'instagram',  label: 'Instagram',    badge: 'IG', color: 'text-pink-400',   placeholder: '@gebruikersnaam',    hint: 'instagram.com/{handle}' },
-  { key: 'twitter',    label: 'X / Twitter',  badge: '𝕏',  color: 'text-slate-200',  placeholder: '@gebruikersnaam',    hint: 'x.com/{handle}' },
-  { key: 'tiktok',     label: 'TikTok',       badge: 'TT', color: 'text-white',      placeholder: '@gebruikersnaam',    hint: 'tiktok.com/@{handle}' },
-  { key: 'facebook',   label: 'Facebook',     badge: 'fb', color: 'text-blue-400',   placeholder: 'paginanaam',         hint: 'facebook.com/{handle}' },
-  { key: 'bandcamp',   label: 'Bandcamp',     badge: 'BC', color: 'text-teal-400',   placeholder: 'artiesthandle',      hint: '{handle}.bandcamp.com' },
-  { key: 'beatport',   label: 'Beatport',     badge: 'BP', color: 'text-yellow-400', placeholder: 'artiestslug',        hint: 'beatport.com/artist/{slug}' },
-  { key: 'shopify',    label: 'Shop',         badge: 'SH', color: 'text-emerald-400',placeholder: 'Volledige winkel-URL', hint: 'jouwwinkel.myshopify.com' },
-  { key: 'website',    label: 'Website',      badge: '🌐', color: 'text-violet-400', placeholder: 'https://jouwsite.nl', hint: 'Eigen website' },
 ];
 
 export default function AccountPage() {
@@ -292,12 +278,12 @@ function ProfielSection({ user, updateProfile, userId }: { user: any; updateProf
           <Textarea
             value={form.bio}
             onChange={e => set('bio', e.target.value)}
-            placeholder="Vertel iets over jezelf..."
-            maxLength={200}
-            className="resize-none"
+            placeholder="Vertel iets over jezelf of je band..."
+            maxLength={1000}
+            className="resize-none min-h-[140px]"
           />
-          <p className={`text-xs mt-1 ${form.bio.length >= 190 ? 'text-amber-400' : 'text-slate-500'}`}>
-            {form.bio.length}/200 tekens
+          <p className={`text-xs mt-1 ${form.bio.length >= 950 ? 'text-amber-400' : 'text-slate-500'}`}>
+            {form.bio.length}/1000 tekens
           </p>
         </div>
 
@@ -314,7 +300,7 @@ function ProfielSection({ user, updateProfile, userId }: { user: any; updateProf
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {SOCIAL_PLATFORMS.map(p => (
               <div key={p.key} className="flex items-center gap-2">
-                <span className={`w-8 text-center text-[11px] font-bold shrink-0 ${p.color}`}>{p.badge}</span>
+                <span className={`w-8 flex items-center justify-center shrink-0 ${p.color}`}><p.icon className="w-4 h-4" /></span>
                 <div className="flex-1">
                   <Input
                     placeholder={p.placeholder}
