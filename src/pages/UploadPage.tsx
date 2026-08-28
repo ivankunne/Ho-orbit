@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Upload, Music, Image, X, CheckCircle, Loader } from 'lucide-react';
+import { Upload, Music, Image, X, CheckCircle, Loader, Pencil } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import GenrePicker from '@components/GenrePicker';
+import ImageCropModal from '@components/ImageCropModal';
 import { useAuth } from '@context/AuthContext';
 import { uploadTrack } from '@services/uploadService';
 import { getArtistAlbums, type Album } from '@services/albumService';
@@ -22,6 +23,7 @@ export default function UploadPage() {
   const [artworkDragOver, setArtworkDragOver] = useState(false);
   const [trackFile, setTrackFile] = useState(null);
   const [artworkFile, setArtworkFile] = useState(null);
+  const [pendingCropFile, setPendingCropFile] = useState(null);
   const [selectedTags, setSelectedTags] = useState([]);
   const [uploadState, setUploadState] = useState('idle'); // idle | uploading | success
   const [uploadStep, setUploadStep] = useState('');
@@ -74,7 +76,7 @@ export default function UploadPage() {
     e.preventDefault();
     setArtworkDragOver(false);
     const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) setArtworkFile(file);
+    if (file && file.type.startsWith('image/')) setPendingCropFile(file);
   };
 
   const toggleTag = (tag) => {
@@ -337,7 +339,7 @@ export default function UploadPage() {
                 type="file"
                 accept="image/*"
                 className="hidden"
-                onChange={e => e.target.files[0] && setArtworkFile(e.target.files[0])}
+                onChange={e => e.target.files[0] && setPendingCropFile(e.target.files[0])}
               />
               {artworkFile ? (
                 <div className="flex items-center gap-3 px-4 py-3">
@@ -350,6 +352,13 @@ export default function UploadPage() {
                     <p className="text-sm text-green-400 font-medium truncate">{artworkFile.name}</p>
                     <p className="text-xs text-slate-500">{(artworkFile.size / 1024).toFixed(0)} KB</p>
                   </div>
+                  <button
+                    onClick={e => { e.stopPropagation(); setPendingCropFile(artworkFile); }}
+                    className="text-slate-500 hover:text-white transition-colors shrink-0"
+                    title="Bijsnijden aanpassen"
+                  >
+                    <Pencil size={14} />
+                  </button>
                   <button
                     onClick={e => { e.stopPropagation(); setArtworkFile(null); }}
                     className="text-slate-500 hover:text-red-400 transition-colors shrink-0"
@@ -483,6 +492,14 @@ export default function UploadPage() {
           </Button>
         </div>
       </div>
+
+      {pendingCropFile && (
+        <ImageCropModal
+          file={pendingCropFile}
+          onCancel={() => setPendingCropFile(null)}
+          onConfirm={cropped => { setArtworkFile(cropped); setPendingCropFile(null); }}
+        />
+      )}
     </div>
   );
 }

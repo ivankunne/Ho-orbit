@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { X, Image, Loader } from 'lucide-react';
 import GenrePicker from '@components/GenrePicker';
+import ImageCropModal from '@components/ImageCropModal';
 import { createAlbum, updateAlbum, type Album } from '@services/albumService';
 import { Input } from '@components/ui/input';
 import { Textarea } from '@components/ui/textarea';
@@ -22,6 +23,7 @@ export default function AlbumModal({
     releaseDate: album?.releaseDate || '',
   });
   const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [pendingCropFile, setPendingCropFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const artworkRef = useRef<HTMLInputElement>(null);
@@ -90,7 +92,7 @@ export default function AlbumModal({
                 type="file"
                 accept="image/*"
                 className="hidden"
-                onChange={e => e.target.files?.[0] && setCoverFile(e.target.files[0])}
+                onChange={e => e.target.files?.[0] && setPendingCropFile(e.target.files[0])}
               />
             </div>
             <p className="text-xs text-slate-500">Klik op de artwork om die te {album ? 'vervangen' : 'kiezen'}</p>
@@ -138,6 +140,14 @@ export default function AlbumModal({
           </div>
         </div>
       </div>
+
+      {pendingCropFile && (
+        <ImageCropModal
+          file={pendingCropFile}
+          onCancel={() => setPendingCropFile(null)}
+          onConfirm={cropped => { setCoverFile(cropped); setPendingCropFile(null); }}
+        />
+      )}
     </div>
   );
 }

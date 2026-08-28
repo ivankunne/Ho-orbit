@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { X, Image, Loader } from 'lucide-react';
 import GenrePicker from '@components/GenrePicker';
+import ImageCropModal from '@components/ImageCropModal';
 import { updateTrack, type UploadedTrack } from '@services/uploadService';
 import { type Album } from '@services/albumService';
 import { Input } from '@components/ui/input';
@@ -34,6 +35,7 @@ export default function EditTrackModal({
     albumId: track.albumId || '',
   });
   const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [pendingCropFile, setPendingCropFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const artworkRef = useRef<HTMLInputElement>(null);
@@ -89,7 +91,7 @@ export default function EditTrackModal({
                 type="file"
                 accept="image/*"
                 className="hidden"
-                onChange={e => e.target.files?.[0] && setCoverFile(e.target.files[0])}
+                onChange={e => e.target.files?.[0] && setPendingCropFile(e.target.files[0])}
               />
             </div>
             <p className="text-xs text-slate-500">Klik op de artwork om die te vervangen</p>
@@ -202,6 +204,14 @@ export default function EditTrackModal({
           </div>
         </div>
       </div>
+
+      {pendingCropFile && (
+        <ImageCropModal
+          file={pendingCropFile}
+          onCancel={() => setPendingCropFile(null)}
+          onConfirm={cropped => { setCoverFile(cropped); setPendingCropFile(null); }}
+        />
+      )}
     </div>
   );
 }
