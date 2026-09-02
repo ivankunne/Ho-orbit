@@ -16,7 +16,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
-import { stripeRequest, verifyStripeSignature } from '../_shared/stripe.ts';
+import { stripeRequest, verifyStripeSignature, subscriptionPeriodEnd } from '../_shared/stripe.ts';
 
 const STRIPE_WEBHOOK_SECRET = Deno.env.get('STRIPE_WEBHOOK_SECRET') ?? '';
 
@@ -77,15 +77,15 @@ Deno.serve(async (req) => {
           const subscription = await stripeRequest<{
             id: string;
             status: string;
-            current_period_end: number;
             cancel_at_period_end: boolean;
+            items?: { data?: { current_period_end?: number }[] };
           }>('GET', `/subscriptions/${session.subscription}`);
           await syncSubscriptionByCustomer(
             supabaseAdmin,
             session.customer,
             subscription.id,
             subscription.status,
-            subscription.current_period_end,
+            subscriptionPeriodEnd(subscription),
             subscription.cancel_at_period_end,
           );
         }
@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
           subscription.customer,
           event.type === 'customer.subscription.deleted' ? null : subscription.id,
           event.type === 'customer.subscription.deleted' ? 'canceled' : subscription.status,
-          subscription.current_period_end ?? null,
+          subscriptionPeriodEnd(subscription),
           event.type === 'customer.subscription.deleted' ? false : !!subscription.cancel_at_period_end,
         );
         break;

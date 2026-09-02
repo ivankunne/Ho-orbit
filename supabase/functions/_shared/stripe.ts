@@ -61,6 +61,18 @@ export async function stripeRequest<T = any>(
   return data as T;
 }
 
+// As of API version 2025-03-31.basil, a Subscription's current_period_end no
+// longer lives on the object itself — it moved to each subscription item, to
+// support items with independent billing cycles. This account only ever puts
+// one price per subscription, so the first item's value is the one that
+// matters. Always read the period end through this helper, never
+// `subscription.current_period_end` directly (that field is gone).
+export function subscriptionPeriodEnd(subscription: {
+  items?: { data?: { current_period_end?: number }[] };
+}): number | null {
+  return subscription.items?.data?.[0]?.current_period_end ?? null;
+}
+
 // Verifies a Stripe-Signature header per
 // https://docs.stripe.com/webhooks#verify-events — implemented by hand
 // (rather than the Stripe SDK's constructEvent) since it's a few lines of Web

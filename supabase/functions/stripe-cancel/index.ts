@@ -15,7 +15,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
-import { stripeRequest } from '../_shared/stripe.ts';
+import { stripeRequest, subscriptionPeriodEnd } from '../_shared/stripe.ts';
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -50,13 +50,14 @@ Deno.serve(async (req) => {
     if (profileError) throw profileError;
     if (!profile?.stripe_subscription_id) return json({ error: 'Geen actief abonnement gevonden.' }, 404);
 
-    const subscription = await stripeRequest<{ current_period_end: number }>(
+    const subscription = await stripeRequest<{ items?: { data?: { current_period_end?: number }[] } }>(
       'POST',
       `/subscriptions/${profile.stripe_subscription_id}`,
       { cancel_at_period_end: true },
     );
 
-    return json({ currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString() });
+    const periodEnd = subscriptionPeriodEnd(subscription);
+    return json({ currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000).toISOString() : null });
   } catch (err) {
     console.error('stripe-cancel error:', err);
     return json({ error: 'Opzeggen is niet gelukt. Probeer het later opnieuw.' }, 500);
