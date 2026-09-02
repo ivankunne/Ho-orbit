@@ -33,6 +33,7 @@ function mapProfile(profile: any, authUser: any) {
     plan: profile?.plan || 'free',
     subscriptionStatus: profile?.subscription_status || null,
     currentPeriodEnd: profile?.current_period_end || null,
+    cancelAtPeriodEnd: profile?.cancel_at_period_end ?? false,
   };
 }
 

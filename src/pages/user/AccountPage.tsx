@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { User, Bell, Lock, Check, LogOut, Camera, AlertTriangle, Eye, EyeOff, Loader, Mail, Phone, Briefcase, HandHeart, BellRing, Smartphone, CreditCard } from 'lucide-react';
 import { pushSupported, pushPermission, isPushEnabled, enablePush, disablePush, type PushState } from '@services/pushService';
-import { startCheckout, openBillingPortal, getPlanInfo, formatPlanPrice, type PlanInfo } from '@services/subscriptionService';
+import { startCheckout, openBillingPortal, cancelSubscription, getPlanInfo, formatPlanPrice, type PlanInfo } from '@services/subscriptionService';
 import UserAvatar from '@components/UserAvatar';
 import { useAuth } from '@context/AuthContext';
 import { changePassword, deleteAccount, updateEmail, updateProfile as persistProfile, updatePreferences, uploadAvatar, uploadBanner } from '@services/userService';
@@ -142,12 +142,20 @@ function AbonnementSection({ user }: { user: any }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [plan, setPlan] = useState<PlanInfo | null>(null);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(!!user?.cancelAtPeriodEnd);
+  const [periodEnd, setPeriodEnd] = useState<string | null>(user?.currentPeriodEnd ?? null);
   const upgradeResult = searchParams.get('upgrade');
   const isPaid = user?.plan === 'paid';
 
   useEffect(() => {
     getPlanInfo().then(setPlan);
   }, []);
+
+  useEffect(() => {
+    setCancelAtPeriodEnd(!!user?.cancelAtPeriodEnd);
+    setPeriodEnd(user?.currentPeriodEnd ?? null);
+  }, [user?.cancelAtPeriodEnd, user?.currentPeriodEnd]);
 
   useEffect(() => {
     if (!upgradeResult) return;
@@ -169,6 +177,25 @@ function AbonnementSection({ user }: { user: any }) {
     }
   }
 
+  async function handleCancel() {
+    setError('');
+    setLoading(true);
+    try {
+      const newPeriodEnd = await cancelSubscription();
+      setPeriodEnd(newPeriodEnd);
+      setCancelAtPeriodEnd(true);
+      setShowCancelDialog(false);
+    } catch (err: any) {
+      setError(err?.message || 'Er ging iets mis. Probeer het later opnieuw.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const periodEndLabel = periodEnd
+    ? new Date(periodEnd).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' })
+    : null;
+
   return (
     <div className="bg-white/3 border border-white/5 rounded-2xl p-6">
       <h2 className="text-white font-semibold text-lg mb-1">Abonnement</h2>
@@ -182,6 +209,11 @@ function AbonnementSection({ user }: { user: any }) {
       {upgradeResult === 'cancelled' && (
         <div className="mb-4 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 text-sm">
           Upgrade geannuleerd. Je kunt het op elk moment opnieuw proberen.
+        </div>
+      )}
+      {isPaid && cancelAtPeriodEnd && (
+        <div className="mb-4 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 text-sm">
+          Je abonnement is opgezegd{periodEndLabel ? ` en blijft actief tot ${periodEndLabel}` : ''}. Je kunt dit nog ongedaan maken via "Abonnement beheren".
         </div>
       )}
       {error && (
@@ -225,10 +257,17 @@ function AbonnementSection({ user }: { user: any }) {
             ))}
           </ul>
           {isPaid ? (
-            <Button variant="outline" onClick={() => handleAction(openBillingPortal)} disabled={loading} className="w-full">
-              {loading ? <Loader size={14} className="animate-spin" /> : null}
-              Abonnement beheren
-            </Button>
+            <div className="space-y-2">
+              <Button variant="outline" onClick={() => handleAction(openBillingPortal)} disabled={loading} className="w-full">
+                {loading ? <Loader size={14} className="animate-spin" /> : null}
+                Abonnement beheren
+              </Button>
+              {!cancelAtPeriodEnd && (
+                <Button variant="ghost" onClick={() => setShowCancelDialog(true)} disabled={loading} className="w-full text-red-400 hover:text-red-300">
+                  Opzeggen
+                </Button>
+              )}
+            </div>
           ) : (
             <Button onClick={() => handleAction(startCheckout)} disabled={loading} className="w-full">
               {loading ? <Loader size={14} className="animate-spin" /> : null}
@@ -237,6 +276,28 @@ function AbonnementSection({ user }: { user: any }) {
           )}
         </div>
       </div>
+
+      {showCancelDialog && (
+        <Dialog open={true} onOpenChange={setShowCancelDialog}>
+          <DialogContent className="bg-[#231d3a] border-white/10">
+            <DialogHeader>
+              <DialogTitle className="text-base">Abonnement opzeggen?</DialogTitle>
+              <DialogDescription className="text-xs">
+                Je blijft H-orbit Pro houden tot het einde van je huidige factureringsperiode{periodEndLabel ? ` (${periodEndLabel})` : ''}. Daarna wordt niet meer afgeschreven.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex gap-3 mt-2">
+              <Button onClick={() => setShowCancelDialog(false)} variant="ghost" className="flex-1" disabled={loading}>
+                Terug
+              </Button>
+              <Button onClick={handleCancel} variant="destructive" className="flex-1" disabled={loading}>
+                {loading ? <Loader size={14} className="animate-spin" /> : null}
+                Ja, opzeggen
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

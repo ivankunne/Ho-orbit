@@ -36,6 +36,7 @@ async function syncSubscriptionByCustomer(
   subscriptionId: string | null,
   status: string,
   currentPeriodEnd: number | null,
+  cancelAtPeriodEnd: boolean,
 ) {
   const plan = subscriptionId && ACTIVE_STATUSES.has(status) ? 'paid' : 'free';
   const { error } = await supabaseAdmin
@@ -45,6 +46,7 @@ async function syncSubscriptionByCustomer(
       stripe_subscription_id: subscriptionId,
       subscription_status: status,
       current_period_end: currentPeriodEnd ? new Date(currentPeriodEnd * 1000).toISOString() : null,
+      cancel_at_period_end: cancelAtPeriodEnd,
     })
     .eq('stripe_customer_id', customerId);
   if (error) throw error;
@@ -76,6 +78,7 @@ Deno.serve(async (req) => {
             id: string;
             status: string;
             current_period_end: number;
+            cancel_at_period_end: boolean;
           }>('GET', `/subscriptions/${session.subscription}`);
           await syncSubscriptionByCustomer(
             supabaseAdmin,
@@ -83,6 +86,7 @@ Deno.serve(async (req) => {
             subscription.id,
             subscription.status,
             subscription.current_period_end,
+            subscription.cancel_at_period_end,
           );
         }
         break;
@@ -96,6 +100,7 @@ Deno.serve(async (req) => {
           event.type === 'customer.subscription.deleted' ? null : subscription.id,
           event.type === 'customer.subscription.deleted' ? 'canceled' : subscription.status,
           subscription.current_period_end ?? null,
+          event.type === 'customer.subscription.deleted' ? false : !!subscription.cancel_at_period_end,
         );
         break;
       }

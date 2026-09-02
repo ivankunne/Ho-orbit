@@ -18,6 +18,17 @@ export function openBillingPortal() {
   return invokeAndRedirect('stripe-portal');
 }
 
+/** Cancels at the end of the current billing period — no redirect. */
+export async function cancelSubscription(): Promise<string | null> {
+  const { data, error } = await supabase.functions.invoke<{ currentPeriodEnd?: string; error?: string }>(
+    'stripe-cancel',
+  );
+  if (error || !data || data.error) {
+    throw new Error(data?.error || error?.message || 'Er ging iets mis. Probeer het later opnieuw.');
+  }
+  return data.currentPeriodEnd ?? null;
+}
+
 export interface PlanInfo {
   amount: number; // cents
   currency: string;

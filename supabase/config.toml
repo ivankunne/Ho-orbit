@@ -24,6 +24,12 @@ enabled = true
 verify_jwt = true
 entrypoint = "./functions/stripe-portal/index.ts"
 
+# Direct in-app cancel (at period end) for the logged-in user.
+[functions.stripe-cancel]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/stripe-cancel/index.ts"
+
 # Stripe calls this directly with no Supabase auth header — trust comes only
 # from the Stripe-Signature check inside the function. Must stay off.
 [functions.stripe-webhook]

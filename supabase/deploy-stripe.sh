@@ -45,6 +45,9 @@ supabase functions deploy stripe-checkout
 echo "→ Deploying stripe-portal…"
 supabase functions deploy stripe-portal
 
+echo "→ Deploying stripe-cancel…"
+supabase functions deploy stripe-cancel
+
 echo "→ Deploying stripe-webhook (public, no JWT verification)…"
 supabase functions deploy stripe-webhook --no-verify-jwt
 
