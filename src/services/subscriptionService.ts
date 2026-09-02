@@ -33,6 +33,7 @@ export interface PlanInfo {
   amount: number; // cents
   currency: string;
   interval: string;
+  taxInclusive: boolean;
 }
 
 /** Live price info for the Pro plan, straight from Stripe (never hardcoded). */
@@ -49,11 +50,12 @@ const INTERVAL_LABEL: Record<string, string> = {
   year: 'jaar',
 };
 
-/** e.g. "€ 4,99 / maand" — falls back gracefully if info couldn't be fetched. */
+/** e.g. "€ 10,00 / maand incl. btw" — falls back gracefully if info couldn't be fetched. */
 export function formatPlanPrice(plan: PlanInfo): string {
   const amount = new Intl.NumberFormat('nl-NL', {
     style: 'currency',
     currency: plan.currency.toUpperCase(),
   }).format(plan.amount / 100);
-  return `${amount} / ${INTERVAL_LABEL[plan.interval] || plan.interval}`;
+  const suffix = plan.taxInclusive ? ' incl. btw' : '';
+  return `${amount} / ${INTERVAL_LABEL[plan.interval] || plan.interval}${suffix}`;
 }

@@ -77,6 +77,11 @@ Deno.serve(async (req) => {
       // branding on statements/receipts, their support/refund flow). Opt
       // out to keep iDEAL, H-orbit's own branding, and full control.
       managed_payments: { enabled: false },
+      // Requires an active Tax Registration (NL, added via the API) — see
+      // stripe_subscriptions migration notes. The Price has
+      // tax_behavior=inclusive, so the €10 total never changes for the
+      // customer; 21% NL VAT is carved out of that for reporting/remittance.
+      automatic_tax: { enabled: true },
       success_url: `${SITE_URL}/account?upgrade=success`,
       cancel_url: `${SITE_URL}/account?upgrade=cancelled`,
     });

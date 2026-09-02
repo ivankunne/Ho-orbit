@@ -1,11 +1,11 @@
 // Edge Function: stripe-plan
 //
-// Returns display info (amount/currency/interval) for the H-orbit Pro price
-// so the Abonnement screen never has to hardcode a price that can drift from
-// what's actually configured in Stripe.
+// Returns display info (amount/currency/interval/taxInclusive) for the
+// H-orbit Pro price so the Abonnement screen never has to hardcode a price
+// that can drift from what's actually configured in Stripe.
 //
 // Body: {}
-// Response: { amount: number (cents), currency: string, interval: string }
+// Response: { amount: number (cents), currency: string, interval: string, taxInclusive: boolean }
 //
 // Deploy:  supabase functions deploy stripe-plan
 // Secrets: STRIPE_SECRET_KEY, STRIPE_PRICE_ID
@@ -31,12 +31,14 @@ Deno.serve(async (req) => {
       unit_amount: number;
       currency: string;
       recurring: { interval: string };
+      tax_behavior: string;
     }>('GET', `/prices/${STRIPE_PRICE_ID}`);
 
     return json({
       amount: price.unit_amount,
       currency: price.currency,
       interval: price.recurring?.interval ?? 'month',
+      taxInclusive: price.tax_behavior === 'inclusive',
     });
   } catch (err) {
     console.error('stripe-plan error:', err);
