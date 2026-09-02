@@ -72,6 +72,11 @@ Deno.serve(async (req) => {
       mode: 'subscription',
       customer: customerId,
       line_items: [{ price: STRIPE_PRICE_ID, quantity: 1 }],
+      // Managed Payments doesn't support iDEAL — essential for a Dutch
+      // audience — and makes Stripe/Link the merchant of record (their
+      // branding on statements/receipts, their support/refund flow). Opt
+      // out to keep iDEAL, H-orbit's own branding, and full control.
+      managed_payments: { enabled: false },
       success_url: `${SITE_URL}/account?upgrade=success`,
       cancel_url: `${SITE_URL}/account?upgrade=cancelled`,
     });
