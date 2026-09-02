@@ -82,6 +82,12 @@ Deno.serve(async (req) => {
       // tax_behavior=inclusive, so the €10 total never changes for the
       // customer; 21% NL VAT is carved out of that for reporting/remittance.
       automatic_tax: { enabled: true },
+      // We always pass an existing Customer (created above), which has no
+      // address on file yet. Without this, Stripe refuses with
+      // customer_tax_location_invalid instead of collecting one in Checkout —
+      // this tells Stripe it's fine to collect + save the address entered
+      // at checkout onto that Customer.
+      customer_update: { address: 'auto' },
       success_url: `${SITE_URL}/account?upgrade=success`,
       cancel_url: `${SITE_URL}/account?upgrade=cancelled`,
     });
