@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { User, Bell, Lock, Check, LogOut, Camera, AlertTriangle, Eye, EyeOff, Loader, Mail, Phone, Briefcase, HandHeart, BellRing, Smartphone, CreditCard } from 'lucide-react';
 import { pushSupported, pushPermission, isPushEnabled, enablePush, disablePush, type PushState } from '@services/pushService';
 import { startCheckout, openBillingPortal, cancelSubscription, getPlanInfo, formatPlanPrice, type PlanInfo } from '@services/subscriptionService';
+import { FREE_FEATURES, PRO_FEATURES } from '@data/subscriptionPlans';
 import UserAvatar from '@components/UserAvatar';
 import { useAuth } from '@context/AuthContext';
 import { changePassword, deleteAccount, updateEmail, updateProfile as persistProfile, updatePreferences, uploadAvatar, uploadBanner } from '@services/userService';
@@ -134,9 +135,6 @@ export default function AccountPage() {
 }
 
 /* ─── Abonnement ──────────────────────────────────────────── */
-const FREE_FEATURES = ['Toegang tot alle basisfuncties van H-orbit'];
-const PRO_FEATURES = ['Alles van Free', 'Ondersteunt H-orbit rechtstreeks', 'Als eerste toegang tot nieuwe Pro-functies'];
-
 function AbonnementSection({ user }: { user: any }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
