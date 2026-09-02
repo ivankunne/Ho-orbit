@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { User, Bell, Lock, Check, LogOut, Camera, AlertTriangle, Eye, EyeOff, Loader, Mail, Phone, Briefcase, HandHeart, BellRing, Smartphone, CreditCard } from 'lucide-react';
 import { pushSupported, pushPermission, isPushEnabled, enablePush, disablePush, type PushState } from '@services/pushService';
-import { startCheckout, openBillingPortal } from '@services/subscriptionService';
+import { startCheckout, openBillingPortal, getPlanInfo, formatPlanPrice, type PlanInfo } from '@services/subscriptionService';
 import UserAvatar from '@components/UserAvatar';
 import { useAuth } from '@context/AuthContext';
 import { changePassword, deleteAccount, updateEmail, updateProfile as persistProfile, updatePreferences, uploadAvatar, uploadBanner } from '@services/userService';
@@ -134,12 +134,20 @@ export default function AccountPage() {
 }
 
 /* ─── Abonnement ──────────────────────────────────────────── */
+const FREE_FEATURES = ['Toegang tot alle basisfuncties van H-orbit'];
+const PRO_FEATURES = ['Alles van Free', 'Ondersteunt H-orbit rechtstreeks', 'Als eerste toegang tot nieuwe Pro-functies'];
+
 function AbonnementSection({ user }: { user: any }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [plan, setPlan] = useState<PlanInfo | null>(null);
   const upgradeResult = searchParams.get('upgrade');
   const isPaid = user?.plan === 'paid';
+
+  useEffect(() => {
+    getPlanInfo().then(setPlan);
+  }, []);
 
   useEffect(() => {
     if (!upgradeResult) return;
@@ -164,7 +172,7 @@ function AbonnementSection({ user }: { user: any }) {
   return (
     <div className="bg-white/3 border border-white/5 rounded-2xl p-6">
       <h2 className="text-white font-semibold text-lg mb-1">Abonnement</h2>
-      <p className="text-slate-500 text-sm mb-6">Beheer je H-orbit-abonnement.</p>
+      <p className="text-slate-500 text-sm mb-6">Kies het plan dat bij je past.</p>
 
       {upgradeResult === 'success' && (
         <div className="mb-4 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm">
@@ -182,27 +190,53 @@ function AbonnementSection({ user }: { user: any }) {
         </div>
       )}
 
-      <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10 mb-4">
-        <div>
-          <p className="text-white text-sm font-medium">Huidig plan</p>
-          <p className="text-slate-500 text-xs">{isPaid ? 'H-orbit Pro' : 'Gratis'}</p>
+      <div className="grid sm:grid-cols-2 gap-4">
+        {/* Free */}
+        <div className={`rounded-2xl border p-5 ${!isPaid ? 'border-violet-500/40 bg-violet-600/5' : 'border-white/10 bg-white/5'}`}>
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-white font-semibold">Free</p>
+            {!isPaid && <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-violet-600/15 text-violet-400">Huidig plan</span>}
+          </div>
+          <p className="text-slate-500 text-sm mb-4">Gratis</p>
+          <ul className="space-y-2 mb-5">
+            {FREE_FEATURES.map(f => (
+              <li key={f} className="flex items-start gap-2 text-sm text-slate-400">
+                <Check size={15} className="text-slate-500 mt-0.5 shrink-0" />
+                {f}
+              </li>
+            ))}
+          </ul>
+          {!isPaid && <Button variant="outline" disabled className="w-full">Je huidige plan</Button>}
         </div>
-        <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${isPaid ? 'bg-violet-600/15 text-violet-400' : 'bg-white/10 text-slate-400'}`}>
-          {isPaid ? 'Actief' : 'Free'}
-        </span>
-      </div>
 
-      {isPaid ? (
-        <Button onClick={() => handleAction(openBillingPortal)} disabled={loading}>
-          {loading ? <Loader size={14} className="animate-spin mr-2" /> : null}
-          Abonnement beheren
-        </Button>
-      ) : (
-        <Button onClick={() => handleAction(startCheckout)} disabled={loading}>
-          {loading ? <Loader size={14} className="animate-spin mr-2" /> : null}
-          Upgraden naar Pro
-        </Button>
-      )}
+        {/* Pro */}
+        <div className={`rounded-2xl border p-5 ${isPaid ? 'border-violet-500/40 bg-violet-600/5' : 'border-white/10 bg-white/5'}`}>
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-white font-semibold">H-orbit Pro</p>
+            {isPaid && <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-violet-600/15 text-violet-400">Huidig plan</span>}
+          </div>
+          <p className="text-slate-500 text-sm mb-4">{plan ? formatPlanPrice(plan) : ' '}</p>
+          <ul className="space-y-2 mb-5">
+            {PRO_FEATURES.map(f => (
+              <li key={f} className="flex items-start gap-2 text-sm text-slate-400">
+                <Check size={15} className="text-violet-400 mt-0.5 shrink-0" />
+                {f}
+              </li>
+            ))}
+          </ul>
+          {isPaid ? (
+            <Button variant="outline" onClick={() => handleAction(openBillingPortal)} disabled={loading} className="w-full">
+              {loading ? <Loader size={14} className="animate-spin" /> : null}
+              Abonnement beheren
+            </Button>
+          ) : (
+            <Button onClick={() => handleAction(startCheckout)} disabled={loading} className="w-full">
+              {loading ? <Loader size={14} className="animate-spin" /> : null}
+              Upgraden naar Pro
+            </Button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

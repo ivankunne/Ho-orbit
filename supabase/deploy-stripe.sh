@@ -48,6 +48,9 @@ supabase functions deploy stripe-portal
 echo "→ Deploying stripe-webhook (public, no JWT verification)…"
 supabase functions deploy stripe-webhook --no-verify-jwt
 
+echo "→ Deploying stripe-plan (public, no JWT verification)…"
+supabase functions deploy stripe-plan --no-verify-jwt
+
 echo "✓ Done."
 echo "  Now go to Stripe Dashboard → Developers → Webhooks and point an endpoint at:"
 echo "    https://$PROJECT_REF.supabase.co/functions/v1/stripe-webhook"

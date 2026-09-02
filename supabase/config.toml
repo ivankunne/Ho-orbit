@@ -30,3 +30,9 @@ entrypoint = "./functions/stripe-portal/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/stripe-webhook/index.ts"
+
+# Public plan price info (no user data) for the Abonnement screen.
+[functions.stripe-plan]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/stripe-plan/index.ts"
