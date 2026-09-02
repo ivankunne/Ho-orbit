@@ -10,3 +10,23 @@ project_id = "ellezlbjqrjcxeifrwdo"
 enabled = true
 verify_jwt = true
 entrypoint = "./functions/notify/index.ts"
+
+# Starts a Stripe Checkout session for the logged-in user. verify_jwt = true:
+# only a logged-in user may start a checkout for themself.
+[functions.stripe-checkout]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/stripe-checkout/index.ts"
+
+# Opens the Stripe Customer Portal for the logged-in user.
+[functions.stripe-portal]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/stripe-portal/index.ts"
+
+# Stripe calls this directly with no Supabase auth header — trust comes only
+# from the Stripe-Signature check inside the function. Must stay off.
+[functions.stripe-webhook]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/stripe-webhook/index.ts"

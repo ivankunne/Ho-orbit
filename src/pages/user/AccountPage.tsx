@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { User, Bell, Lock, Palette, Check, LogOut, Camera, AlertTriangle, Eye, EyeOff, Sun, Moon, Loader, Mail, Phone, Briefcase, HandHeart, BellRing, Smartphone } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { User, Bell, Lock, Check, LogOut, Camera, AlertTriangle, Eye, EyeOff, Loader, Mail, Phone, Briefcase, HandHeart, BellRing, Smartphone, CreditCard } from 'lucide-react';
 import { pushSupported, pushPermission, isPushEnabled, enablePush, disablePush, type PushState } from '@services/pushService';
+import { startCheckout, openBillingPortal } from '@services/subscriptionService';
 import UserAvatar from '@components/UserAvatar';
 import { useAuth } from '@context/AuthContext';
 import { changePassword, deleteAccount, updateEmail, updateProfile as persistProfile, updatePreferences, uploadAvatar, uploadBanner } from '@services/userService';
-import { getTheme, toggleTheme } from '@utils/theme';
 import { Input } from '@components/ui/input';
 import { Textarea } from '@components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@components/ui/select';
@@ -16,9 +16,9 @@ import { SOCIAL_PLATFORMS } from '@data/socialPlatforms';
 
 const sidebarItems = [
   { key: 'profiel', label: 'Profiel', icon: User },
+  { key: 'abonnement', label: 'Abonnement', icon: CreditCard },
   { key: 'meldingen', label: 'Meldingen', icon: Bell },
   { key: 'beveiliging', label: 'Beveiliging', icon: Lock },
-  { key: 'weergave', label: 'Weergave', icon: Palette },
 ];
 
 export default function AccountPage() {
@@ -118,17 +118,91 @@ export default function AccountPage() {
               userId={typeof user.id === 'string' ? user.id : null}
             />
           )}
+          {activeSection === 'abonnement' && (
+            <AbonnementSection user={user} />
+          )}
           {activeSection === 'meldingen' && (
             <MeldingenSection user={user} updateProfile={updateProfile} />
           )}
           {activeSection === 'beveiliging' && (
             <BeveiligingSection user={user} logout={logout} />
           )}
-          {activeSection === 'weergave' && (
-            <WeergaveSection />
-          )}
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ─── Abonnement ──────────────────────────────────────────── */
+function AbonnementSection({ user }: { user: any }) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const upgradeResult = searchParams.get('upgrade');
+  const isPaid = user?.plan === 'paid';
+
+  useEffect(() => {
+    if (!upgradeResult) return;
+    const t = setTimeout(() => {
+      searchParams.delete('upgrade');
+      setSearchParams(searchParams, { replace: true });
+    }, 6000);
+    return () => clearTimeout(t);
+  }, [upgradeResult]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleAction(action: () => Promise<void>) {
+    setError('');
+    setLoading(true);
+    try {
+      await action();
+    } catch (err: any) {
+      setError(err?.message || 'Er ging iets mis. Probeer het later opnieuw.');
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="bg-white/3 border border-white/5 rounded-2xl p-6">
+      <h2 className="text-white font-semibold text-lg mb-1">Abonnement</h2>
+      <p className="text-slate-500 text-sm mb-6">Beheer je H-orbit-abonnement.</p>
+
+      {upgradeResult === 'success' && (
+        <div className="mb-4 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm">
+          Bedankt! Je upgrade wordt verwerkt — dit kan een paar seconden duren.
+        </div>
+      )}
+      {upgradeResult === 'cancelled' && (
+        <div className="mb-4 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 text-sm">
+          Upgrade geannuleerd. Je kunt het op elk moment opnieuw proberen.
+        </div>
+      )}
+      {error && (
+        <div className="mb-4 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+          {error}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10 mb-4">
+        <div>
+          <p className="text-white text-sm font-medium">Huidig plan</p>
+          <p className="text-slate-500 text-xs">{isPaid ? 'H-orbit Pro' : 'Gratis'}</p>
+        </div>
+        <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${isPaid ? 'bg-violet-600/15 text-violet-400' : 'bg-white/10 text-slate-400'}`}>
+          {isPaid ? 'Actief' : 'Free'}
+        </span>
+      </div>
+
+      {isPaid ? (
+        <Button onClick={() => handleAction(openBillingPortal)} disabled={loading}>
+          {loading ? <Loader size={14} className="animate-spin mr-2" /> : null}
+          Abonnement beheren
+        </Button>
+      ) : (
+        <Button onClick={() => handleAction(startCheckout)} disabled={loading}>
+          {loading ? <Loader size={14} className="animate-spin mr-2" /> : null}
+          Upgraden naar Pro
+        </Button>
+      )}
     </div>
   );
 }
@@ -655,67 +729,6 @@ function DeleteAccountModal({ username, onConfirm, onClose }) {
         </div>
       </DialogContent>
     </Dialog>
-  );
-}
-
-/* ─── Weergave ────────────────────────────────────────────── */
-function WeergaveSection() {
-  const [theme, setThemeState] = useState(() => getTheme());
-
-  const handleToggle = (next) => {
-    if (next === theme) return;
-    toggleTheme();
-    setThemeState(next);
-  };
-
-  return (
-    <div className="bg-white/3 border border-white/5 rounded-2xl p-6">
-      <h2 className="text-lg font-semibold text-white mb-6">Weergave-instellingen</h2>
-      <div className="space-y-6">
-        <div>
-          <p className="text-sm font-medium text-slate-300 mb-3">Kleurthema</p>
-          <div className="grid grid-cols-2 gap-3 max-w-xs">
-            {[
-              { key: 'dark', label: 'Donker', icon: Moon },
-              { key: 'light', label: 'Licht', icon: Sun },
-            ].map(opt => {
-              const Icon = opt.icon;
-              const active = theme === opt.key;
-              return (
-                <button
-                  key={opt.key}
-                  onClick={() => handleToggle(opt.key)}
-                  className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-all ${
-                    active ? 'border-violet-500 bg-violet-600/10' : 'border-white/10 hover:border-white/30 hover:bg-white/5'
-                  }`}
-                >
-                  <Icon size={20} className={active ? 'text-violet-400' : 'text-slate-400'} />
-                  <span className={`text-sm font-medium ${active ? 'text-violet-400' : 'text-slate-400'}`}>
-                    {opt.label}
-                  </span>
-                  {active && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-violet-500" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div>
-          <p className="text-sm font-medium text-slate-300 mb-3">Taal</p>
-          <Select defaultValue="nl">
-            <SelectTrigger className="w-[180px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="nl">Nederlands</SelectItem>
-              <SelectItem value="en">English</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-    </div>
   );
 }
 

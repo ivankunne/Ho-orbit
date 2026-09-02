@@ -28,6 +28,11 @@ function mapProfile(profile: any, authUser: any) {
     bookingInfo: profile?.booking_info || {},
     needsOnboarding: profile?.needs_onboarding ?? false,
     discoverPrefs: profile?.discover_prefs || {},
+    // Synced by the stripe-webhook Edge Function only — see
+    // protect_subscription_columns() in stripe_subscriptions_migration.sql.
+    plan: profile?.plan || 'free',
+    subscriptionStatus: profile?.subscription_status || null,
+    currentPeriodEnd: profile?.current_period_end || null,
   };
 }
 
