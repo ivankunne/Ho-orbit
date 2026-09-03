@@ -36,8 +36,19 @@ fi
 echo "→ Linking project ${PROJECT_REF} (no-op if already linked)…"
 supabase link --project-ref "$PROJECT_REF" || true
 
-echo "→ Pushing function secrets from ${ENV_FILE}…"
-supabase secrets set --env-file "$ENV_FILE"
+# Only the Stripe keys, set by name — NOT --env-file, which pushes every
+# secret in the file (Resend/VAPID included) and silently overwrites
+# whatever is already live in Supabase with whatever happens to be sitting
+# in this local file at the time, even a stale placeholder. That's exactly
+# what broke RESEND_API_KEY in production once already.
+echo "→ Pushing Stripe secrets from ${ENV_FILE}…"
+STRIPE_SECRET_KEY_VAL=$(grep -E '^STRIPE_SECRET_KEY=' "$ENV_FILE" | cut -d= -f2-)
+STRIPE_PRICE_ID_VAL=$(grep -E '^STRIPE_PRICE_ID=' "$ENV_FILE" | cut -d= -f2-)
+STRIPE_WEBHOOK_SECRET_VAL=$(grep -E '^STRIPE_WEBHOOK_SECRET=' "$ENV_FILE" | cut -d= -f2-)
+supabase secrets set \
+  "STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY_VAL" \
+  "STRIPE_PRICE_ID=$STRIPE_PRICE_ID_VAL" \
+  "STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET_VAL"
 
 echo "→ Deploying stripe-checkout…"
 supabase functions deploy stripe-checkout

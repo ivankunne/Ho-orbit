@@ -33,8 +33,23 @@ fi
 echo "→ Linking project $PROJECT_REF (no-op if already linked)…"
 supabase link --project-ref "$PROJECT_REF" || true
 
-echo "→ Pushing function secrets from $ENV_FILE…"
-supabase secrets set --env-file "$ENV_FILE"
+# Only this function's own keys, set by name — NOT --env-file, which pushes
+# every secret in the file (Stripe keys included) and silently overwrites
+# whatever is already live in Supabase with whatever's sitting in this local
+# file at the time. That's exactly what broke RESEND_API_KEY in production
+# once already, via the equivalent mistake in deploy-stripe.sh.
+echo "→ Pushing notify secrets from $ENV_FILE…"
+RESEND_API_KEY_VAL=$(grep -E '^RESEND_API_KEY=' "$ENV_FILE" | cut -d= -f2-)
+SITE_URL_VAL=$(grep -E '^SITE_URL=' "$ENV_FILE" | cut -d= -f2-)
+VAPID_PUBLIC_KEY_VAL=$(grep -E '^VAPID_PUBLIC_KEY=' "$ENV_FILE" | cut -d= -f2-)
+VAPID_PRIVATE_KEY_VAL=$(grep -E '^VAPID_PRIVATE_KEY=' "$ENV_FILE" | cut -d= -f2-)
+VAPID_SUBJECT_VAL=$(grep -E '^VAPID_SUBJECT=' "$ENV_FILE" | cut -d= -f2-)
+supabase secrets set \
+  "RESEND_API_KEY=$RESEND_API_KEY_VAL" \
+  "SITE_URL=$SITE_URL_VAL" \
+  "VAPID_PUBLIC_KEY=$VAPID_PUBLIC_KEY_VAL" \
+  "VAPID_PRIVATE_KEY=$VAPID_PRIVATE_KEY_VAL" \
+  "VAPID_SUBJECT=$VAPID_SUBJECT_VAL"
 
 echo "→ Deploying notify function…"
 supabase functions deploy notify
