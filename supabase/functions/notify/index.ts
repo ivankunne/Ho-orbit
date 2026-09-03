@@ -40,6 +40,20 @@ function displayName(p: { display_name?: string | null; username?: string | null
   return p?.display_name || p?.username || 'iemand';
 }
 
+// profiles.email is only set once at signup and never updated afterward —
+// changing your email in Account Settings only updates auth.users (see
+// userService.ts:updateEmail). Reading it from auth.users here instead means
+// notification emails always follow the account's current confirmed email,
+// never a stale one left behind after a change.
+async function getUserEmail(admin: ReturnType<typeof createClient>, userId: string): Promise<string | null> {
+  const { data, error } = await admin.auth.admin.getUserById(userId);
+  if (error) {
+    console.warn('[notify] getUserEmail failed:', error.message);
+    return null;
+  }
+  return data.user?.email ?? null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
@@ -121,9 +135,10 @@ async function handleMessage(
   const recipientId = conv.participant_1 === callerId ? conv.participant_2 : conv.participant_1;
   if (!recipientId || recipientId === callerId) return json({ skipped: 'self' });
 
-  const [{ data: recipient }, { data: sender }] = await Promise.all([
-    admin.from('profiles').select('display_name, username, email, notification_prefs').eq('id', recipientId).single(),
+  const [{ data: recipient }, { data: sender }, recipientEmail] = await Promise.all([
+    admin.from('profiles').select('display_name, username, notification_prefs').eq('id', recipientId).single(),
     admin.from('profiles').select('display_name, username').eq('id', callerId).single(),
+    getUserEmail(admin, recipientId),
   ]);
 
   const senderName = displayName(sender);
@@ -155,14 +170,14 @@ async function handleMessage(
   }
 
   let emailed = false;
-  if (recipient?.email && wantsMessage) {
+  if (recipientEmail && wantsMessage) {
     const { subject, html } = newMessageEmail({
       recipientName: displayName(recipient),
       senderName,
       preview: message.content,
       conversationId,
     });
-    const res = await sendEmail({ to: recipient.email, subject, html });
+    const res = await sendEmail({ to: recipientEmail, subject, html });
     emailed = res.ok;
     if (!res.ok) console.warn('[notify] message email failed:', res.error);
   }
@@ -181,9 +196,10 @@ async function handleFollow(
   }
   if (targetUserId === callerId) return json({ skipped: 'self' });
 
-  const [{ data: target }, { data: follower }] = await Promise.all([
-    admin.from('profiles').select('display_name, username, email, notification_prefs').eq('id', targetUserId).single(),
+  const [{ data: target }, { data: follower }, targetEmail] = await Promise.all([
+    admin.from('profiles').select('display_name, username, notification_prefs').eq('id', targetUserId).single(),
     admin.from('profiles').select('display_name, username').eq('id', callerId).single(),
+    getUserEmail(admin, targetUserId),
   ]);
   if (!target) return json({ error: 'Target profile not found' }, 404);
 
@@ -215,13 +231,13 @@ async function handleFollow(
   }
 
   let emailed = false;
-  if (target.email && wantsFollow) {
+  if (targetEmail && wantsFollow) {
     const { subject, html } = newFollowerEmail({
       recipientName: displayName(target),
       followerName,
       followerUsername,
     });
-    const res = await sendEmail({ to: target.email, subject, html });
+    const res = await sendEmail({ to: targetEmail, subject, html });
     emailed = res.ok;
     if (!res.ok) console.warn('[notify] follow email failed:', res.error);
   }
