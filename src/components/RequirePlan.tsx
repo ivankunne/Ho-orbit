@@ -3,6 +3,7 @@ import { useAuth } from '@context/AuthContext';
 import { usePaywallSettings } from '@hooks/usePaywallSettings';
 import PageLoader from '@components/PageLoader';
 import PaywallPage from '@pages/PaywallPage';
+import { MASTER_ADMIN_EMAIL } from '@pages/AdminLoginPage';
 
 interface RequirePlanProps {
   children: ReactNode;
@@ -22,20 +23,20 @@ interface RequirePlanProps {
  *
  *   <Route path="/x" element={<ProtectedRoute><RequirePlan><XPage /></RequirePlan></ProtectedRoute>} />
  *
- * Two things let a visitor through regardless of their own plan:
+ * Three things let a visitor through regardless of their own plan:
  * - `bypass` prop (a per-case exception computed by the caller)
+ * - the master-admin account (needs full access to moderate/manage the site)
  * - the global paywall_settings switch being off (Admin panel “Ga live”
  *   button) — this is what lets every route below be wired up in advance
  *   without actually restricting anyone until it's flipped on
  *
- * TEMPORARY, for testing (requested 2026-09-07, still in effect): normally
- * every is_admin account — and at minimum the master admin — bypasses the
- * paywall regardless of their own plan. Both bypasses are removed right now
- * so even the master admin is checked against a real plan, same as anyone
- * else. The Admin panel itself (AdminGate in App.tsx) is a separate gate,
- * untouched by this, so admins keep panel access either way. Restore an
- * admin bypass here (`user?.isAdmin` is the original, permanent design —
- * see the paywall-feature-map memory) once testing is done.
+ * As of 2026-09-07 (explicit request): only MASTER_ADMIN_EMAIL bypasses —
+ * regular is_admin accounts do NOT, and pay/subscribe like anyone else. This
+ * is narrower than admin permissions elsewhere in the app (e.g. content
+ * moderation, which is_admin-any covers) — a deliberate choice specific to
+ * the paywall, not an oversight. The Admin panel itself (AdminGate in
+ * App.tsx) is a separate gate, untouched by this, so every admin keeps
+ * panel access regardless of plan.
  *
  * Only checks user.plan === 'paid' today (the one plan that exists). If a
  * second paid tier or a la carte fee is ever added, extend this rather than
@@ -45,6 +46,6 @@ export default function RequirePlan({ children, title, description, bypass }: Re
   const { user, loading } = useAuth();
   const { enabled: paywallLive, loading: paywallLoading } = usePaywallSettings();
   if (loading || paywallLoading) return <PageLoader />;
-  if (bypass || !paywallLive || user?.plan === 'paid') return <>{children}</>;
+  if (bypass || user?.email === MASTER_ADMIN_EMAIL || !paywallLive || user?.plan === 'paid') return <>{children}</>;
   return <PaywallPage title={title} description={description} />;
 }

@@ -5,6 +5,7 @@ import { useAuth } from '@context/AuthContext';
 import UserAvatar from '@components/UserAvatar';
 import { getConversations, isFreeConversation, type Conversation } from '@services/chatService';
 import { usePaywallSettings } from '@hooks/usePaywallSettings';
+import { MASTER_ADMIN_EMAIL } from '@pages/AdminLoginPage';
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -26,9 +27,8 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
 
-  // TEMPORARY for testing — see RequirePlan.tsx's comment. Restore an admin
-  // bypass (originally !user?.isAdmin) once testing is done.
-  const requiresPro = paywallLive && user?.plan !== 'paid';
+  // Only the master admin bypasses — see RequirePlan.tsx's comment.
+  const requiresPro = paywallLive && user?.email !== MASTER_ADMIN_EMAIL && user?.plan !== 'paid';
 
   useEffect(() => {
     if (!user?.id) return;

@@ -1042,7 +1042,7 @@ const SECTIONS: { id: Section; label: string; icon: React.ReactNode; description
   { id: 'reports', label: 'Meldingen',   icon: <Flag size={16} />,          description: 'Rapporten behandelen' },
   { id: 'radio',   label: 'Radio',       icon: <Radio size={16} />,         description: 'Livestream beheren' },
   { id: 'podcasts', label: 'Podcasts',   icon: <Headphones size={16} />,    description: 'Podcasts beheren' },
-  { id: 'paywall', label: 'Paywall',     icon: <Lock size={16} />,          description: 'Pro-functies activeren' },
+  { id: 'paywall', label: 'Ga live',     icon: <Lock size={16} />,          description: 'Pro-functies activeren' },
 ];
 
 export default function AdminPage() {
