@@ -7,7 +7,6 @@ import { Button } from '@components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { usePaywallSettings } from '@hooks/usePaywallSettings';
 import { startCheckout } from '@services/subscriptionService';
-import { MASTER_ADMIN_EMAIL } from '@pages/AdminLoginPage';
 import {
   getMessages,
   sendMessage,
@@ -136,7 +135,9 @@ export default function ConversationPage() {
   // don't briefly flash the lock screen before we know the roles.
   const rolesKnown = !!other;
   // TEMPORARY for testing — see RequirePlan.tsx's comment. Revert to !user?.isAdmin after.
-  const requiresPro = paywallLive && user?.email !== MASTER_ADMIN_EMAIL && user?.plan !== 'paid';
+  // TEMPORARY for testing — see RequirePlan.tsx's comment. Restore an admin
+  // bypass (originally !user?.isAdmin) once testing is done.
+  const requiresPro = paywallLive && user?.plan !== 'paid';
   const locked = rolesKnown && requiresPro && !isFreeConversation(user?.role, other?.role);
 
   const handleUpgrade = async () => {
