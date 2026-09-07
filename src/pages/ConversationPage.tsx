@@ -1,13 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Send, Loader2 } from 'lucide-react';
+import { ArrowLeft, Send, Loader2, Lock } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
 import UserAvatar from '@components/UserAvatar';
+import { Button } from '@components/ui/button';
 import { supabase } from '@/lib/supabase';
+import { usePaywallSettings } from '@hooks/usePaywallSettings';
+import { startCheckout } from '@services/subscriptionService';
 import {
   getMessages,
   sendMessage,
   markMessagesRead,
+  isFreeConversation,
   type Message,
   type ConversationParticipant,
 } from '@services/chatService';
@@ -24,12 +28,15 @@ function formatTime(iso: string) {
 export default function ConversationPage() {
   const { id: conversationId } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { enabled: paywallLive } = usePaywallSettings();
   const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([]);
   const [other, setOther] = useState<ConversationParticipant | null>(null);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [upgrading, setUpgrading] = useState(false);
+  const [upgradeError, setUpgradeError] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -50,7 +57,7 @@ export default function ConversationPage() {
         const otherId = data.participant_1 === user.id ? data.participant_2 : data.participant_1;
         supabase
           .from('profiles')
-          .select('id, username, display_name, avatar_url')
+          .select('id, username, display_name, avatar_url, role')
           .eq('id', otherId)
           .single()
           .then(({ data: profile }) => {
@@ -123,6 +130,24 @@ export default function ConversationPage() {
 
   const otherName = other?.display_name || other?.username || '…';
 
+  // Locked once `other` has loaded and turns out not to be a free (fan ↔
+  // artiest) conversation. Stays false while `other` is still loading so we
+  // don't briefly flash the lock screen before we know the roles.
+  const rolesKnown = !!other;
+  const requiresPro = paywallLive && !user?.isAdmin && user?.plan !== 'paid';
+  const locked = rolesKnown && requiresPro && !isFreeConversation(user?.role, other?.role);
+
+  const handleUpgrade = async () => {
+    setUpgradeError('');
+    setUpgrading(true);
+    try {
+      await startCheckout();
+    } catch (err: any) {
+      setUpgradeError(err?.message || 'Er ging iets mis. Probeer het later opnieuw.');
+      setUpgrading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] w-full max-w-2xl mx-auto">
       {/* Header */}
@@ -154,9 +179,24 @@ export default function ConversationPage() {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-        {loading ? (
+        {loading || !rolesKnown ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 size={24} className="text-violet-400 animate-spin" />
+          </div>
+        ) : locked ? (
+          <div className="flex flex-col items-center justify-center h-full text-center px-4">
+            <div className="w-12 h-12 rounded-2xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center mb-3">
+              <Lock size={20} className="text-violet-400" />
+            </div>
+            <p className="text-white font-semibold mb-1">Dit gesprek is een Pro-functie</p>
+            <p className="text-slate-500 text-sm mb-4 max-w-xs">
+              Upgrade naar H-orbit Pro om berichten met {otherName} te lezen en te sturen.
+            </p>
+            {upgradeError && <p className="text-red-400 text-xs mb-3">{upgradeError}</p>}
+            <Button onClick={handleUpgrade} disabled={upgrading}>
+              {upgrading ? <Loader2 size={14} className="animate-spin" /> : null}
+              Upgraden naar Pro
+            </Button>
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
@@ -200,6 +240,7 @@ export default function ConversationPage() {
       </div>
 
       {/* Input */}
+      {!locked && (
       <div className="shrink-0 px-4 py-3 border-t border-white/8 bg-[#1a1528]/80 backdrop-blur-sm">
         <div className="flex items-end gap-2">
           <textarea
@@ -226,6 +267,7 @@ export default function ConversationPage() {
         </div>
         <p className="text-[10px] text-slate-600 mt-1.5 text-center">Enter om te sturen · Shift+Enter voor nieuwe regel</p>
       </div>
+      )}
     </div>
   );
 }

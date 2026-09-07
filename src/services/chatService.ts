@@ -6,6 +6,16 @@ export interface ConversationParticipant {
   username: string;
   display_name: string | null;
   avatar_url: string | null;
+  role: string | null;
+}
+
+/**
+ * Fan → artiest DM's are free even once the paywall is live; every other
+ * combination (artiest ↔ artiest, fan ↔ fan, etc.) requires Pro. "Fan" here
+ * just means "not role='Artiest'" — exactly one side must be an artiest.
+ */
+export function isFreeConversation(roleA?: string | null, roleB?: string | null): boolean {
+  return (roleA === 'Artiest') !== (roleB === 'Artiest');
 }
 
 export interface Conversation {
@@ -72,7 +82,7 @@ export async function getConversations(userId: string): Promise<Conversation[]> 
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('id, username, display_name, avatar_url')
+        .select('id, username, display_name, avatar_url, role')
         .eq('id', otherId)
         .single();
 
@@ -93,7 +103,7 @@ export async function getConversations(userId: string): Promise<Conversation[]> 
 
       return {
         ...conv,
-        other_participant: profile ?? { id: otherId, username: 'onbekend', display_name: null, avatar_url: null },
+        other_participant: profile ?? { id: otherId, username: 'onbekend', display_name: null, avatar_url: null, role: null },
         last_message: lastMsg?.content ?? null,
         unread_count: unread ?? 0,
       };

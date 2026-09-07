@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MessageSquare, Search, Clock } from 'lucide-react';
+import { MessageSquare, Search, Clock, Lock } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
 import UserAvatar from '@components/UserAvatar';
-import { getConversations, type Conversation } from '@services/chatService';
+import { getConversations, isFreeConversation, type Conversation } from '@services/chatService';
+import { usePaywallSettings } from '@hooks/usePaywallSettings';
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -19,10 +20,13 @@ function timeAgo(iso: string): string {
 
 export default function MessagesPage() {
   const { user } = useAuth();
+  const { enabled: paywallLive } = usePaywallSettings();
   const navigate = useNavigate();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
+
+  const requiresPro = paywallLive && !user?.isAdmin && user?.plan !== 'paid';
 
   useEffect(() => {
     if (!user?.id) return;
@@ -89,6 +93,7 @@ export default function MessagesPage() {
           {filtered.map((conv) => {
             const name = conv.other_participant.display_name || conv.other_participant.username;
             const hasUnread = conv.unread_count > 0;
+            const locked = requiresPro && !isFreeConversation(user?.role, conv.other_participant.role);
 
             return (
               <button
@@ -113,8 +118,8 @@ export default function MessagesPage() {
                       {name}
                     </p>
                     <span className="text-[11px] text-slate-500 shrink-0 ml-2 flex items-center gap-1">
-                      <Clock size={10} />
-                      {timeAgo(conv.last_message_at)}
+                      {locked ? <Lock size={10} className="text-violet-400" /> : <Clock size={10} />}
+                      {locked ? 'Pro' : timeAgo(conv.last_message_at)}
                     </span>
                   </div>
                   <p className={`text-xs truncate ${hasUnread ? 'text-slate-300' : 'text-slate-500'}`}>

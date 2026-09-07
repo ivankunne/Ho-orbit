@@ -21,6 +21,7 @@ import InstallPrompt from '@components/InstallPrompt';
 import PushPrompt from '@components/PushPrompt';
 import AiPolicyBanner from '@components/AiPolicyBanner';
 import PageLoader from '@components/PageLoader';
+import RequirePlan from '@components/RequirePlan';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -229,29 +230,29 @@ function ProtectedApp() {
               <Route path="/artists" element={<ProtectedRoute><ArtistsPage /></ProtectedRoute>} />
               <Route path="/artists/:slug" element={<ProtectedRoute><ArtistDetailPage /></ProtectedRoute>} />
               <Route path="/albums/:id" element={<ProtectedRoute><AlbumDetailPage /></ProtectedRoute>} />
-              <Route path="/events" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
-              <Route path="/events/:id" element={<ProtectedRoute><EventDetailPage /></ProtectedRoute>} />
+              <Route path="/events" element={<ProtectedRoute><RequirePlan title="Evenementen zijn een Pro-functie" description="Upgrade naar H-orbit Pro om evenementen te bekijken en tickets te regelen."><EventsPage /></RequirePlan></ProtectedRoute>} />
+              <Route path="/events/:id" element={<ProtectedRoute><RequirePlan title="Evenementen zijn een Pro-functie" description="Upgrade naar H-orbit Pro om evenementen te bekijken en tickets te regelen."><EventDetailPage /></RequirePlan></ProtectedRoute>} />
               <Route path="/magazine" element={<ProtectedRoute><MagazinePage /></ProtectedRoute>} />
               <Route path="/magazine/:id" element={<ProtectedRoute><ArticleDetailPage /></ProtectedRoute>} />
               <Route path="/tutorials" element={<ProtectedRoute><TutorialsPage /></ProtectedRoute>} />
               <Route path="/tutorials/:id" element={<ProtectedRoute><TutorialDetailPage /></ProtectedRoute>} />
               <Route path="/dutch-scene" element={<ProtectedRoute><DutchScenePage /></ProtectedRoute>} />
               <Route path="/dutch-scene/:slug" element={<ProtectedRoute><SceneDetailPage /></ProtectedRoute>} />
-              <Route path="/venue/:id" element={<ProtectedRoute><VenueDetailPage /></ProtectedRoute>} />
+              <Route path="/venue/:id" element={<ProtectedRoute><RequirePlan title="Venue-pagina's zijn een Pro-functie" description="Upgrade naar H-orbit Pro om venue-informatie te bekijken."><VenueDetailPage /></RequirePlan></ProtectedRoute>} />
               <Route path="/forums" element={<ProtectedRoute><ForumsPage /></ProtectedRoute>} />
               <Route path="/forums/thread/:threadId" element={<ProtectedRoute><ForumThreadPage /></ProtectedRoute>} />
               <Route path="/upload" element={<ProtectedRoute><UploadPage /></ProtectedRoute>} />
               <Route path="/library" element={<ProtectedRoute><LibraryPage /></ProtectedRoute>} />
               <Route path="/library/playlists/:id" element={<ProtectedRoute><PlaylistDetailPage /></ProtectedRoute>} />
-              <Route path="/hub" element={<ProtectedRoute><HubPage /></ProtectedRoute>} />
+              <Route path="/hub" element={<ProtectedRoute><RequirePlan title="De Hub is een Pro-functie" description="Upgrade naar H-orbit Pro om de community-kaart en filters te gebruiken."><HubPage /></RequirePlan></ProtectedRoute>} />
               <Route path="/profiel" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
               <Route path="/profiel/:username" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
               <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
               <Route path="/berichten" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
               <Route path="/berichten/:id" element={<ProtectedRoute><ConversationPage /></ProtectedRoute>} />
-              <Route path="/bandspace" element={<ProtectedRoute><BandSpacePage /></ProtectedRoute>} />
-              <Route path="/bandspace/:id" element={<ProtectedRoute><BandSpaceDetailPage /></ProtectedRoute>} />
-              <Route path="/netwerken"   element={<ProtectedRoute><NetworkingPage /></ProtectedRoute>} />
+              <Route path="/bandspace" element={<ProtectedRoute><RequirePlan title="BandSpace is een Pro-functie" description="Upgrade naar H-orbit Pro om je band-workspace te gebruiken."><BandSpacePage /></RequirePlan></ProtectedRoute>} />
+              <Route path="/bandspace/:id" element={<ProtectedRoute><RequirePlan title="BandSpace is een Pro-functie" description="Upgrade naar H-orbit Pro om je band-workspace te gebruiken."><BandSpaceDetailPage /></RequirePlan></ProtectedRoute>} />
+              <Route path="/netwerken"   element={<ProtectedRoute><RequirePlan title="Netwerken is een Pro-functie" description="Upgrade naar H-orbit Pro voor Wanted, Jump on a Track en Open Calls."><NetworkingPage /></RequirePlan></ProtectedRoute>} />
               <Route path="/masterclass" element={<ProtectedRoute><MasterclassPage /></ProtectedRoute>} />
 
               {/* Onbekende URL's: uitgelogd → inlogscherm, ingelogd → 404 */}

@@ -3,9 +3,13 @@ import {
   ShieldCheck, Music, Users, Calendar, Flag, MessageSquare,
   CheckCircle, XCircle, Clock, Search, RefreshCw,
   Ban, UserCheck, Eye, EyeOff, AlertTriangle,
-  Play, Pause, Volume2, Radio, Headphones,
+  Play, Pause, Volume2, Radio, Headphones, Lock, LockOpen,
 } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
+import { usePaywallSettings } from '@hooks/usePaywallSettings';
+import { activatePaywall, deactivatePaywall } from '@services/paywallService';
+import { Button } from '@components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@components/ui/dialog';
 import { getStreamUrl } from '@services/playerService';
 import {
   getAllUploads, approveUpload, rejectUpload,
@@ -26,7 +30,7 @@ import { useToast } from '@components/Toast';
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
 type ReviewTab = 'pending' | 'approved' | 'rejected' | 'all';
-type Section = 'uploads' | 'users' | 'forum' | 'events' | 'reports' | 'radio' | 'podcasts';
+type Section = 'uploads' | 'users' | 'forum' | 'events' | 'reports' | 'radio' | 'podcasts' | 'paywall';
 
 function fmt(iso: string) {
   return new Date(iso).toLocaleDateString('nl-NL', {
@@ -912,6 +916,103 @@ function PodcastsSection() {
   );
 }
 
+function PaywallSection() {
+  const addToast = useToast();
+  const { enabled, loading } = usePaywallSettings();
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const handleActivate = async () => {
+    setBusy(true);
+    const res = await activatePaywall();
+    setBusy(false);
+    setShowConfirm(false);
+    if (!res.ok) addToast(res.error || 'Activeren mislukt.', 'error');
+    else addToast('Paywall is live — Pro-functies zijn nu overal actief.', 'success');
+  };
+
+  const handleDeactivate = async () => {
+    setBusy(true);
+    const res = await deactivatePaywall();
+    setBusy(false);
+    if (!res.ok) addToast(res.error || 'Uitzetten mislukt.', 'error');
+    else addToast('Paywall staat weer uit — alles is tijdelijk weer gratis.', 'success');
+  };
+
+  if (loading) return <LoadingState />;
+
+  return (
+    <div className="space-y-5">
+      <div className={`rounded-2xl border p-5 ${enabled ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-white/8 bg-white/[0.03]'}`}>
+        <div className="flex items-center gap-3 mb-2">
+          <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${enabled ? 'bg-emerald-500/15 border-emerald-500/30' : 'bg-white/5 border-white/10'}`}>
+            {enabled ? <Lock size={18} className="text-emerald-400" /> : <LockOpen size={18} className="text-slate-500" />}
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-white">
+              {enabled ? 'Paywall is live' : 'Paywall staat nog uit'}
+            </p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {enabled
+                ? 'Betaalde functies zijn afgeschermd voor gebruikers zonder Pro-abonnement.'
+                : 'Alle pagina\'s zijn nu nog vrij toegankelijk, ook de functies die straks Pro worden.'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <p className="text-sm font-medium text-slate-300 mb-2">Wat wordt afgeschermd zodra dit live gaat:</p>
+        <ul className="text-xs text-slate-500 space-y-1 list-disc list-inside">
+          <li>Dutch Scene: venue-pagina's (niet de kaart/lijst zelf)</li>
+          <li>Hub</li>
+          <li>Evenementen (overzicht, detail, ticketlinks)</li>
+          <li>Netwerken (Wanted / Jump on a Track / Open Calls)</li>
+          <li>BandSpace (volledig)</li>
+          <li>Directe berichten — behalve fan → artiest gesprekken</li>
+        </ul>
+        <p className="text-xs text-slate-600 mt-2">
+          Admins hebben altijd volledige toegang, ongeacht deze schakelaar. Reviews en donatielinks blijven overal gratis.
+        </p>
+      </div>
+
+      {enabled ? (
+        <Button variant="outline" onClick={handleDeactivate} disabled={busy} className="text-amber-400 hover:text-amber-300">
+          {busy ? <RefreshCw size={14} className="animate-spin" /> : null}
+          Paywall weer uitzetten
+        </Button>
+      ) : (
+        <Button onClick={() => setShowConfirm(true)} disabled={busy}>
+          <Lock size={14} /> Ga live
+        </Button>
+      )}
+
+      {showConfirm && (
+        <Dialog open={true} onOpenChange={setShowConfirm}>
+          <DialogContent className="bg-[#231d3a] border-white/10">
+            <DialogHeader>
+              <DialogTitle className="text-base">Paywall nu live zetten?</DialogTitle>
+              <DialogDescription className="text-xs">
+                Alle gebruikers zonder Pro-abonnement verliezen direct toegang tot de betaalde functies hierboven.
+                Dit geldt meteen, in elke open sessie — er is geen aparte deploy nodig. Je kunt het altijd weer uitzetten.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex gap-3 mt-2">
+              <Button onClick={() => setShowConfirm(false)} variant="ghost" className="flex-1" disabled={busy}>
+                Terug
+              </Button>
+              <Button onClick={handleActivate} variant="destructive" className="flex-1" disabled={busy}>
+                {busy ? <RefreshCw size={14} className="animate-spin" /> : null}
+                Ja, ga live
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
+
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
 function LoadingState() {
@@ -941,6 +1042,7 @@ const SECTIONS: { id: Section; label: string; icon: React.ReactNode; description
   { id: 'reports', label: 'Meldingen',   icon: <Flag size={16} />,          description: 'Rapporten behandelen' },
   { id: 'radio',   label: 'Radio',       icon: <Radio size={16} />,         description: 'Livestream beheren' },
   { id: 'podcasts', label: 'Podcasts',   icon: <Headphones size={16} />,    description: 'Podcasts beheren' },
+  { id: 'paywall', label: 'Paywall',     icon: <Lock size={16} />,          description: 'Pro-functies activeren' },
 ];
 
 export default function AdminPage() {
@@ -1023,6 +1125,7 @@ export default function AdminPage() {
             {section === 'reports' && <ReportsSection />}
             {section === 'radio'   && <RadioSection />}
             {section === 'podcasts' && <PodcastsSection />}
+            {section === 'paywall' && <PaywallSection />}
           </div>
         </main>
       </div>
