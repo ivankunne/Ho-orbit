@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useMatch } from 'react-router-dom';
 import { useEffect, useState, lazy, Suspense, type ReactNode } from 'react';
 import { AuthProvider, useAuth } from '@context/AuthContext';
+import { PaywallProvider } from '@context/PaywallContext';
 import { AuthModalProvider } from '@context/AuthModalContext';
 import AuthModal from '@components/AuthModal';
 import { RadioProvider } from '@context/RadioContext';
@@ -290,6 +291,7 @@ function ProtectedApp() {
 export default function App() {
   return (
     <AuthProvider>
+      <PaywallProvider>
       <AppStateProvider>
         <GenreProvider>
         <PlayerProvider>
@@ -310,6 +312,7 @@ export default function App() {
         </PlayerProvider>
         </GenreProvider>
       </AppStateProvider>
+      </PaywallProvider>
     </AuthProvider>
   );
 }
