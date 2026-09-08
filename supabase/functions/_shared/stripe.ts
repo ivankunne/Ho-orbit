@@ -28,7 +28,7 @@ function toFormParams(input: Record<string, unknown>, prefix = ''): [string, str
 }
 
 export async function stripeRequest<T = any>(
-  method: 'GET' | 'POST',
+  method: 'GET' | 'POST' | 'DELETE',
   path: string,
   params?: Record<string, unknown>,
 ): Promise<T> {

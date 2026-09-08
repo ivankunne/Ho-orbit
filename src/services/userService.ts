@@ -63,6 +63,23 @@ export async function changePassword(_userId: string, { currentPassword, newPass
 
 export async function deleteAccount(userId: string, { username, confirmUsername }: { username: string; confirmUsername: string }) {
   if (confirmUsername !== username) return { ok: false, error: 'Gebruikersnaam komt niet overeen.' };
+
+  // Cancel any active Stripe subscription FIRST — once the profile is
+  // deleted below there is no account left to reach the "Opzeggen" button
+  // from, so an uncancelled subscription would keep billing indefinitely
+  // with no way for the user to stop it. A 404 here just means there was
+  // never a subscription to begin with (the common case) and isn't an
+  // error; any other failure aborts the deletion rather than risk an
+  // orphaned, unstoppable subscription.
+  const { error: cancelError } = await supabase.functions.invoke('stripe-cancel', { body: { immediate: true } });
+  if (cancelError) {
+    const response = (cancelError as { context?: Response }).context;
+    if (response?.status !== 404) {
+      const message = await response?.json().then((d) => d?.error).catch(() => null);
+      return { ok: false, error: message || 'Kon een actief abonnement niet opzeggen. Probeer het opnieuw of neem contact op.' };
+    }
+  }
+
   // Delete profile record; DB cascade removes related data
   await supabase.from('profiles').delete().eq('id', userId);
   // Attempt to delete the Supabase Auth user via a server-side RPC.

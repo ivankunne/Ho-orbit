@@ -1,13 +1,17 @@
 // Edge Function: stripe-cancel
 //
-// Cancels the logged-in user's subscription at the end of the current
-// billing period (they keep access until then, no further charges after).
-// This is the direct in-app "Opzeggen" button — the Customer Portal
+// Cancels the logged-in user's subscription. Default: at the end of the
+// current billing period (they keep access until then, no further charges
+// after) — this is the direct in-app "Opzeggen" button. The Customer Portal
 // (stripe-portal) also offers cancellation for users who go that route.
 // profiles.plan/cancel_at_period_end update via the stripe-webhook once
-// Stripe sends customer.subscription.updated for this change.
+// Stripe sends customer.subscription.updated/.deleted for this change.
 //
-// Body: {}
+// Body: { immediate?: boolean }
+//   immediate: true cancels right now instead of at period end — used by
+//   deleteAccount() in userService.ts before deleting the profile, since a
+//   deleted account can never reach the cancel button again. A missing/false
+//   value keeps the normal at-period-end behavior.
 // Response: { currentPeriodEnd: string | null }
 //
 // Deploy:  supabase functions deploy stripe-cancel
@@ -36,6 +40,14 @@ Deno.serve(async (req) => {
   const { data: userData, error: userError } = await supabaseAuthed.auth.getUser();
   if (userError || !userData?.user) return json({ error: 'Niet ingelogd.' }, 401);
 
+  let immediate = false;
+  try {
+    const body = await req.json();
+    immediate = body?.immediate === true;
+  } catch {
+    // no body / not JSON — default (at period end)
+  }
+
   const supabaseAdmin = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
@@ -50,11 +62,16 @@ Deno.serve(async (req) => {
     if (profileError) throw profileError;
     if (!profile?.stripe_subscription_id) return json({ error: 'Geen actief abonnement gevonden.' }, 404);
 
-    const subscription = await stripeRequest<{ items?: { data?: { current_period_end?: number }[] } }>(
-      'POST',
-      `/subscriptions/${profile.stripe_subscription_id}`,
-      { cancel_at_period_end: true },
-    );
+    const subscription = immediate
+      ? await stripeRequest<{ items?: { data?: { current_period_end?: number }[] } }>(
+          'DELETE',
+          `/subscriptions/${profile.stripe_subscription_id}`,
+        )
+      : await stripeRequest<{ items?: { data?: { current_period_end?: number }[] } }>(
+          'POST',
+          `/subscriptions/${profile.stripe_subscription_id}`,
+          { cancel_at_period_end: true },
+        );
 
     const periodEnd = subscriptionPeriodEnd(subscription);
     return json({ currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000).toISOString() : null });
