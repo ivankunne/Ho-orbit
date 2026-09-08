@@ -26,9 +26,14 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 
-// Statuses that count as an active paid plan. Anything else (canceled,
-// unpaid, incomplete_expired, past_due after grace, ...) falls back to free.
-const ACTIVE_STATUSES = new Set(['active', 'trialing']);
+// Statuses that count as an active paid plan. Includes past_due on purpose:
+// that's a failed renewal charge Stripe is still automatically retrying
+// (Smart Retries, configured in Dashboard → Settings → Billing → Subscriptions
+// and emails), not a final failure — access stays on through that retry
+// window so a card hiccup doesn't instantly lock someone out. Only once
+// Stripe exhausts retries and moves the subscription to unpaid/canceled does
+// this fall back to free.
+const ACTIVE_STATUSES = new Set(['active', 'trialing', 'past_due']);
 
 async function syncSubscriptionByCustomer(
   supabaseAdmin: ReturnType<typeof createClient>,

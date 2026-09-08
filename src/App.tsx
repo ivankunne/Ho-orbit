@@ -22,6 +22,7 @@ import InstallPrompt from '@components/InstallPrompt';
 import PushPrompt from '@components/PushPrompt';
 import AiPolicyBanner from '@components/AiPolicyBanner';
 import PaywallAnnouncementBanner from '@components/PaywallAnnouncementBanner';
+import PaymentFailedBanner from '@components/PaymentFailedBanner';
 import PageLoader from '@components/PageLoader';
 import RequirePlan from '@components/RequirePlan';
 
@@ -203,6 +204,7 @@ function ProtectedApp() {
           onToggleShortcutsModal={() => setShowShortcuts(v => !v)}
         />
       )}
+      {!isLanding && !isRiderShare && <PaymentFailedBanner />}
       {!isLanding && !isRiderShare && <PaywallAnnouncementBanner />}
       {!isLanding && !isRiderShare && <AiPolicyBanner />}
       {!isLanding && !isRiderShare && <Navbar externalShowSearch={showSearch} onExternalSearchClose={() => setShowSearch(false)} onMobileMenuChange={setMobileMenuOpen} />}
