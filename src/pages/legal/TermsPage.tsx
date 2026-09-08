@@ -2,7 +2,7 @@ export default function TermsPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 lg:px-6 py-12">
       <h1 className="text-3xl font-bold text-white mb-2">Algemene Voorwaarden</h1>
-      <p className="text-sm text-slate-500 mb-10">Laatst bijgewerkt: mei 2025</p>
+      <p className="text-sm text-slate-500 mb-10">Laatst bijgewerkt: september 2026</p>
 
       <div className="prose-legal">
 
@@ -30,7 +30,30 @@ export default function TermsPage() {
           </ul>
         </Section>
 
-        <Section title="4. Gebruik van het platform">
+        <Section title="4. Premium-abonnement">
+          <SubTitle>4.1 Aanbod en prijs</SubTitle>
+          <p>
+            Naast het gratis Basis-account biedt H-orbit een betaald Premium-abonnement aan. De actuele prijs en de daarbij inbegrepen functies staan vermeld op de abonnementspagina in uw accountinstellingen op het moment van aanschaf. Vermelde prijzen zijn inclusief BTW.
+          </p>
+          <SubTitle>4.2 Betaling en verlenging</SubTitle>
+          <p>
+            Het Premium-abonnement wordt maandelijks vooraf gefactureerd en automatisch verlengd totdat u opzegt. Betalingen worden verwerkt door onze betaalverwerker Stripe (zie ons <a href="/privacy" className="text-violet-400 hover:underline">Privacybeleid</a>). Bij een mislukte betaling kan uw toegang tot Premium-functies worden opgeschort totdat de betaling alsnog is voldaan.
+          </p>
+          <SubTitle>4.3 Opzeggen</SubTitle>
+          <p>
+            U kunt uw Premium-abonnement op elk moment opzeggen via uw accountinstellingen. Bij opzegging blijft u toegang houden tot de Premium-functies tot het einde van de lopende factureringsperiode; daarna wordt niet meer afgeschreven en vervalt de toegang tot Premium-functies.
+          </p>
+          <SubTitle>4.4 Herroepingsrecht</SubTitle>
+          <p>
+            Als consument heeft u in beginsel een wettelijk herroepingsrecht van 14 dagen bij het op afstand afsluiten van een dienst. Door het Premium-abonnement af te sluiten stemt u er uitdrukkelijk mee in dat de levering van deze digitale dienst onmiddellijk aanvangt; hiermee vervalt uw herroepingsrecht zodra de betaling is voltooid, conform artikel 6:230p sub f van het Burgerlijk Wetboek. Wilt u toch gebruikmaken van bedenktijd, neem dan vóór het voltooien van de betaling contact op via <a href="mailto:info@h-orbit.nl" className="text-violet-400 hover:underline">info@h-orbit.nl</a>.
+          </p>
+          <SubTitle>4.5 Wijziging van functies of prijs</SubTitle>
+          <p>
+            H-orbit kan de inhoud of prijs van het Premium-abonnement wijzigen. Bestaande abonnees worden hierover minimaal 30 dagen van tevoren per e-mail geïnformeerd. Bent u het niet eens met een prijswijziging, dan kunt u uw abonnement opzeggen vóór de ingangsdatum van de wijziging.
+          </p>
+        </Section>
+
+        <Section title="5. Gebruik van het platform">
           <p>Het is niet toegestaan om via H-orbit:</p>
           <ul>
             <li>Inhoud te plaatsen die inbreuk maakt op auteursrechten, naburige rechten of andere intellectuele-eigendomsrechten van derden.</li>
@@ -42,7 +65,7 @@ export default function TermsPage() {
           </ul>
         </Section>
 
-        <Section title="5. Intellectueel eigendom">
+        <Section title="6. Intellectueel eigendom">
           <p>
             <strong>Uw inhoud:</strong> U behoudt alle intellectuele-eigendomsrechten op de inhoud die u uploadt. Door inhoud te plaatsen op H-orbit verleent u H-orbit een kosteloze, niet-exclusieve, wereldwijde licentie om die inhoud te hosten, weer te geven en beschikbaar te stellen op het platform, uitsluitend ten behoeve van de werking van H-orbit.
           </p>
@@ -51,7 +74,7 @@ export default function TermsPage() {
           </p>
         </Section>
 
-        <Section title="6. Auteursrecht en DMCA/Notice & Takedown">
+        <Section title="7. Auteursrecht en DMCA/Notice & Takedown">
           <p>
             H-orbit respecteert intellectuele-eigendomsrechten. Als u van mening bent dat via H-orbit inbreuk wordt gemaakt op uw auteursrechten, kunt u een melding sturen naar{' '}
             <a href="mailto:info@h-orbit.nl" className="text-violet-400 hover:underline">info@h-orbit.nl</a>{' '}
@@ -59,7 +82,7 @@ export default function TermsPage() {
           </p>
         </Section>
 
-        <Section title="7. Aansprakelijkheid">
+        <Section title="8. Aansprakelijkheid">
           <p>H-orbit is niet aansprakelijk voor:</p>
           <ul>
             <li>Inhoud die door gebruikers wordt geplaatst. De gebruiker is hiervoor zelf verantwoordelijk.</li>
@@ -72,7 +95,7 @@ export default function TermsPage() {
           </p>
         </Section>
 
-        <Section title="8. Verwijdering van inhoud en accountopschorting">
+        <Section title="9. Verwijdering van inhoud en accountopschorting">
           <p>
             H-orbit behoudt het recht inhoud te verwijderen of accounts te blokkeren of te verwijderen indien:
           </p>
@@ -84,7 +107,7 @@ export default function TermsPage() {
           <p>Wij streven ernaar u hiervan vooraf op de hoogte te stellen, tenzij dit niet mogelijk is.</p>
         </Section>
 
-        <Section title="9. Beëindiging">
+        <Section title="10. Beëindiging">
           <p>
             U kunt uw account op elk moment verwijderen via de accountinstellingen. Na verwijdering worden uw persoonsgegevens verwerkt conform ons <a href="/privacy" className="text-violet-400 hover:underline">Privacybeleid</a>.
           </p>

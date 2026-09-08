@@ -2,7 +2,7 @@ export default function PrivacyPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 lg:px-6 py-12">
       <h1 className="text-3xl font-bold text-white mb-2">Privacybeleid</h1>
-      <p className="text-sm text-slate-500 mb-10">Laatst bijgewerkt: mei 2025</p>
+      <p className="text-sm text-slate-500 mb-10">Laatst bijgewerkt: september 2026</p>
 
       <div className="prose-legal">
 
@@ -49,6 +49,7 @@ export default function PrivacyPage() {
               <tr><td>Beveiliging en fraudepreventie</td><td>Gerechtvaardigd belang</td></tr>
               <tr><td>Verbetering van het platform</td><td>Gerechtvaardigd belang</td></tr>
               <tr><td>Functionele cookies (sessie)</td><td>Gerechtvaardigd belang / noodzakelijkheid</td></tr>
+              <tr><td>Verwerking van betalingen voor het Premium-abonnement</td><td>Uitvoering van overeenkomst</td></tr>
             </tbody>
           </table>
         </Section>
@@ -65,7 +66,17 @@ export default function PrivacyPage() {
         <Section title="5. Delen met derden">
           <SubTitle>5.1 Verwerkers</SubTitle>
           <p>
-            Wij maken gebruik van <strong>Supabase</strong> voor database-opslag en authenticatie. Supabase treedt op als verwerker in de zin van art. 28 AVG. Met Supabase is een verwerkersovereenkomst gesloten. Gegevens kunnen worden opgeslagen op servers binnen of buiten de Europese Economische Ruimte (EER); in het laatste geval zijn aanvullende waarborgen van toepassing (zoals Standaard Contractuele Bepalingen).
+            Wij maken gebruik van de volgende verwerkers (art. 28 AVG) om H-orbit te kunnen aanbieden:
+          </p>
+          <ul>
+            <li><strong>Supabase</strong> — database-opslag en accountauthenticatie.</li>
+            <li><strong>Stripe</strong> — verwerking van betalingen voor het Premium-abonnement. Stripe verwerkt uw naam, e-mailadres en betaalgegevens rechtstreeks; H-orbit slaat zelf geen creditcard- of bankgegevens op. Zie het{' '}
+              <a href="https://stripe.com/nl/privacy" target="_blank" rel="noopener noreferrer" className="text-violet-400 hover:underline">privacybeleid van Stripe</a>.
+            </li>
+            <li><strong>Resend</strong> — verzending van transactionele e-mails (zoals meldingen over nieuwe berichten, volgers en band-uitnodigingen). Resend verwerkt uw e-mailadres uitsluitend voor dit doel.</li>
+          </ul>
+          <p>
+            Met elk van deze verwerkers is een verwerkersovereenkomst gesloten of van toepassing via hun eigen voorwaarden. Gegevens kunnen worden opgeslagen op servers binnen of buiten de Europese Economische Ruimte (EER); in het laatste geval zijn aanvullende waarborgen van toepassing (zoals Standaard Contractuele Bepalingen).
           </p>
           <SubTitle>5.2 Geen verkoop van gegevens</SubTitle>
           <p>Wij verkopen uw persoonsgegevens nooit aan derden en delen ze niet met partijen voor reclamedoeleinden.</p>
