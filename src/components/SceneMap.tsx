@@ -77,6 +77,14 @@ function ZoomTracker({ onZoom }: { onZoom: (z: number) => void }) {
   return null;
 }
 
+// Keeps the map locked to the Netherlands — panning/zooming further out
+// reaches tiles outside our basemap's coverage (shown as broken "API key
+// required" tiles), so we hard-stop the viewport at the border instead.
+const NL_BOUNDS: [[number, number], [number, number]] = [
+  [50.4, 2.9],
+  [53.8, 7.5],
+];
+
 export default function SceneMap() {
   const [zoom, setZoom] = useState(7);
   const [locations, setLocations] = useState<SceneLocation[]>([]);
@@ -117,8 +125,10 @@ export default function SceneMap() {
       <MapContainer
         center={[52.3, 5.3]}
         zoom={7}
-        minZoom={6}
+        minZoom={7}
         maxZoom={16}
+        maxBounds={NL_BOUNDS}
+        maxBoundsViscosity={1.0}
         style={{ height: '100%', width: '100%', background: '#1a1528' }}
         zoomControl={false}
         scrollWheelZoom={true}
