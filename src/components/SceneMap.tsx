@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
+import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 
 // Fix Leaflet default icon broken paths in Vite
@@ -20,6 +21,7 @@ interface SceneLocation {
   type: string;
   website: string;
   notes: string;
+  description: string | null;
   lat: number;
   lng: number;
 }
@@ -174,6 +176,25 @@ export default function SceneMap() {
                     {loc.notes}
                   </div>
                 )}
+                {loc.description && (
+                  <Link
+                    to={`/hub/locatie/${loc.id}`}
+                    style={{
+                      display: 'block',
+                      marginTop: '10px',
+                      background: '#7c3aed',
+                      color: '#fff',
+                      borderRadius: '8px',
+                      padding: '7px 0',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      textAlign: 'center',
+                      textDecoration: 'none',
+                    }}
+                  >
+                    Meer info →
+                  </Link>
+                )}
                 {loc.website && (
                   <a
                     href={loc.website.startsWith('http') ? loc.website : `https://${loc.website}`}
@@ -182,8 +203,8 @@ export default function SceneMap() {
                     style={{
                       display: 'block',
                       marginTop: '10px',
-                      background: '#7c3aed',
-                      color: '#fff',
+                      background: loc.description ? 'rgba(255,255,255,0.08)' : '#7c3aed',
+                      color: loc.description ? '#f1f5f9' : '#fff',
                       borderRadius: '8px',
                       padding: '7px 0',
                       fontSize: '12px',

@@ -59,6 +59,7 @@ const LibraryPage = lazy(() => import('@pages/LibraryPage'));
 const DutchScenePage = lazy(() => import('@pages/DutchScenePage'));
 const SceneDetailPage = lazy(() => import('@pages/SceneDetailPage'));
 const VenueDetailPage = lazy(() => import('@pages/VenueDetailPage'));
+const SceneLocationDetailPage = lazy(() => import('@pages/SceneLocationDetailPage'));
 const ForumsPage = lazy(() => import('@pages/ForumsPage'));
 const ForumThreadPage = lazy(() => import('@pages/ForumThreadPage'));
 const EventsPage = lazy(() => import('@pages/EventsPage'));
@@ -250,6 +251,7 @@ function ProtectedApp() {
               <Route path="/library" element={<ProtectedRoute><LibraryPage /></ProtectedRoute>} />
               <Route path="/library/playlists/:id" element={<ProtectedRoute><PlaylistDetailPage /></ProtectedRoute>} />
               <Route path="/hub" element={<ProtectedRoute><RequirePlan title="De Hub is een Pro-functie" description="Upgrade naar H-orbit Pro om de community-kaart en filters te gebruiken."><HubPage /></RequirePlan></ProtectedRoute>} />
+              <Route path="/hub/locatie/:id" element={<ProtectedRoute><RequirePlan title="De Hub is een Pro-functie" description="Upgrade naar H-orbit Pro om de community-kaart en filters te gebruiken."><SceneLocationDetailPage /></RequirePlan></ProtectedRoute>} />
               <Route path="/profiel" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
               <Route path="/profiel/:username" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
               <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />

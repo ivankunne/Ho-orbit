@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   MessageCircle, Home, Users, Send, X, Plus, Zap,
   Clock, MapPin, ExternalLink, Search, Music2, Megaphone,
-  ChevronRight, Loader2, Eye, MessageSquare, Pencil, Trash2,
+  ChevronRight, Loader2, Eye, MessageSquare, Pencil, Trash2, Mail,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useToast } from '@components/Toast';
@@ -911,6 +911,16 @@ function NetworkSection() {
 function SpacesSection() {
   return (
     <div className="space-y-8">
+      <div className="flex items-center gap-2.5 bg-violet-600/10 border border-violet-500/25 rounded-xl px-4 py-3 text-sm text-violet-200">
+        <Mail size={16} className="text-violet-400 shrink-0" />
+        <span>
+          Wil je jouw locatie op de kaart? Stuur een e-mail naar{' '}
+          <a href="mailto:info@h-orbit.nl" className="font-semibold text-violet-300 hover:text-violet-200 underline underline-offset-2">
+            info@h-orbit.nl
+          </a>
+          .
+        </span>
+      </div>
       <div className="rounded-2xl overflow-hidden border border-white/8">
         <SceneMap />
       </div>
