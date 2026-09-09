@@ -22,13 +22,29 @@ import { FILTER_GENRES, genreLabelById } from '@data/genres';
 
 const GENRES = ['Alles', ...FILTER_GENRES];
 
-// Label for the current chart week, e.g. "Week van 2 jun".
-function currentWeekLabel(): string {
+// Monday of the current week — shared by the chart week label and the
+// featured-artist rotation below, so both change on the same day.
+function currentWeekMonday(): Date {
   const now = new Date();
   const day = now.getDay(); // 0 = Sunday
   const monday = new Date(now);
   monday.setDate(now.getDate() - ((day + 6) % 7));
-  return `Week van ${monday.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}`;
+  monday.setHours(0, 0, 0, 0);
+  return monday;
+}
+
+// Label for the current chart week, e.g. "Week van 2 jun".
+function currentWeekLabel(): string {
+  return `Week van ${currentWeekMonday().toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}`;
+}
+
+// Deterministic weekly index — same value for every visitor during a given
+// week, changes automatically every Monday. Used to rotate "Artiest van de
+// week" without any manual/admin action; previously this was hardcoded to
+// artists[0] (always whoever has the most followers), so it never actually
+// rotated despite the label.
+function currentWeekIndex(): number {
+  return Math.floor(currentWeekMonday().getTime() / (7 * 24 * 60 * 60 * 1000));
 }
 
 export default function HomePage() {
@@ -86,6 +102,12 @@ export default function HomePage() {
     [activeGenre, tracks]
   );
 
+  // "Nederlandse Top 10" — tracks is already ordered by plays desc from the
+  // query, so the top 10 is just the first 10 of whatever's currently
+  // filtered. Previously the render below used filteredTracks directly with
+  // no cap, so a "Top 10" showed every filtered track (47, at last count).
+  const top10Tracks = useMemo(() => filteredTracks.slice(0, 10), [filteredTracks]);
+
   const risingArtists = useMemo(() =>
     [...artists].sort((a, b) => (a.followers_count ?? 0) - (b.followers_count ?? 0)).slice(0, 6),
     [artists]
@@ -117,7 +139,7 @@ export default function HomePage() {
   useEffect(() => { if (discoverPool.length) shuffleDiscoverMix(); }, [discoverPool]);
   const isDiscoverPlaying = isPlaying && discoverMix.some(t => t.id === currentTrack?.id);
 
-  const featuredArtist = artists[0];
+  const featuredArtist = artists.length > 0 ? artists[currentWeekIndex() % artists.length] : undefined;
 
   // Tracks link to an artist by the uploader's profile id (uploaded_by) or by
   // artist_name — never by tracks.artist_id, which is null for user uploads.
@@ -507,12 +529,12 @@ export default function HomePage() {
               <div className="bg-white/2 border border-white/5 rounded-2xl overflow-hidden">
                 {tracks.length === 0 ? (
                   <div className="py-12 text-center text-slate-500 text-sm">Nog geen nummers beschikbaar. Kom later terug!</div>
-                ) : filteredTracks.length === 0 ? (
+                ) : top10Tracks.length === 0 ? (
                   <div className="py-12 text-center text-slate-500 text-sm">Geen nummers gevonden voor dit genre.</div>
                 ) : (
-                  filteredTracks.map((track, i) => (
-                    <div key={track.id} className={i < filteredTracks.length - 1 ? 'border-b border-white/5' : ''}>
-                      <TrendingRow track={track} rank={i + 1} queue={filteredTracks} />
+                  top10Tracks.map((track, i) => (
+                    <div key={track.id} className={i < top10Tracks.length - 1 ? 'border-b border-white/5' : ''}>
+                      <TrendingRow track={track} rank={i + 1} queue={top10Tracks} />
                     </div>
                   ))
                 )}
