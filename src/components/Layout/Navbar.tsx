@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   Search, Bell, ChevronDown, Menu, X,
   Upload, Home, Users, BookOpen, Globe, MessageSquare,
-  Calendar, User, Settings, LogOut, Library, Zap,
+  Calendar, User, Settings, LogOut, Library,
   Headphones, ShieldCheck, Radio,
   Music2, Handshake, GraduationCap, Flame,
 } from 'lucide-react';
@@ -30,7 +30,6 @@ const navItems = [
   { label: 'Muziek', path: '/muziek', icon: Home },
   { label: 'Artiesten', path: '/artists', icon: Users },
   { label: 'Evenementen', path: '/events', icon: Calendar },
-  { label: 'Hub', path: '/hub', icon: Zap },
   { label: 'Podcasts', path: '/podcasts', icon: Headphones },
   { label: 'Radio', path: '/radio', icon: Radio },
   { label: 'Drop Demo', path: '/drop-your-demo', icon: Flame },

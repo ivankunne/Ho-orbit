@@ -188,7 +188,7 @@ export default function SceneMap() {
                 )}
                 {loc.description && (
                   <Link
-                    to={`/hub/locatie/${loc.id}`}
+                    to={`/dutch-scene/locatie/${loc.id}`}
                     style={{
                       display: 'block',
                       marginTop: '10px',

@@ -5,7 +5,7 @@ export const PRO_FEATURES = [
   'Volledige toegang tot BandSpace (kalender, projecten, channels, riders/gear, opnames en bandbeheer)',
   'Evenementen bekijken en tickets regelen',
   'Netwerken: Wanted, Jump on a Track & Open Calls',
-  'De Hub: community-kaart en filters',
+  'Nederlandse Scene: volledige community-kaart met repetitieruimtes, studio\'s en jamspaces',
   'Venue-informatie op Dutch Scene',
   'Berichten sturen naar iedereen, niet alleen artiesten',
 ];

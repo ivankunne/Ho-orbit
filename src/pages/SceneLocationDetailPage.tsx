@@ -52,8 +52,8 @@ export default function SceneLocationDetailPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center text-slate-400 px-4">
         <p className="text-lg mb-4">Locatie niet gevonden.</p>
-        <Link to="/hub" className="text-violet-400 hover:text-violet-300 flex items-center gap-2">
-          <ArrowLeft size={16} /> Terug naar de Hub
+        <Link to="/dutch-scene" className="text-violet-400 hover:text-violet-300 flex items-center gap-2">
+          <ArrowLeft size={16} /> Terug naar de Nederlandse Scene
         </Link>
       </div>
     );
@@ -75,10 +75,10 @@ export default function SceneLocationDetailPage() {
             <ArrowLeft size={15} /> Terug
           </button>
           <Link
-            to="/hub"
+            to="/dutch-scene"
             className="hidden sm:flex items-center gap-1.5 text-slate-400 hover:text-slate-200 text-xs px-3 py-2 rounded-lg transition-colors"
           >
-            Naar de Hub-kaart
+            Naar de scènekaart
           </Link>
         </div>
 

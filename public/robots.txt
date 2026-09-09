@@ -10,7 +10,6 @@ Disallow: /profiel
 Disallow: /berichten
 Disallow: /library
 Disallow: /upload
-Disallow: /hub
 Disallow: /bandspace
 Disallow: /admin
 

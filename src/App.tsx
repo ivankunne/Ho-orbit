@@ -70,7 +70,6 @@ const PlaylistDetailPage = lazy(() => import('@pages/PlaylistDetailPage'));
 const NotFoundPage = lazy(() => import('@pages/NotFoundPage'));
 const OnboardingPage = lazy(() => import('@pages/OnboardingPage'));
 const AuthPage = lazy(() => import('@pages/auth/AuthPage'));
-const HubPage = lazy(() => import('@pages/HubPage'));
 const AdminPage = lazy(() => import('@pages/AdminPage'));
 const AdminLoginPage = lazy(() => import('@pages/AdminLoginPage'));
 const RadioPage = lazy(() => import('@pages/RadioPage'));
@@ -243,6 +242,7 @@ function ProtectedApp() {
               <Route path="/tutorials" element={<ProtectedRoute><TutorialsPage /></ProtectedRoute>} />
               <Route path="/tutorials/:id" element={<ProtectedRoute><TutorialDetailPage /></ProtectedRoute>} />
               <Route path="/dutch-scene" element={<ProtectedRoute><DutchScenePage /></ProtectedRoute>} />
+              <Route path="/dutch-scene/locatie/:id" element={<ProtectedRoute><SceneLocationDetailPage /></ProtectedRoute>} />
               <Route path="/dutch-scene/:slug" element={<ProtectedRoute><SceneDetailPage /></ProtectedRoute>} />
               <Route path="/venue/:id" element={<ProtectedRoute><RequirePlan title="Venue-pagina's zijn een Pro-functie" description="Upgrade naar H-orbit Pro om venue-informatie te bekijken."><VenueDetailPage /></RequirePlan></ProtectedRoute>} />
               <Route path="/forums" element={<ProtectedRoute><ForumsPage /></ProtectedRoute>} />
@@ -250,8 +250,6 @@ function ProtectedApp() {
               <Route path="/upload" element={<ProtectedRoute><UploadPage /></ProtectedRoute>} />
               <Route path="/library" element={<ProtectedRoute><LibraryPage /></ProtectedRoute>} />
               <Route path="/library/playlists/:id" element={<ProtectedRoute><PlaylistDetailPage /></ProtectedRoute>} />
-              <Route path="/hub" element={<ProtectedRoute><RequirePlan title="De Hub is een Pro-functie" description="Upgrade naar H-orbit Pro om de community-kaart en filters te gebruiken."><HubPage /></RequirePlan></ProtectedRoute>} />
-              <Route path="/hub/locatie/:id" element={<ProtectedRoute><RequirePlan title="De Hub is een Pro-functie" description="Upgrade naar H-orbit Pro om de community-kaart en filters te gebruiken."><SceneLocationDetailPage /></RequirePlan></ProtectedRoute>} />
               <Route path="/profiel" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
               <Route path="/profiel/:username" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
               <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />

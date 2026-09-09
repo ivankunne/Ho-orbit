@@ -964,8 +964,7 @@ function PaywallSection() {
       <div>
         <p className="text-sm font-medium text-slate-300 mb-2">Wat wordt afgeschermd zodra dit live gaat:</p>
         <ul className="text-xs text-slate-500 space-y-1 list-disc list-inside">
-          <li>Dutch Scene: venue-pagina's (niet de kaart/lijst zelf)</li>
-          <li>Hub</li>
+          <li>Dutch Scene: venue-pagina's en de community-kaart (steden, artiesten en nieuws blijven gratis)</li>
           <li>Evenementen (overzicht, detail, ticketlinks)</li>
           <li>Netwerken (Wanted / Jump on a Track / Open Calls)</li>
           <li>BandSpace (volledig)</li>
