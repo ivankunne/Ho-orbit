@@ -131,7 +131,7 @@ export default function HomePage() {
         seen.add(key);
       }
       mix.push(t);
-      if (mix.length >= 24) break;
+      if (mix.length >= 30) break;
     }
     setDiscoverMix(mix);
   }
@@ -478,11 +478,9 @@ export default function HomePage() {
               Nog geen nummers om te ontdekken. Kom later terug!
             </div>
           ) : (
-            <div className="flex gap-4 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
               {discoverMix.map(t => (
-                <div key={t.id} className="w-40 shrink-0">
-                  <MusicCard track={t} queue={discoverMix} />
-                </div>
+                <MusicCard key={t.id} track={t} queue={discoverMix} />
               ))}
             </div>
           )}
