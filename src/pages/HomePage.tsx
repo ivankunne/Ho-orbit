@@ -113,6 +113,21 @@ export default function HomePage() {
     [artists]
   );
 
+  // "Maak connecties" + the spotlight card below it were both static (always
+  // the same top-followed artists, every load) — shuffled fresh per page
+  // load instead, and drawn from one shuffle so the two sections never show
+  // the same artist twice on screen.
+  const shuffledArtists = useMemo(() => {
+    const pool = [...artists];
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    return pool;
+  }, [artists]);
+  const connectionArtists = shuffledArtists.slice(0, 5);
+  const spotlightArtist = shuffledArtists[5];
+
   // Fisher-Yates shuffle + de-dupe to one track per artist, so the Discover
   // mix spreads across different artists instead of clustering on whoever
   // has uploaded the most songs.
@@ -546,7 +561,7 @@ export default function HomePage() {
                 <h2 className="text-lg font-bold text-white">Maak connecties</h2>
               </div>
               <div className="space-y-3 mb-8">
-                {artists.slice(0, 5).map(artist => (
+                {connectionArtists.map(artist => (
                   <Link
                     key={artist.id}
                     to={`/artists/${artist.id}`}
@@ -575,18 +590,18 @@ export default function HomePage() {
               </div>
 
               {/* Featured artist card */}
-              {artists[2] && (
+              {spotlightArtist && (
                 <div className="relative rounded-2xl overflow-hidden">
                   <img
-                    src={artists[2]?.cover_url}
+                    src={spotlightArtist?.cover_url}
                     alt="Uitgelichte artiest"
                     className="w-full h-40 object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#1a1528] via-[#1a1528]/60 to-transparent" />
                   <div className="absolute bottom-0 left-0 right-0 p-4">
                     <p className="text-violet-400 text-xs font-semibold uppercase tracking-wider mb-1">Uitgelichte artiest</p>
-                    <p className="text-white font-bold">{artists[2]?.name}</p>
-                    <p className="text-slate-300 text-xs">{artists[2]?.genre} · {artists[2]?.location?.split(',')[0]}</p>
+                    <p className="text-white font-bold">{spotlightArtist?.name}</p>
+                    <p className="text-slate-300 text-xs">{spotlightArtist?.genre} · {spotlightArtist?.location?.split(',')[0]}</p>
                   </div>
                 </div>
               )}
