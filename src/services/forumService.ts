@@ -117,13 +117,13 @@ export async function getReplies(threadId: string | number) {
 }
 
 export async function createReply({
-  threadId, body, authorId,
+  threadId, body, authorId, replyToId = null,
 }: {
-  threadId: string | number; body: string; authorId: string;
+  threadId: string | number; body: string; authorId: string; replyToId?: number | string | null;
 }) {
   const { data, error } = await supabase
     .from('forum_replies')
-    .insert({ thread_id: threadId, content: body, author_id: authorId })
+    .insert({ thread_id: threadId, content: body, author_id: authorId, reply_to_id: replyToId })
     .select('*, profiles:author_id(username, display_name, avatar_url)')
     .single();
   if (error || !data) throw error;
@@ -215,9 +215,11 @@ function mapReply(d: Record<string, unknown>) {
   return {
     id: d.id,
     threadId: d.thread_id,
+    replyToId: (d.reply_to_id as number | null) ?? null,
     author: {
       id: d.author_id,
       name: profile?.display_name ?? profile?.username ?? 'Unknown',
+      username: profile?.username ?? '',
       avatar: profile?.avatar_url ?? '',
     },
     content: d.content,

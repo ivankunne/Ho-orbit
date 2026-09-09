@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   ChevronLeft, Pin, ThumbsUp, MessageSquare, Eye, Flag,
-  Send, Quote, Bold, Italic, Smile, Pencil, Trash2,
+  Send, Quote, Bold, Italic, Smile, Pencil, Trash2, Reply, CornerUpLeft, X,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import {
@@ -48,7 +48,18 @@ function renderInline(text: string, keyPrefix = '') {
   return nodes;
 }
 
-function ReplyCard({ reply, isOP, isOwn, index, onLike, liked, initialLiked, onReport, canManage, onEdit, onDelete }) {
+// A reply started with "@username " gets that token rendered as a mention
+// chip instead of plain text; the rest of the content renders as usual.
+function splitMention(content: string): { mention: string | null; rest: string } {
+  const m = /^@([a-zA-Z0-9_]+)\s+/.exec(content);
+  if (!m) return { mention: null, rest: content };
+  return { mention: m[1], rest: content.slice(m[0].length) };
+}
+
+function ReplyCard({
+  reply, isOP, isOwn, index, onLike, liked, initialLiked, onReport, canManage, onEdit, onDelete,
+  onReplyTo, replyToTarget, onJumpTo,
+}) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(reply.content);
   const [saving, setSaving] = useState(false);
@@ -102,6 +113,16 @@ function ReplyCard({ reply, isOP, isOwn, index, onLike, liked, initialLiked, onR
           <span className="text-xs text-slate-600">#{index + 1}</span>
         </div>
 
+        {replyToTarget && (
+          <button
+            onClick={() => onJumpTo(replyToTarget.id)}
+            className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-violet-400 mb-2 transition-colors"
+          >
+            <CornerUpLeft size={11} />
+            Antwoord op <span className="text-violet-400 font-medium">{replyToTarget.author?.name}</span>
+          </button>
+        )}
+
         {editing ? (
           <div className="mb-2">
             <textarea
@@ -126,17 +147,27 @@ function ReplyCard({ reply, isOP, isOwn, index, onLike, liked, initialLiked, onR
               </button>
             </div>
           </div>
-        ) : reply.content.startsWith('>') ? (
-          <div className="mb-2">
-            {reply.content.split('\n').map((line, i) => (
-              line.startsWith('>')
-                ? <p key={i} className="text-xs text-slate-500 italic border-l-2 border-white/20 pl-2 mb-1">{renderInline(line.slice(1).trim(), `q${i}-`)}</p>
-                : <p key={i} className="text-sm text-slate-300 leading-relaxed">{renderInline(line, `l${i}-`)}</p>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">{renderInline(reply.content)}</p>
-        )}
+        ) : (() => {
+          const { mention, rest } = splitMention(reply.content);
+          return (
+            <div className="mb-2">
+              {mention && (
+                <span className="inline-flex items-center bg-violet-600/15 text-violet-300 text-xs font-medium px-2 py-0.5 rounded-full mb-1.5">
+                  @{mention}
+                </span>
+              )}
+              {rest.startsWith('>') ? (
+                rest.split('\n').map((line, i) => (
+                  line.startsWith('>')
+                    ? <p key={i} className="text-xs text-slate-500 italic border-l-2 border-white/20 pl-2 mb-1">{renderInline(line.slice(1).trim(), `q${i}-`)}</p>
+                    : <p key={i} className="text-sm text-slate-300 leading-relaxed">{renderInline(line, `l${i}-`)}</p>
+                ))
+              ) : (
+                <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">{renderInline(rest)}</p>
+              )}
+            </div>
+          );
+        })()}
 
         <div className="flex items-center gap-4 mt-3 pt-2 border-t border-white/5">
           <button
@@ -147,6 +178,12 @@ function ReplyCard({ reply, isOP, isOwn, index, onLike, liked, initialLiked, onR
           >
             <ThumbsUp size={13} fill={liked ? 'currentColor' : 'none'} />
             {(reply.likes || 0) + (liked && !initialLiked ? 1 : !liked && initialLiked ? -1 : 0)}
+          </button>
+          <button
+            onClick={() => onReplyTo(reply)}
+            className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors"
+          >
+            <Reply size={13} /> Reageer
           </button>
           {canManage && !editing && (
             <>
@@ -185,6 +222,7 @@ export default function ForumThreadPage() {
   const [thread, setThread]     = useState(null);
   const [replies, setReplies]   = useState([]);
   const [replyText, setReplyText] = useState('');
+  const [replyingTo, setReplyingTo] = useState<{ id: number; name: string } | null>(null);
   const [likedReplies, setLikedReplies] = useState(new Set());
   const [initialLikedReplies, setInitialLikedReplies] = useState(new Set());
   const [loading, setLoading]   = useState(true);
@@ -195,6 +233,7 @@ export default function ForumThreadPage() {
   const [savingThread, setSavingThread] = useState(false);
 
   const canManageThread = !!user && !!thread && (user.id === thread.author?.id || user.isAdmin);
+  const repliesById = useMemo(() => new Map(replies.map(r => [r.id, r])), [replies]);
 
   useEffect(() => {
     (async () => {
@@ -237,6 +276,27 @@ export default function ForumThreadPage() {
         return next;
       });
     }
+  }
+
+  function scrollToReply(replyId: number) {
+    const el = document.getElementById(`reply-${replyId}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.add('ring-2', 'ring-violet-500/50');
+    setTimeout(() => el.classList.remove('ring-2', 'ring-violet-500/50'), 1500);
+  }
+
+  function handleReplyTo(reply) {
+    setReplyingTo({ id: reply.id, name: reply.author?.name ?? 'Onbekend' });
+    const mentionTag = reply.author?.username ? `@${reply.author.username} ` : '';
+    if (mentionTag) {
+      setReplyText(prev => (prev.startsWith(mentionTag) ? prev : mentionTag + prev));
+    }
+    requestAnimationFrame(() => {
+      const ta = document.getElementById('reply-box') as HTMLTextAreaElement | null;
+      ta?.focus();
+      ta?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
   }
 
   function applyFormat(kind: 'bold' | 'italic' | 'quote' | 'emoji') {
@@ -347,10 +407,12 @@ export default function ForumThreadPage() {
         threadId,
         body: replyText.trim(),
         authorId: user.id,
+        replyToId: replyingTo?.id ?? null,
       });
 
       setReplies(prev => [...prev, newReply]);
       setReplyText('');
+      setReplyingTo(null);
       addToast('Reactie geplaatst!', 'success');
 
       await addNotification(user.id, {
@@ -506,6 +568,9 @@ export default function ForumThreadPage() {
               canManage={!!user && (reply.author?.id === user.id || user.isAdmin)}
               onEdit={handleEditReply}
               onDelete={handleDeleteReply}
+              onReplyTo={handleReplyTo}
+              replyToTarget={reply.replyToId ? repliesById.get(reply.replyToId) : null}
+              onJumpTo={scrollToReply}
             />
           ))
         )}
@@ -522,6 +587,20 @@ export default function ForumThreadPage() {
           />
           <p className="text-sm font-semibold text-white">Jouw reactie</p>
         </div>
+
+        {replyingTo && (
+          <div className="flex items-center gap-2 mb-3 text-xs text-violet-300 bg-violet-600/10 border border-violet-500/20 rounded-lg px-3 py-1.5">
+            <Reply size={12} className="shrink-0" />
+            <span>Antwoord aan <strong>{replyingTo.name}</strong></span>
+            <button
+              type="button"
+              onClick={() => setReplyingTo(null)}
+              className="ml-auto text-slate-400 hover:text-white transition-colors"
+            >
+              <X size={13} />
+            </button>
+          </div>
+        )}
 
         <div className="flex items-center gap-1 mb-2 pb-2 border-b border-white/8">
           {([
