@@ -2,12 +2,24 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Users, Plus, Music, MapPin, Lock, Globe,
-  ChevronRight, Loader2, X, Clock,
+  ChevronRight, Loader2, X, Clock, Mic2, Newspaper, Video, Handshake, Sparkles,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@context/AuthContext';
 import { useToast } from '@components/Toast';
 import GenrePicker from '@components/GenrePicker';
+
+// Preview chips for the hero — mirrors the 6 Orbit channels inside a band
+// workspace (BandSpaceDetailPage's CHANNELS), kept as a local display-only
+// copy so this page doesn't pull in that 3000+ line component.
+const CHANNEL_PREVIEWS = [
+  { label: 'Repetities',     icon: Music,     color: 'text-violet-400',  bg: 'bg-violet-500/15'  },
+  { label: 'Gigs',           icon: Mic2,      color: 'text-pink-400',    bg: 'bg-pink-500/15'    },
+  { label: 'Socials',        icon: Globe,     color: 'text-sky-400',     bg: 'bg-sky-500/15'     },
+  { label: 'Muziekbladen',   icon: Newspaper, color: 'text-amber-400',   bg: 'bg-amber-500/15'   },
+  { label: 'Media',          icon: Video,     color: 'text-emerald-400', bg: 'bg-emerald-500/15' },
+  { label: 'Samenwerkingen', icon: Handshake, color: 'text-teal-400',    bg: 'bg-teal-500/15'    },
+];
 
 function slugify(name: string) {
   return name.toLowerCase().normalize('NFD')
@@ -145,22 +157,47 @@ export default function BandSpacePage() {
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 lg:px-6 py-10">
-      {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Band Space</h1>
-          <p className="text-slate-400 max-w-xl text-sm sm:text-base">
-            Een privé werkruimte voor jouw band of crew. Zes Orbit-kanalen per band: repetities, gigs, socials, muziekbladen, media en samenwerkingen — elk met eigen groepschat, plus je eigen projecttegels voor chat, taken, doelen en ideeën.
-          </p>
+      {/* Hero */}
+      <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-gradient-to-br from-violet-600/15 via-[#1e1833] to-[#1e1833] mb-10">
+        <div className="pointer-events-none absolute -top-24 -right-24 w-72 h-72 rounded-full bg-violet-600/20 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 -left-16 w-64 h-64 rounded-full bg-fuchsia-600/10 blur-3xl" />
+
+        <div className="relative p-6 sm:p-10">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="max-w-2xl">
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-violet-300 bg-violet-500/15 border border-violet-500/30 px-2.5 py-1 rounded-full mb-3">
+                <Sparkles size={11} /> Pro-functie
+              </span>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Band Space</h1>
+              <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+                Een privé werkruimte voor jouw band of crew. Zes Orbit-kanalen per band — elk met eigen groepschat, plus je eigen projecttegels voor chat, taken, doelen en ideeën.
+              </p>
+            </div>
+            {user && (
+              <button
+                onClick={() => setShowCreate(true)}
+                className="flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white font-semibold px-4 py-2.5 rounded-xl transition-colors shrink-0"
+              >
+                <Plus size={18} /> Band aanmaken
+              </button>
+            )}
+          </div>
+
+          {/* Channel preview strip */}
+          <div className="flex flex-wrap gap-2.5 mt-7">
+            {CHANNEL_PREVIEWS.map(ch => (
+              <div
+                key={ch.label}
+                className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-full pl-2 pr-3.5 py-1.5"
+              >
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${ch.bg}`}>
+                  <ch.icon size={12} className={ch.color} />
+                </div>
+                <span className="text-xs font-medium text-slate-300">{ch.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
-        {user && (
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white font-semibold px-4 py-2.5 rounded-xl transition-colors shrink-0"
-          >
-            <Plus size={18} /> Band aanmaken
-          </button>
-        )}
       </div>
 
       {loading ? (
@@ -187,10 +224,22 @@ export default function BandSpacePage() {
               {myBands.length > 0 ? 'Andere bands ontdekken' : 'Bands ontdekken'}
             </h2>
             {publicBands.length === 0 ? (
-              <div className="text-center py-16 text-slate-500">
-                <Users size={40} className="mx-auto mb-3 opacity-30" />
-                <p className="font-medium text-slate-400">Nog geen publieke bands</p>
-                <p className="text-sm mt-1">Maak de eerste aan!</p>
+              <div className="relative overflow-hidden text-center py-14 px-6 rounded-2xl border border-white/8 bg-white/[0.03]">
+                <div className="w-14 h-14 rounded-2xl bg-violet-600/15 border border-violet-500/25 flex items-center justify-center mx-auto mb-4">
+                  <Users size={24} className="text-violet-400" />
+                </div>
+                <p className="font-semibold text-white mb-1.5">Nog geen openbare bands om te ontdekken</p>
+                <p className="text-sm text-slate-400 max-w-sm mx-auto mb-5">
+                  De meeste bands houden hun werkruimte privé — dat is dus normaal. Wees de eerste die een openbare band aanmaakt, of vraag je bandleden om je uit te nodigen.
+                </p>
+                {user && (
+                  <button
+                    onClick={() => setShowCreate(true)}
+                    className="inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
+                  >
+                    <Plus size={16} /> Maak je eerste band aan
+                  </button>
+                )}
               </div>
             ) : (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
