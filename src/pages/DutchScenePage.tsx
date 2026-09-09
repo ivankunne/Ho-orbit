@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MapPin, Users, Newspaper, Music } from 'lucide-react';
+import { MapPin, Users, Newspaper, Music, Mail } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { fetchArtistProfiles } from '@utils/artistHelpers';
@@ -51,6 +51,16 @@ export default function DutchScenePage() {
         <p className="text-slate-400 text-sm mb-6 max-w-2xl">
           Zoom in op een stad om individuele venues te zien. Klik op een marker voor meer info.
         </p>
+        <div className="flex items-center gap-2.5 bg-violet-600/10 border border-violet-500/25 rounded-xl px-4 py-3 text-sm text-violet-200 mb-4">
+          <Mail size={16} className="text-violet-400 shrink-0" />
+          <span>
+            Wil je jouw locatie op de kaart? Stuur een e-mail naar{' '}
+            <a href="mailto:info@h-orbit.nl" className="font-semibold text-violet-300 hover:text-violet-200 underline underline-offset-2">
+              info@h-orbit.nl
+            </a>
+            .
+          </span>
+        </div>
         <SceneMap />
       </section>
 
