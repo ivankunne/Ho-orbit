@@ -219,14 +219,14 @@ function ThreadList({ category, onBack, dbThreads, localThreads, onNewThread, ca
       <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white mb-6 transition-colors">
         <ChevronLeft size={16} /> Forums
       </button>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
           <h2 className="text-xl font-bold text-white">{category.name}</h2>
           <p className="text-sm text-slate-400">{category.description}</p>
         </div>
         <button
           onClick={() => onNewThread(category)}
-          className="bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
+          className="shrink-0 whitespace-nowrap bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
         >
           Nieuwe discussie
         </button>
@@ -308,14 +308,14 @@ export default function ForumsPage() {
     <div className="w-full max-w-7xl mx-auto px-4 lg:px-6 py-10">
       {view === 'categories' && (
         <>
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
             <div>
               <h1 className="text-2xl font-bold text-white mb-2">Forums</h1>
               <p className="text-slate-400">Gemeenschapsdiscussies, gear talk, samenwerkingen en meer</p>
             </div>
             <button
               onClick={() => openNewThread()}
-              className="bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
+              className="shrink-0 whitespace-nowrap bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
             >
               Nieuwe discussie
             </button>

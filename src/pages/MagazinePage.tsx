@@ -105,7 +105,7 @@ export default function MagazinePage() {
       )}
 
       {/* Categorietabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-8">
+      <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide scroll-fade-x pb-2 mb-8">
         {categories.map(cat => (
           <button
             key={cat}

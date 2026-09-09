@@ -26,18 +26,18 @@ export default function DutchScenePage() {
     <div className="w-full max-w-7xl mx-auto px-4 lg:px-6 py-10">
       {/* Header */}
       <div className="relative rounded-2xl overflow-hidden mb-12">
-        <div className="h-56 lg:h-72 bg-gradient-to-r from-[#AE1C28] via-[#1a1a2e] to-[#21468B] relative">
+        <div className="min-h-56 lg:min-h-72 bg-gradient-to-r from-[#AE1C28] via-[#1a1a2e] to-[#21468B] relative">
           <div className="absolute inset-0 bg-[#1a1528]/65" />
-          <div className="relative h-full flex items-center px-8 lg:px-12">
+          <div className="relative flex items-center px-5 py-8 sm:px-8 lg:px-12 lg:py-0 lg:h-full">
             <div>
               <div className="flex items-center gap-3 mb-4">
                 <span className="text-3xl">🇳🇱</span>
                 <span className="text-violet-400 text-xs font-bold uppercase tracking-widest">Dutch Music Scene</span>
               </div>
-              <h1 className="text-3xl lg:text-5xl font-bold text-white mb-3">
+              <h1 className="text-2xl sm:text-3xl lg:text-5xl font-bold text-white mb-3">
                 Made in the Netherlands
               </h1>
-              <p className="text-slate-300 max-w-xl text-base leading-relaxed">
+              <p className="text-slate-300 max-w-xl text-sm sm:text-base leading-relaxed">
                 From Rotterdam hip-hop to Amsterdam jazz, Den Haag pop to Nijmegen blues — explore the cities and sounds that define Dutch music.
               </p>
             </div>

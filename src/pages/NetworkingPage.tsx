@@ -185,7 +185,7 @@ export default function NetworkingPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-white/4 p-1 rounded-xl border border-white/8 w-full sm:w-fit overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+      <div className="flex gap-1 mb-6 bg-white/4 p-1 rounded-xl border border-white/8 w-full sm:w-fit overflow-x-auto scrollbar-hide scroll-fade-x">
         {TABS.map(t => (
           <button
             key={t.key}

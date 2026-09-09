@@ -499,7 +499,7 @@ export default function HomePage() {
               </div>
 
               {/* Genre pills */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-2" style={{ scrollbarWidth: 'none' }}>
+              <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide scroll-fade-x pb-4 mb-2">
                 {GENRES.map(genre => (
                   <button
                     key={genre}
@@ -605,7 +605,7 @@ export default function HomePage() {
                 Bekijk alles <ChevronRight size={15} />
               </Link>
             </div>
-            <div className="flex gap-4 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
+            <div className="flex gap-4 overflow-x-auto scrollbar-hide scroll-fade-x pb-2">
               {cities.slice(0, 6).map(city => (
                 <Link
                   key={city.id}

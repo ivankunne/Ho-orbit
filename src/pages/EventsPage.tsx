@@ -103,8 +103,8 @@ function EventCard({ event, featured = false, rsvpd, onToggleRsvp, now }) {
       />
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2 mb-1">
-          <h3 className="font-semibold text-white group-hover:text-violet-300 transition-colors line-clamp-2">{event.name}</h3>
-          <CountdownBadge date={event.date} now={now} />
+          <h3 className="font-semibold text-white group-hover:text-violet-300 transition-colors line-clamp-2 min-w-0 flex-1">{event.name}</h3>
+          <div className="shrink-0"><CountdownBadge date={event.date} now={now} /></div>
         </div>
         <div className="space-y-1 text-xs text-slate-400">
           <div className="flex items-center gap-1.5"><Clock size={11} /> {event.time}</div>
@@ -112,9 +112,9 @@ function EventCard({ event, featured = false, rsvpd, onToggleRsvp, now }) {
           <div className="flex items-center gap-1.5"><Users size={11} /> {attendeesCount.toLocaleString('nl-NL')} aanwezigen</div>
         </div>
         <div className="mt-3">
-          <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-            <span>{attendance}% bezettingsgraad</span>
-            <span>{event.price}</span>
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 text-xs text-slate-500 mb-1">
+            <span className="whitespace-nowrap">{attendance}% bezettingsgraad</span>
+            <span className="whitespace-nowrap">{event.price}</span>
           </div>
           <div className="w-full bg-white/10 rounded-full h-1.5">
             <div

@@ -111,6 +111,21 @@ body::before {
   background: #8b5cf6;
 }
 
+/* Horizontally-scrollable pill/tab rows: hide the scrollbar and fade both
+   edges so "there's more, swipe" reads visually instead of looking like
+   content got cut off by the screen edge. */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scroll-fade-x {
+  mask-image: linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent);
+}
+
 /* Legal pages prose */
 .prose-legal ul { list-style: disc; padding-left: 1.25rem; }
 .prose-legal ul li { margin-bottom: 0.35rem; }

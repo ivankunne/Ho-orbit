@@ -2177,7 +2177,7 @@ export default function BandSpaceDetailPage() {
             </div>
 
             {/* Sub-tab bar */}
-            <div className="flex items-center gap-1 px-5 lg:px-6 py-2 border-b border-white/8 shrink-0 overflow-x-auto">
+            <div className="flex items-center gap-1 px-5 lg:px-6 py-2 border-b border-white/8 shrink-0 overflow-x-auto scrollbar-hide scroll-fade-x">
               {([
                 { key: 'chat' as const,        label: 'Chat',       icon: MessageSquare },
                 { key: 'assignments' as const, label: 'Taken',      icon: CheckSquare },
@@ -2188,7 +2188,7 @@ export default function BandSpaceDetailPage() {
                 const active = projectTab === tab.key;
                 return (
                   <button key={tab.key} onClick={() => setProjectTab(tab.key)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${active ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-slate-300'}`}>
+                    className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${active ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-slate-300'}`}>
                     <Icon size={12} /> {tab.label}
                   </button>
                 );

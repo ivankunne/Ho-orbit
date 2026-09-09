@@ -474,7 +474,7 @@ export default function ProfilePage() {
 
         {/* Tabs — horizontally scrollable so 5-7 tabs never force the whole
             page wider than a mobile viewport */}
-        <div className="flex gap-1 border-b border-white/10 mb-8 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0" style={{ scrollbarWidth: 'none' }}>
+        <div className="flex gap-1 border-b border-white/10 mb-8 overflow-x-auto scrollbar-hide scroll-fade-x -mx-4 px-4 sm:mx-0 sm:px-0">
           {tabs.map(tab => (
             <button
               key={tab.key}
