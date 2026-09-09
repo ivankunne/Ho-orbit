@@ -489,7 +489,15 @@ export default function HomePage() {
         <section className="pb-12">
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Top 10 chart */}
-            <div className="lg:col-span-2">
+            {/* min-w-0 matters here: with no explicit grid-template-columns
+                below lg, this is an implicit single-column grid track, which
+                sizes to its content's min-content width by default — and the
+                genre-pills row below is a non-wrapping overflow-x-auto flex
+                row, so without this the whole column (and everything after
+                it) got silently forced to ~1180px and clipped by the global
+                `overflow-x: hidden` on html/body instead of fitting the
+                actual viewport. */}
+            <div className="lg:col-span-2 min-w-0">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <TrendingUp size={18} className="text-violet-400" />
@@ -539,7 +547,7 @@ export default function HomePage() {
             </div>
 
             {/* Sidebar: connect & spotlight */}
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2 mb-4">
                 <Users size={18} className="text-violet-400" />
                 <h2 className="text-lg font-bold text-white">Maak connecties</h2>

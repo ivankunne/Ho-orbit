@@ -54,7 +54,7 @@ export default function AccountPage() {
 
       <div className="grid lg:grid-cols-4 gap-6">
         {/* Sidebar */}
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 min-w-0">
           <div className="bg-white/3 border border-white/5 rounded-2xl p-4 mb-4 text-center">
             <div className="relative inline-block mb-3">
               <UserAvatar
@@ -111,7 +111,7 @@ export default function AccountPage() {
         </div>
 
         {/* Main content */}
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-3 min-w-0">
           {activeSection === 'profiel' && (
             <ProfielSection
               user={user}

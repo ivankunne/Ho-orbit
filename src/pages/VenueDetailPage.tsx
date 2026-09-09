@@ -130,7 +130,7 @@ export default function VenueDetailPage() {
       <div className="max-w-7xl mx-auto px-4 lg:px-6 py-10">
         <div className="grid lg:grid-cols-3 gap-10">
           {/* Main column */}
-          <div className="lg:col-span-2 space-y-12">
+          <div className="lg:col-span-2 min-w-0 space-y-12">
 
             {/* About */}
             <section>
