@@ -7,7 +7,7 @@ import {
   Image as ImageIcon, FileText as FileIcon, ShieldCheck, ShieldOff, Crown,
   Calendar, Plus, MessageSquare, PenLine, AtSign, MapPin,
   CheckSquare, Square, Share2, Copy, Search, Mail, Repeat, RotateCcw, CalendarX, Download,
-  FolderKanban, Handshake, Pencil, Target, Lightbulb, UserCircle2, Camera,
+  FolderKanban, Handshake, Pencil, Target, Lightbulb, UserCircle2, Camera, Sparkles,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@context/AuthContext';
@@ -123,6 +123,32 @@ function getFirstWeekday(y: number, m: number) { const d = new Date(y, m, 1).get
 function formatEventDate(dateStr: string) {
   const d = new Date(dateStr + 'T00:00:00');
   return d.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+// Shared "nothing here yet" block — replaces the old plain icon+opacity-30
+// text with something that matches the rest of the workspace's polish
+// (colored icon tile, real copy, optional primary action).
+function EmptyState({
+  icon: Icon, title, subtitle, tint = 'text-violet-400', tintBg = 'bg-violet-500/15', tintBorder = 'border-violet-500/25', action,
+}: {
+  icon: any; title: string; subtitle?: string; tint?: string; tintBg?: string; tintBorder?: string;
+  action?: { label: string; onClick: () => void };
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center text-center py-16 px-6">
+      <div className={`w-14 h-14 rounded-2xl border flex items-center justify-center mb-4 ${tintBg} ${tintBorder}`}>
+        <Icon size={24} className={tint} />
+      </div>
+      <p className="text-sm font-semibold text-white mb-1">{title}</p>
+      {subtitle && <p className="text-xs text-slate-500 max-w-xs leading-relaxed">{subtitle}</p>}
+      {action && (
+        <button onClick={action.onClick}
+          className="flex items-center gap-1.5 mt-5 bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-colors">
+          <Plus size={13} /> {action.label}
+        </button>
+      )}
+    </div>
+  );
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -1630,6 +1656,52 @@ export default function BandSpaceDetailPage() {
             {/* Content grid */}
             <div className="max-w-6xl mx-auto px-4 lg:px-8 py-6 lg:py-8">
               {isMember && <BandPushBanner userId={user?.id} />}
+
+              {/* Getting-started checklist — only for a genuinely fresh band, so it
+                  disappears on its own once there's real activity. */}
+              {isAdmin && members.length <= 1 && !postsLoading && posts.length === 0
+                && upcomingEvents.length === 0 && !projectsLoading && projects.length === 0 && (
+                <div className="rounded-2xl border border-violet-500/25 bg-gradient-to-br from-violet-600/10 to-transparent p-5 lg:p-6 mb-6">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Sparkles size={16} className="text-violet-400" />
+                    <h3 className="text-sm font-bold text-white">Aan de slag met {band.name}</h3>
+                  </div>
+                  <p className="text-xs text-slate-400 mb-4">Je werkruimte staat klaar — hier zijn een paar goede eerste stappen.</p>
+                  <div className="grid sm:grid-cols-3 gap-3">
+                    <button onClick={() => setShowShareModal(true)}
+                      className="flex items-center gap-3 text-left p-3.5 rounded-xl bg-white/5 hover:bg-white/8 border border-white/10 transition-colors">
+                      <div className="w-9 h-9 rounded-lg bg-violet-500/15 border border-violet-500/25 flex items-center justify-center shrink-0"><UserPlus size={16} className="text-violet-400" /></div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-white">Nodig bandleden uit</p>
+                        <p className="text-[11px] text-slate-500">Deel een link of zoek ze op</p>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => {
+                        const el = document.getElementById('band-post-composer');
+                        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        setTimeout(() => el?.focus(), 300);
+                      }}
+                      className="flex items-center gap-3 text-left p-3.5 rounded-xl bg-white/5 hover:bg-white/8 border border-white/10 transition-colors"
+                    >
+                      <div className="w-9 h-9 rounded-lg bg-sky-500/15 border border-sky-500/25 flex items-center justify-center shrink-0"><PenLine size={16} className="text-sky-400" /></div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-white">Deel je eerste update</p>
+                        <p className="text-[11px] text-slate-500">Zichtbaar voor alle leden</p>
+                      </div>
+                    </button>
+                    <button onClick={() => setShowAddEvent(true)}
+                      className="flex items-center gap-3 text-left p-3.5 rounded-xl bg-white/5 hover:bg-white/8 border border-white/10 transition-colors">
+                      <div className="w-9 h-9 rounded-lg bg-pink-500/15 border border-pink-500/25 flex items-center justify-center shrink-0"><Calendar size={16} className="text-pink-400" /></div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-white">Plan je eerste repetitie</p>
+                        <p className="text-[11px] text-slate-500">Of een gig in de kalender</p>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
 
                 {/* Left: Posts feed */}
@@ -1644,7 +1716,7 @@ export default function BandSpaceDetailPage() {
                           placeholder="Titel (optioneel)"
                           className="w-full bg-transparent text-sm font-semibold text-white placeholder-slate-600 focus:outline-none mb-2 border-b border-white/8 pb-2" />
                       )}
-                      <textarea value={postContent} onChange={e => setPostContent(e.target.value)}
+                      <textarea id="band-post-composer" value={postContent} onChange={e => setPostContent(e.target.value)}
                         placeholder="Deel een update, aankondiging of setlist met de band…"
                         rows={3}
                         className="w-full bg-transparent text-sm text-white placeholder-slate-500 focus:outline-none resize-none leading-relaxed" />
@@ -1687,10 +1759,11 @@ export default function BandSpaceDetailPage() {
                   {postsLoading ? (
                     <div className="flex justify-center py-10"><Loader2 size={20} className="animate-spin text-violet-400/50" /></div>
                   ) : posts.length === 0 ? (
-                    <div className="text-center py-12 text-slate-600">
-                      <LayoutDashboard size={32} className="mx-auto mb-3 opacity-30" />
-                      <p className="text-sm">{isAdmin ? 'Nog geen updates. Deel iets met de band!' : 'Nog geen updates van de band.'}</p>
-                    </div>
+                    <EmptyState
+                      icon={LayoutDashboard}
+                      title={isAdmin ? 'Nog geen updates' : 'Nog geen updates van de band'}
+                      subtitle={isAdmin ? 'Deel het eerste nieuws, een setlist of een aankondiging met de band.' : 'Zodra iemand iets deelt, verschijnt het hier.'}
+                    />
                   ) : (
                     posts.map(post => (
                       <article key={post.id} className="bg-white/3 hover:bg-white/4 border border-white/8 rounded-2xl overflow-hidden transition-colors group">
@@ -2040,10 +2113,13 @@ export default function BandSpaceDetailPage() {
               {projectsLoading ? (
                 <div className="flex justify-center py-16"><Loader2 size={22} className="animate-spin text-violet-400/60" /></div>
               ) : projects.length === 0 ? (
-                <div className="text-center py-16 text-slate-600">
-                  <FolderKanban size={36} className="mx-auto mb-3 opacity-30" />
-                  <p className="text-sm">Nog geen projecten. Maak het eerste project aan!</p>
-                </div>
+                <EmptyState
+                  icon={FolderKanban}
+                  tint="text-indigo-400" tintBg="bg-indigo-500/15" tintBorder="border-indigo-500/25"
+                  title="Nog geen projecten"
+                  subtitle="Een project bundelt chat, taken, doelen en ideeën rond één onderwerp — bijvoorbeeld een nieuw album of een tour."
+                  action={isMember ? { label: 'Nieuw project', onClick: startCreateProject } : undefined}
+                />
               ) : (
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {projects.map(project => (
@@ -2284,10 +2360,7 @@ export default function BandSpaceDetailPage() {
                   {assignmentsLoading ? (
                     <div className="flex justify-center py-16"><Loader2 size={22} className="animate-spin text-violet-400/60" /></div>
                   ) : assignments.length === 0 ? (
-                    <div className="text-center py-16 text-slate-600">
-                      <CheckSquare size={36} className="mx-auto mb-3 opacity-30" />
-                      <p className="text-sm">Geen taken. Voeg de eerste taak toe!</p>
-                    </div>
+                    <EmptyState icon={CheckSquare} title="Geen taken" subtitle="Voeg hierboven de eerste taak toe en wijs 'm eventueel toe aan een bandlid." />
                   ) : (
                     <div className="space-y-1">
                       {assignments.filter(a => !a.completed).map(a => (
@@ -2382,10 +2455,7 @@ export default function BandSpaceDetailPage() {
                   {goalsLoading ? (
                     <div className="flex justify-center py-16"><Loader2 size={22} className="animate-spin text-violet-400/60" /></div>
                   ) : goals.length === 0 ? (
-                    <div className="text-center py-16 text-slate-600">
-                      <Target size={36} className="mx-auto mb-3 opacity-30" />
-                      <p className="text-sm">Geen doelen. Stel het eerste doel!</p>
-                    </div>
+                    <EmptyState icon={Target} title="Geen doelen" subtitle="Stel een doel voor deze band of dit project, met een optionele deadline." />
                   ) : (
                     <div className="space-y-1">
                       {goals.filter(g => !g.completed).map(g => (
@@ -2462,10 +2532,7 @@ export default function BandSpaceDetailPage() {
                   {ideasLoading ? (
                     <div className="flex justify-center py-16"><Loader2 size={22} className="animate-spin text-violet-400/60" /></div>
                   ) : ideas.length === 0 ? (
-                    <div className="text-center py-16 text-slate-600">
-                      <Lightbulb size={36} className="mx-auto mb-3 opacity-30" />
-                      <p className="text-sm">Nog geen ideeën. Deel het eerste idee!</p>
-                    </div>
+                    <EmptyState icon={Lightbulb} title="Nog geen ideeën" subtitle="Gooi losse ideeën, riffs of teksten hierboven in de pot — niets is te gek." />
                   ) : (
                     <div className="space-y-4">
                       {ideas.filter(i => i.is_pinned).length > 0 && (
