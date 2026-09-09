@@ -7,8 +7,8 @@
 #   - Supabase CLI installed   (brew install supabase/tap/supabase)
 #   - Logged in                (supabase login)
 #   - supabase/functions/.env  filled in with STRIPE_SECRET_KEY,
-#                              STRIPE_PRICE_ID and STRIPE_WEBHOOK_SECRET
-#                              (see .env.example)
+#                              STRIPE_PRICE_ID, STRIPE_PRICE_ID_YEARLY,
+#                              and STRIPE_WEBHOOK_SECRET (see .env.example)
 #   - stripe_subscriptions_migration.sql already run in the Supabase SQL editor
 
 set -euo pipefail
@@ -44,10 +44,12 @@ supabase link --project-ref "$PROJECT_REF" || true
 echo "→ Pushing Stripe secrets from ${ENV_FILE}…"
 STRIPE_SECRET_KEY_VAL=$(grep -E '^STRIPE_SECRET_KEY=' "$ENV_FILE" | cut -d= -f2-)
 STRIPE_PRICE_ID_VAL=$(grep -E '^STRIPE_PRICE_ID=' "$ENV_FILE" | cut -d= -f2-)
+STRIPE_PRICE_ID_YEARLY_VAL=$(grep -E '^STRIPE_PRICE_ID_YEARLY=' "$ENV_FILE" | cut -d= -f2-)
 STRIPE_WEBHOOK_SECRET_VAL=$(grep -E '^STRIPE_WEBHOOK_SECRET=' "$ENV_FILE" | cut -d= -f2-)
 supabase secrets set \
   "STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY_VAL" \
   "STRIPE_PRICE_ID=$STRIPE_PRICE_ID_VAL" \
+  "STRIPE_PRICE_ID_YEARLY=$STRIPE_PRICE_ID_YEARLY_VAL" \
   "STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET_VAL"
 
 echo "→ Deploying stripe-checkout…"

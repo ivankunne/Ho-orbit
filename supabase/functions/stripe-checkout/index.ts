@@ -1,23 +1,27 @@
 // Edge Function: stripe-checkout
 //
 // Starts a Stripe Checkout Session (mode: subscription) for the logged-in
-// user's H-orbit Pro plan. Creates the Stripe Customer on first use and
-// caches it on profiles.stripe_customer_id. The webhook (stripe-webhook)
-// is what actually flips profiles.plan to 'paid' once payment succeeds —
-// this function only ever hands back a URL to redirect the browser to.
+// user's H-orbit Pro plan — monthly or yearly. Creates the Stripe Customer
+// on first use and caches it on profiles.stripe_customer_id. The webhook
+// (stripe-webhook) is what actually flips profiles.plan to 'paid' once
+// payment succeeds — this function only ever hands back a URL to redirect
+// the browser to.
 //
-// Body: {} (no params — plan/price is fixed via the STRIPE_PRICE_ID secret)
+// Body: { interval?: 'month' | 'year' }  (defaults to 'month')
 // Response: { url: string }
 //
 // Deploy:  supabase functions deploy stripe-checkout
-// Secrets: STRIPE_SECRET_KEY, STRIPE_PRICE_ID, SITE_URL
+// Secrets: STRIPE_SECRET_KEY, STRIPE_PRICE_ID, STRIPE_PRICE_ID_YEARLY, SITE_URL
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 import { stripeRequest } from '../_shared/stripe.ts';
 
 const SITE_URL = Deno.env.get('SITE_URL') ?? 'https://h-orbit.nl';
-const STRIPE_PRICE_ID = Deno.env.get('STRIPE_PRICE_ID') ?? '';
+const PRICE_IDS: Record<'month' | 'year', string> = {
+  month: Deno.env.get('STRIPE_PRICE_ID') ?? '',
+  year: Deno.env.get('STRIPE_PRICE_ID_YEARLY') ?? '',
+};
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -29,7 +33,16 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
 
-  if (!STRIPE_PRICE_ID) return json({ error: 'STRIPE_PRICE_ID is not configured' }, 500);
+  let interval: 'month' | 'year' = 'month';
+  try {
+    const body = await req.json();
+    if (body?.interval === 'year') interval = 'year';
+  } catch {
+    // no body — default to monthly
+  }
+
+  const priceId = PRICE_IDS[interval];
+  if (!priceId) return json({ error: `STRIPE_PRICE_ID${interval === 'year' ? '_YEARLY' : ''} is not configured` }, 500);
 
   const authHeader = req.headers.get('Authorization') ?? '';
   const supabaseAuthed = createClient(
@@ -71,16 +84,16 @@ Deno.serve(async (req) => {
     const session = await stripeRequest<{ url: string }>('POST', '/checkout/sessions', {
       mode: 'subscription',
       customer: customerId,
-      line_items: [{ price: STRIPE_PRICE_ID, quantity: 1 }],
+      line_items: [{ price: priceId, quantity: 1 }],
       // Managed Payments doesn't support iDEAL — essential for a Dutch
       // audience — and makes Stripe/Link the merchant of record (their
       // branding on statements/receipts, their support/refund flow). Opt
       // out to keep iDEAL, H-orbit's own branding, and full control.
       managed_payments: { enabled: false },
       // Requires an active Tax Registration (NL, added via the API) — see
-      // stripe_subscriptions migration notes. The Price has
-      // tax_behavior=inclusive, so the €10 total never changes for the
-      // customer; 21% NL VAT is carved out of that for reporting/remittance.
+      // stripe_subscriptions migration notes. Both prices have
+      // tax_behavior=inclusive, so the displayed total never changes for
+      // the customer; 21% NL VAT is carved out of that for reporting/remittance.
       automatic_tax: { enabled: true },
       // We always pass an existing Customer (created above), which has no
       // address on file yet. Without this, Stripe refuses with

@@ -2,7 +2,14 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Lock, Check, ArrowRight } from 'lucide-react';
 import { Button } from '@components/ui/button';
-import { startCheckout, getPlanInfo, formatPlanPrice, type PlanInfo } from '@services/subscriptionService';
+import {
+  startCheckout,
+  getPlanInfo,
+  formatPlanPrice,
+  yearlySavingsLabel,
+  type PlanInterval,
+  type PlanOptions,
+} from '@services/subscriptionService';
 import { PRO_FEATURES } from '@data/subscriptionPlans';
 
 interface PaywallPageProps {
@@ -14,23 +21,26 @@ interface PaywallPageProps {
 
 /**
  * Shown in place of a page's content when the visitor isn't on a paid plan —
- * see RequirePlan, which wraps a route's element with this. Not wired into
- * any route yet; that happens per-page once it's time to actually gate it.
+ * see RequirePlan, which wraps a route's element with this.
  */
 export default function PaywallPage({ title, description }: PaywallPageProps) {
-  const [plan, setPlan] = useState<PlanInfo | null>(null);
+  const [plans, setPlans] = useState<PlanOptions>({ month: null, year: null });
+  const [billingInterval, setBillingInterval] = useState<PlanInterval>('month');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    getPlanInfo().then(setPlan);
+    getPlanInfo().then(setPlans);
   }, []);
+
+  const selectedPlan = plans[billingInterval];
+  const savings = yearlySavingsLabel(plans.month, plans.year);
 
   const handleUpgrade = async () => {
     setError('');
     setLoading(true);
     try {
-      await startCheckout();
+      await startCheckout(billingInterval);
     } catch (err: any) {
       setError(err?.message || 'Er ging iets mis. Probeer het later opnieuw.');
       setLoading(false);
@@ -63,6 +73,21 @@ export default function PaywallPage({ title, description }: PaywallPageProps) {
             </div>
           )}
 
+          <div className="flex gap-1 p-1 mb-4 bg-white/5 rounded-lg">
+            {(['month', 'year'] as const).map(key => (
+              <button
+                key={key}
+                onClick={() => setBillingInterval(key)}
+                className={`flex-1 text-xs font-medium py-1.5 rounded-md transition-colors ${billingInterval === key ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white'}`}
+              >
+                {key === 'month' ? 'Maandelijks' : 'Jaarlijks'}
+              </button>
+            ))}
+          </div>
+          {billingInterval === 'year' && savings && (
+            <p className="text-emerald-400 text-xs font-medium text-center mb-4">{savings}</p>
+          )}
+
           <ul className="space-y-2 mb-6">
             {PRO_FEATURES.map(f => (
               <li key={f} className="flex items-start gap-2 text-sm text-slate-300">
@@ -76,7 +101,7 @@ export default function PaywallPage({ title, description }: PaywallPageProps) {
             {loading ? (
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
-              <>Upgraden{plan ? ` — ${formatPlanPrice(plan)}` : ' naar Pro'} <ArrowRight size={18} /></>
+              <>Upgraden{selectedPlan ? ` — ${formatPlanPrice(selectedPlan)}` : ' naar Pro'} <ArrowRight size={18} /></>
             )}
           </Button>
 

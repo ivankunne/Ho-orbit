@@ -1,7 +1,12 @@
 import { supabase } from '@lib/supabase';
 
-async function invokeAndRedirect(functionName: 'stripe-checkout' | 'stripe-portal') {
-  const { data, error } = await supabase.functions.invoke<{ url?: string; error?: string }>(functionName);
+export type PlanInterval = 'month' | 'year';
+
+async function invokeAndRedirect(
+  functionName: 'stripe-checkout' | 'stripe-portal',
+  body?: Record<string, unknown>,
+) {
+  const { data, error } = await supabase.functions.invoke<{ url?: string; error?: string }>(functionName, { body });
   if (error || !data?.url) {
     throw new Error(data?.error || error?.message || 'Er ging iets mis. Probeer het later opnieuw.');
   }
@@ -9,8 +14,8 @@ async function invokeAndRedirect(functionName: 'stripe-checkout' | 'stripe-porta
 }
 
 /** Redirects the browser to a Stripe Checkout session for the Pro plan. */
-export function startCheckout() {
-  return invokeAndRedirect('stripe-checkout');
+export function startCheckout(interval: PlanInterval = 'month') {
+  return invokeAndRedirect('stripe-checkout', { interval });
 }
 
 /** Redirects the browser to the Stripe Customer Portal to manage/cancel. */
@@ -36,11 +41,16 @@ export interface PlanInfo {
   taxInclusive: boolean;
 }
 
-/** Live price info for the Pro plan, straight from Stripe (never hardcoded). */
-export async function getPlanInfo(): Promise<PlanInfo | null> {
-  const { data, error } = await supabase.functions.invoke<PlanInfo & { error?: string }>('stripe-plan');
-  if (error || !data || data.error) return null;
-  return data;
+export interface PlanOptions {
+  month: PlanInfo | null;
+  year: PlanInfo | null;
+}
+
+/** Live price info for both Pro plans, straight from Stripe (never hardcoded). */
+export async function getPlanInfo(): Promise<PlanOptions> {
+  const { data, error } = await supabase.functions.invoke<PlanOptions & { error?: string }>('stripe-plan');
+  if (error || !data || data.error) return { month: null, year: null };
+  return { month: data.month ?? null, year: data.year ?? null };
 }
 
 const INTERVAL_LABEL: Record<string, string> = {
@@ -58,4 +68,13 @@ export function formatPlanPrice(plan: PlanInfo): string {
   }).format(plan.amount / 100);
   const suffix = plan.taxInclusive ? ' incl. btw' : '';
   return `${amount} / ${INTERVAL_LABEL[plan.interval] || plan.interval}${suffix}`;
+}
+
+/** e.g. "Bespaar 17% t.o.v. maandelijks" — null if either price is missing. */
+export function yearlySavingsLabel(month: PlanInfo | null, year: PlanInfo | null): string | null {
+  if (!month || !year) return null;
+  const monthlyCostPerYear = month.amount * 12;
+  if (monthlyCostPerYear <= year.amount) return null;
+  const pct = Math.round((1 - year.amount / monthlyCostPerYear) * 100);
+  return `Bespaar ${pct}% t.o.v. maandelijks`;
 }

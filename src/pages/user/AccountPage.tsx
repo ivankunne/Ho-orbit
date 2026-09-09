@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { User, Bell, Lock, Check, LogOut, Camera, AlertTriangle, Eye, EyeOff, Loader, Mail, Phone, Briefcase, HandHeart, BellRing, Smartphone, CreditCard } from 'lucide-react';
 import { pushSupported, pushPermission, isPushEnabled, enablePush, disablePush, type PushState } from '@services/pushService';
-import { startCheckout, openBillingPortal, cancelSubscription, getPlanInfo, formatPlanPrice, type PlanInfo } from '@services/subscriptionService';
+import { startCheckout, openBillingPortal, cancelSubscription, getPlanInfo, formatPlanPrice, yearlySavingsLabel, type PlanInterval, type PlanOptions } from '@services/subscriptionService';
 import { FREE_FEATURES, PRO_FEATURES } from '@data/subscriptionPlans';
 import UserAvatar from '@components/UserAvatar';
 import { useAuth } from '@context/AuthContext';
@@ -139,15 +139,18 @@ function AbonnementSection({ user }: { user: any }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [plan, setPlan] = useState<PlanInfo | null>(null);
+  const [plans, setPlans] = useState<PlanOptions>({ month: null, year: null });
+  const [billingInterval, setBillingInterval] = useState<PlanInterval>('month');
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(!!user?.cancelAtPeriodEnd);
   const [periodEnd, setPeriodEnd] = useState<string | null>(user?.currentPeriodEnd ?? null);
   const upgradeResult = searchParams.get('upgrade');
   const isPaid = user?.plan === 'paid';
+  const selectedPlan = plans[billingInterval];
+  const savings = yearlySavingsLabel(plans.month, plans.year);
 
   useEffect(() => {
-    getPlanInfo().then(setPlan);
+    getPlanInfo().then(setPlans);
   }, []);
 
   useEffect(() => {
@@ -245,7 +248,21 @@ function AbonnementSection({ user }: { user: any }) {
             <p className="text-white font-semibold">H-orbit Pro</p>
             {isPaid && <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-violet-600/15 text-violet-400">Huidig plan</span>}
           </div>
-          <p className="text-slate-500 text-sm mb-4">{plan ? formatPlanPrice(plan) : ' '}</p>
+          {!isPaid && (
+            <div className="flex gap-1 p-1 mb-3 bg-white/5 rounded-lg">
+              {(['month', 'year'] as const).map(key => (
+                <button
+                  key={key}
+                  onClick={() => setBillingInterval(key)}
+                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition-colors ${billingInterval === key ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                >
+                  {key === 'month' ? 'Maandelijks' : 'Jaarlijks'}
+                </button>
+              ))}
+            </div>
+          )}
+          <p className="text-slate-500 text-sm mb-1">{selectedPlan ? formatPlanPrice(selectedPlan) : ' '}</p>
+          <p className="text-emerald-400 text-xs font-medium mb-4 h-4">{!isPaid && billingInterval === 'year' ? savings : null}</p>
           <ul className="space-y-2 mb-5">
             {PRO_FEATURES.map(f => (
               <li key={f} className="flex items-start gap-2 text-sm text-slate-400">
@@ -267,7 +284,7 @@ function AbonnementSection({ user }: { user: any }) {
               )}
             </div>
           ) : (
-            <Button onClick={() => handleAction(startCheckout)} disabled={loading} className="w-full">
+            <Button onClick={() => handleAction(() => startCheckout(billingInterval))} disabled={loading} className="w-full">
               {loading ? <Loader size={14} className="animate-spin" /> : null}
               Upgraden naar Pro
             </Button>
