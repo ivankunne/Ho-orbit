@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { useAuth } from '@context/AuthContext';
-import { LoginForm, SignupForm } from '@components/AuthModal';
+import { LoginForm, SignupForm, QuickSignupForm } from '@components/AuthModal';
+
+type Tab = 'login' | 'signup' | 'quick';
 
 // Full-screen inlog-/registratiescherm — het eerste dat bezoekers zien.
 // Na succesvol inloggen stuurt RootGate (App.tsx) automatisch door.
 export default function AuthPage({ initialTab = 'login' }: { initialTab?: 'login' | 'signup' }) {
-  const [tab, setTab] = useState<'login' | 'signup'>(initialTab);
+  const [tab, setTab] = useState<Tab>(initialTab);
   const { setError } = useAuth();
 
-  const switchTab = (t: 'login' | 'signup') => {
+  const switchTab = (t: Tab) => {
     setError('');
     setTab(t);
   };
@@ -25,29 +27,33 @@ export default function AuthPage({ initialTab = 'login' }: { initialTab?: 'login
         </div>
 
         <div className="bg-[#1e1833] border border-white/10 rounded-2xl shadow-2xl shadow-black/60 p-6 sm:p-8">
-          <div className="flex border-b border-white/10 -mx-6 sm:-mx-8 px-6 sm:px-8 mb-6">
-            <button
-              onClick={() => switchTab('login')}
-              className={`pb-3 px-1 mr-6 text-sm font-medium border-b-2 transition-colors ${
-                tab === 'login' ? 'border-violet-500 text-white' : 'border-transparent text-slate-400 hover:text-slate-300'
-              }`}
-            >
-              Inloggen
-            </button>
-            <button
-              onClick={() => switchTab('signup')}
-              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
-                tab === 'signup' ? 'border-violet-500 text-white' : 'border-transparent text-slate-400 hover:text-slate-300'
-              }`}
-            >
-              Aanmelden
-            </button>
-          </div>
+          {tab !== 'quick' && (
+            <div className="flex border-b border-white/10 -mx-6 sm:-mx-8 px-6 sm:px-8 mb-6">
+              <button
+                onClick={() => switchTab('login')}
+                className={`pb-3 px-1 mr-6 text-sm font-medium border-b-2 transition-colors ${
+                  tab === 'login' ? 'border-violet-500 text-white' : 'border-transparent text-slate-400 hover:text-slate-300'
+                }`}
+              >
+                Inloggen
+              </button>
+              <button
+                onClick={() => switchTab('signup')}
+                className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
+                  tab === 'signup' ? 'border-violet-500 text-white' : 'border-transparent text-slate-400 hover:text-slate-300'
+                }`}
+              >
+                Aanmelden
+              </button>
+            </div>
+          )}
 
           {tab === 'login' ? (
-            <LoginForm onSuccess={() => {}} onSwitch={() => switchTab('signup')} />
+            <LoginForm onSuccess={() => {}} onSwitch={() => switchTab('signup')} onQuickSignup={() => switchTab('quick')} />
+          ) : tab === 'signup' ? (
+            <SignupForm onSuccess={() => switchTab('login')} onSwitch={() => switchTab('login')} onQuickSignup={() => switchTab('quick')} />
           ) : (
-            <SignupForm onSuccess={() => switchTab('login')} onSwitch={() => switchTab('login')} />
+            <QuickSignupForm onSuccess={() => {}} onBack={() => switchTab('signup')} />
           )}
         </div>
 
