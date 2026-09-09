@@ -52,7 +52,6 @@ export default function HomePage() {
   const [artists, setArtists] = useState<any[]>([]);
   const [tracks, setTracks] = useState<any[]>([]);
   const [cities, setCities] = useState<any[]>([]);
-  const [venueCount, setVenueCount] = useState<number | null>(null);
   const [newsArticles, setNewsArticles] = useState<any[]>([]);
   const [localPosts, setLocalPosts] = useState<any[]>([]);
   const [discoverPool, setDiscoverPool] = useState<any[]>([]);
@@ -79,7 +78,6 @@ export default function HomePage() {
       .order('id').limit(300)
       .then(({ data }) => setDiscoverPool((data ?? []).map(t => ({ ...t, artist: t.artist_name || '', cover: t.cover_url }))));
     supabase.from('dutch_cities').select('*').limit(6).then(({ data }) => setCities(data ?? []));
-    supabase.from('venues').select('id', { count: 'exact', head: true }).then(({ count }) => setVenueCount(count ?? null));
     supabase.from('articles').select('*').order('published_at', { ascending: false }).limit(3).then(({ data }) => setNewsArticles(data ?? []));
     supabase.from('networking_posts')
       .select('*, poster:profiles(username,display_name,avatar_url)')
@@ -246,20 +244,6 @@ export default function HomePage() {
                   </button>
                 </div>
               )}
-            </div>
-
-            {/* Right: quick stats */}
-            <div className="flex items-center gap-6 lg:gap-8">
-              {[
-                { n: artists.length ? artists.length + '+' : '—', label: 'Artiesten' },
-                { n: cities.length || '—', label: 'Steden' },
-                { n: venueCount ?? '—', label: 'Venues' },
-              ].map(s => (
-                <div key={s.label} className="text-center">
-                  <p className="text-2xl lg:text-3xl font-bold text-white">{s.n}</p>
-                  <p className="text-xs text-slate-400">{s.label}</p>
-                </div>
-              ))}
             </div>
           </div>
         </div>
