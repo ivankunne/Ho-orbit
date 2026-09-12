@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { addNotification } from '@services/notificationService';
 import { notifyNewFollower } from '@services/emailService';
 import { useRequireAuth } from '@hooks/useRequireAuth';
+import { useRequirePlan } from '@hooks/useRequirePlan';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isUUID = (id: string | null) => !!id && UUID_RE.test(id);
@@ -30,6 +31,7 @@ export function AppStateProvider({ children }) {
   // Liken, volgen en aanmelden zijn handelingen, geen inhoud: zonder account
   // levert dat het inlogvenster op in plaats van een stille no-op.
   const requireAuth = useRequireAuth();
+  const requirePlan = useRequirePlan();
   const [likedTracks,      setLikedTracks]      = useState<(number | string)[]>([]);
   const [followedArtists,  setFollowedArtists]  = useState<string[]>([]);
   const [rsvpEvents,       setRsvpEvents]       = useState<number[]>([]);
@@ -177,7 +179,11 @@ export function AppStateProvider({ children }) {
   }, [currentUserId, followedArtists, requireAuth]);
 
   const toggleRsvp = useCallback(async (eventId: number) => {
-    if (!requireAuth()) return;
+    // Evenementen zijn te bekijken zonder Pro, je aanmelden niet.
+    if (!requirePlan(
+      'Aanmelden voor evenementen is een Pro-functie',
+      'Upgrade naar H-orbit Pro om je aan te melden voor shows en festivals.',
+    )) return;
     if (!currentUserId) return;
     const isRsvping = !rsvpEvents.includes(eventId);
     setRsvpEvents((prev) =>
@@ -204,7 +210,7 @@ export function AppStateProvider({ children }) {
         isRsvping ? prev.filter((id) => id !== eventId) : [...prev, eventId]
       );
     }
-  }, [currentUserId, rsvpEvents, requireAuth]);
+  }, [currentUserId, rsvpEvents, requirePlan]);
 
   const setTutorialWatched = useCallback(async (id: number) => {
     setTutorialProgress((prev) => ({ ...prev, [id]: 100 }));

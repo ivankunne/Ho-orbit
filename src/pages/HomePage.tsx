@@ -19,6 +19,7 @@ import { fetchArtistProfiles } from '@utils/artistHelpers';
 import { useRadio } from '@context/RadioContext';
 import { Radio } from 'lucide-react';
 import { FILTER_GENRES, genreLabelById } from '@data/genres';
+import { fetchNetworkingPosts } from '@services/networkingService';
 
 const GENRES = ['Alles', ...FILTER_GENRES];
 
@@ -79,12 +80,10 @@ export default function HomePage() {
       .then(({ data }) => setDiscoverPool((data ?? []).map(t => ({ ...t, artist: t.artist_name || '', cover: t.cover_url }))));
     supabase.from('dutch_cities').select('*').limit(6).then(({ data }) => setCities(data ?? []));
     supabase.from('articles').select('*').order('published_at', { ascending: false }).limit(3).then(({ data }) => setNewsArticles(data ?? []));
-    supabase.from('networking_posts')
-      .select('*, poster:profiles(username,display_name,avatar_url)')
-      .eq('status', 'open')
-      .order('created_at', { ascending: false })
-      .limit(6)
-      .then(({ data }) => setLocalPosts(data ?? []));
+    // Via networking_posts_public: de oproep zelf is voor iedereen zichtbaar,
+    // de contactgegevens erin niet. Zonder dat zou dit blok leeglopen zodra de
+    // paywall live gaat — uitgerekend op de startpagina.
+    fetchNetworkingPosts({ limit: 6 }).then(setLocalPosts);
   }, []);
 
   function matchArtistsForGenre(genreId: string) {

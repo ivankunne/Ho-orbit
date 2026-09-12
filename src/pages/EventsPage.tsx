@@ -8,6 +8,7 @@ import { useToast } from '@components/Toast';
 import BlurImage from '@components/BlurImage';
 import { uploadEventPoster } from '@services/uploadService';
 import { notifyAdminUpload } from '@services/emailService';
+import { useRequirePlan } from '@hooks/useRequirePlan';
 
 function calcCountdown(dateStr, nowMs) {
   const diff = new Date(dateStr + 'T00:00:00').getTime() - nowMs;
@@ -135,6 +136,7 @@ function EventCard({ event, featured = false, rsvpd, onToggleRsvp, now }) {
 }
 
 export default function EventsPage() {
+  const requirePlan = useRequirePlan();
   const [view, setView] = useState('list');
   const [now, setNow] = useState(() => Date.now());
   const [events, setEvents] = useState([]);
@@ -183,7 +185,15 @@ export default function EventsPage() {
                 {view === 'calendar' ? 'Lijst' : 'Kalender'}
               </button>
               <button
-                onClick={() => setView('create')}
+                onClick={() => {
+                  // De agenda is vrij te bekijken; zelf een evenement
+                  // plaatsen is een Pro-functie.
+                  if (!requirePlan(
+                    'Een evenement plaatsen is een Pro-functie',
+                    'Upgrade naar H-orbit Pro om je eigen shows en festivals aan te kondigen.',
+                  )) return;
+                  setView('create');
+                }}
                 className="bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
               >
                 + Aanmaken

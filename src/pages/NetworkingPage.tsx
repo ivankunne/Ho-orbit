@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Plus, Search, Music2, Megaphone, MapPin,
-  Clock, X, Loader2, ExternalLink, Pencil, Trash2, MessageSquare
+  Clock, X, Loader2, ExternalLink, Pencil, Trash2, MessageSquare, Lock
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@context/AuthContext';
@@ -11,6 +11,8 @@ import UserAvatar from '@components/UserAvatar';
 import GenrePicker from '@components/GenrePicker';
 import GenreBadge from '@components/GenreBadge';
 import CommentSection from '@components/CommentSection';
+import { useRequirePlan } from '@hooks/useRequirePlan';
+import { fetchNetworkingPosts } from '@services/networkingService';
 
 const TABS = [
   { key: 'all',           label: 'Alles' },
@@ -48,7 +50,9 @@ interface Post {
   location: string;
   tags: string[];
   track_title: string;
-  contact_info: string;
+  contact_info: string | null;
+  /** Contactgegevens bestaan wel, maar zijn afgeschermd zonder Pro. */
+  contact_locked?: boolean;
   created_at: string;
   user_id: string;
   poster?: { username: string; display_name: string; avatar_url: string };
@@ -71,6 +75,7 @@ export default function NetworkingPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('all');
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const requirePlan = useRequirePlan();
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -85,12 +90,21 @@ export default function NetworkingPage() {
   };
 
   function openCreate() {
+    // Oproepen lezen kan iedereen; er zelf een plaatsen is Pro.
+    if (!requirePlan(
+      'Een oproep plaatsen is een Pro-functie',
+      'Upgrade naar H-orbit Pro voor Wanted, Jump on a Track en Open Calls.',
+    )) return;
     setEditingId(null);
     setForm(emptyForm);
     setShowCreate(true);
   }
 
   function openEdit(post: Post) {
+    if (!requirePlan(
+      'Een oproep bewerken is een Pro-functie',
+      'Upgrade naar H-orbit Pro om je oproepen te beheren.',
+    )) return;
     setEditingId(post.id);
     setForm({
       type: (post.type as CreateForm['type']) || 'wanted',
@@ -105,6 +119,10 @@ export default function NetworkingPage() {
   }
 
   async function handleDelete(post: Post) {
+    if (!requirePlan(
+      'Een oproep beheren is een Pro-functie',
+      'Upgrade naar H-orbit Pro om je oproepen te beheren.',
+    )) return;
     if (!window.confirm('Weet je zeker dat je deze post wilt verwijderen?')) return;
     const { error } = await supabase.from('networking_posts').delete().eq('id', post.id);
     if (error) {
@@ -119,17 +137,11 @@ export default function NetworkingPage() {
 
   async function loadPosts() {
     setLoading(true);
-    let query = supabase
-      .from('networking_posts')
-      .select('*, poster:profiles(username,display_name,avatar_url)')
-      .eq('status', 'open')
-      .order('created_at', { ascending: false })
-      .limit(60);
-
-    if (activeTab !== 'all') query = query.eq('type', activeTab);
-
-    const { data } = await query;
-    setPosts((data ?? []) as Post[]);
+    const data = await fetchNetworkingPosts({
+      limit: 60,
+      types: activeTab !== 'all' ? [activeTab] : undefined,
+    });
+    setPosts(data as unknown as Post[]);
     setLoading(false);
   }
 
@@ -382,6 +394,7 @@ function PostCard({
   const meta = TYPE_META[post.type];
   const Icon = meta?.icon ?? Megaphone;
   const [showComments, setShowComments] = useState(false);
+  const requirePlan = useRequirePlan();
 
   return (
     <div className="bg-white/3 hover:bg-white/5 border border-white/8 rounded-2xl p-5 transition-all">
@@ -426,7 +439,18 @@ function PostCard({
             <MapPin size={11} /> {post.location}
           </span>
         )}
-        {post.contact_info && (
+        {post.contact_locked ? (
+          <button
+            type="button"
+            onClick={() => requirePlan(
+              'Contactgegevens zijn een Pro-functie',
+              'Upgrade naar H-orbit Pro om rechtstreeks contact op te nemen met wie deze oproep plaatste.',
+            )}
+            className="inline-flex items-center gap-1 text-[11px] text-violet-400 hover:text-violet-300 transition-colors"
+          >
+            <Lock size={11} /> Contactgegevens met Pro
+          </button>
+        ) : post.contact_info && (
           <span className="text-xs text-slate-400 flex items-center gap-1">
             <ExternalLink size={11} /> {post.contact_info}
           </span>

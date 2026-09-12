@@ -43,11 +43,20 @@ Artiestenpagina's krijgen hun eigen titel, omschrijving en `MusicGroup`-markup
 (`ArtistDetailPage`), albums `MusicAlbum` (`AlbumDetailPage`). Ze staan ook in
 de sitemap, opgehaald uit de `artists`-tabel.
 
-**Let op bij het aanzetten van de paywall.** `has_paywalled_access()` laat nu
-iedereen door omdat de schakelaar uit staat. Zodra die aan gaat, geldt voor een
-uitgelogde bezoeker `auth.uid() is null` → geen toegang tot `events`, `venues`,
-`networking_posts`, `hub_posts` en `messages`. Die pagina's tonen dan een lege
-lijst in plaats van inhoud. Controleer dat voordat je "Ga live" indrukt.
+**De paywall werkt dezelfde kant op.** Ook daar geldt: kijken mag, dóén niet.
+`/events`, `/netwerken` en `/venue/:id` zijn gewoon te bekijken; je aanmelden,
+een oproep plaatsen of contactgegevens inzien vraagt Pro (`useRequirePlan` →
+`UpgradeModal`). Dat is bewust zo: anders zouden het blok "Maak connecties" op
+de startpagina en de evenemententab op een artiestenpagina leeglopen zodra de
+schakelaar omgaat — uitgerekend op de twee pagina's die een nieuwe bezoeker
+als eerste ziet.
+
+Aan de databasekant hoort daar `paywall_browse_gate_migration.sql` bij: lezen
+open, schrijven dicht, en `contact_info` bij een netwerkoproep alleen zichtbaar
+met Pro (via de view `networking_posts_public`). **Die migratie moet nog
+handmatig gedraaid worden.** Zolang dat niet is gebeurd valt de frontend terug
+op de tabel — dat werkt, maar levert één 404 in de console op en de
+contactgegevens zijn dan nog niet afgeschermd.
 
 ## De statische laag
 

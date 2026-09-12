@@ -4,6 +4,8 @@ import { AuthProvider, useAuth } from '@context/AuthContext';
 import { PaywallProvider } from '@context/PaywallContext';
 import { AuthModalProvider } from '@context/AuthModalContext';
 import AuthModal from '@components/AuthModal';
+import { UpgradeModalProvider } from '@context/UpgradeModalContext';
+import UpgradeModal from '@components/UpgradeModal';
 import { RadioProvider } from '@context/RadioContext';
 import { PodcastProvider } from '@context/PodcastContext';
 import { AppStateProvider, useAppState } from '@context/AppStateContext';
@@ -250,10 +252,14 @@ function ProtectedApp() {
               <Route path="/forums/thread/:threadId" element={<ForumThreadPage />} />
               <Route path="/masterclass" element={<MasterclassPage />} />
               <Route path="/drop-your-demo" element={<DropYourDemoPage />} />
-              <Route path="/netwerken"   element={<RequirePlan title="Netwerken is een Pro-functie" description="Upgrade naar H-orbit Pro voor Wanted, Jump on a Track en Open Calls."><NetworkingPage /></RequirePlan>} />
-              <Route path="/events" element={<RequirePlan title="Evenementen zijn een Pro-functie" description="Upgrade naar H-orbit Pro om evenementen te bekijken en tickets te regelen."><EventsPage /></RequirePlan>} />
-              <Route path="/events/:id" element={<RequirePlan title="Evenementen zijn een Pro-functie" description="Upgrade naar H-orbit Pro om evenementen te bekijken en tickets te regelen."><EventDetailPage /></RequirePlan>} />
-              <Route path="/venue/:id" element={<RequirePlan title="Venue-pagina's zijn een Pro-functie" description="Upgrade naar H-orbit Pro om venue-informatie te bekijken."><VenueDetailPage /></RequirePlan>} />
+              {/* Pro-onderdelen: de lijst is te bekijken, de handelingen erin
+                  (aanmelden, plaatsen, contact opnemen) vragen een abonnement.
+                  Zie useRequirePlan — geen RequirePlan om de route heen, want
+                  dat zou de pagina in zijn geheel wegnemen. */}
+              <Route path="/netwerken"   element={<NetworkingPage />} />
+              <Route path="/events" element={<EventsPage />} />
+              <Route path="/events/:id" element={<EventDetailPage />} />
+              <Route path="/venue/:id" element={<VenueDetailPage />} />
 
               {/* Inloggen/registreren als losse pagina */}
               <Route path="/login" element={<AuthRoute tab="login" />} />
@@ -306,6 +312,7 @@ function ProtectedApp() {
       <InstallPrompt />
       <PushPrompt />
       <AuthModal />
+      <UpgradeModal />
     </div>
   );
 }
@@ -317,6 +324,7 @@ export default function App() {
           AppStateContext openen het inlogvenster zodra een uitgelogde
           bezoeker iets probeert te doen, dus zij moeten erbij kunnen. */}
       <AuthModalProvider>
+      <UpgradeModalProvider>
       <PaywallProvider>
       <AppStateProvider>
         <GenreProvider>
@@ -337,6 +345,7 @@ export default function App() {
         </GenreProvider>
       </AppStateProvider>
       </PaywallProvider>
+      </UpgradeModalProvider>
       </AuthModalProvider>
     </AuthProvider>
   );
