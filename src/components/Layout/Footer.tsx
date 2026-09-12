@@ -7,7 +7,10 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
         <p>© {year} H-orbit. Alle rechten voorbehouden.</p>
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+          {/* Statische publieke pagina's — gewone <a>'s, geen SPA-routes. */}
+          <a href="/podia"            className="hover:text-slate-400 transition-colors">Podia in Nederland</a>
+          <a href="/voor-artiesten"   className="hover:text-slate-400 transition-colors">Voor artiesten</a>
           <Link to="/privacy"      className="hover:text-slate-400 transition-colors">Privacybeleid</Link>
           <Link to="/voorwaarden"  className="hover:text-slate-400 transition-colors">Voorwaarden</Link>
           <Link to="/cookies"      className="hover:text-slate-400 transition-colors">Cookies</Link>

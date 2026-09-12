@@ -5,9 +5,17 @@
     <meta name="color-scheme" content="dark" />
     <link rel="icon" type="image/png" href="/H-orbit-logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>h-orbit</title>
-    <meta name="description" content="h-orbit — de plek voor Nederlandse muziek, artiesten en fans." />
+    <title>H-orbit — het platform voor Nederlandse muziek en beginnende artiesten</title>
+    <meta name="description" content="Upload je muziek, vind bandleden en optredens, en ontdek de Nederlandse muziekscene. H-orbit is het muziekplatform voor beginnende artiesten in Nederland." />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+    <link rel="canonical" href="https://www.h-orbit.nl/" />
+    <link rel="alternate" hreflang="nl-nl" href="https://www.h-orbit.nl/" />
+    <link rel="alternate" hreflang="x-default" href="https://www.h-orbit.nl/" />
     <meta name="google-site-verification" content="VMzYc_h8KxFMGTZp62OdTHQg13OlTC1UobqXh4ievyM" />
+
+    <!-- Verbindingen die direct na de eerste render nodig zijn, alvast opzetten. -->
+    <link rel="preconnect" href="https://ellezlbjqrjcxeifrwdo.supabase.co" crossorigin />
+    <link rel="dns-prefetch" href="https://ellezlbjqrjcxeifrwdo.supabase.co" />
 
     <!-- PWA / Add to Home Screen -->
     <link rel="manifest" href="/manifest.webmanifest" />
@@ -17,10 +25,55 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="h-orbit" />
-    <meta property="og:title" content="h-orbit" />
-    <meta property="og:description" content="Ontdek Nederlandse artiesten, beluister muziek en sluit je aan bij de gemeenschap." />
-    <meta property="og:site_name" content="h-orbit" />
+    <!-- Social preview. RouteSeo werkt deze per route bij; dit is de fallback
+         voor crawlers die geen JavaScript draaien. -->
+    <meta property="og:title" content="H-orbit — het platform voor Nederlandse muziek en beginnende artiesten" />
+    <meta property="og:description" content="Upload je muziek, vind bandleden en optredens, en ontdek de Nederlandse muziekscene." />
+    <meta property="og:site_name" content="H-orbit" />
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.h-orbit.nl/" />
+    <meta property="og:locale" content="nl_NL" />
+    <meta property="og:image" content="https://www.h-orbit.nl/og/h-orbit-og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="H-orbit — Nederlands muziekplatform" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="H-orbit — het platform voor Nederlandse muziek en beginnende artiesten" />
+    <meta name="twitter:description" content="Upload je muziek, vind bandleden en optredens, en ontdek de Nederlandse muziekscene." />
+    <meta name="twitter:image" content="https://www.h-orbit.nl/og/h-orbit-og.png" />
+
+    <!-- Sitebrede entiteit: wie H-orbit is. Pagina-specifieke JSON-LD zet
+         RouteSeo/Seo er per route naast. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://www.h-orbit.nl/#organization",
+            "name": "H-orbit",
+            "url": "https://www.h-orbit.nl/",
+            "logo": {
+              "@type": "ImageObject",
+              "url": "https://www.h-orbit.nl/icons/icon-512.png",
+              "width": 512,
+              "height": 512
+            },
+            "email": "info@h-orbit.nl",
+            "areaServed": { "@type": "Country", "name": "Nederland" },
+            "description": "H-orbit is het Nederlandse muziekplatform waar beginnende artiesten hun muziek uploaden, bandleden en optredens vinden en de Nederlandse scene ontdekken."
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://www.h-orbit.nl/#website",
+            "url": "https://www.h-orbit.nl/",
+            "name": "H-orbit",
+            "inLanguage": "nl-NL",
+            "publisher": { "@id": "https://www.h-orbit.nl/#organization" }
+          }
+        ]
+      }
+    </script>
   </head>
   <body style="background:#1a1528">
     <!-- Opstart-splash: puur inline HTML/CSS, dus zichtbaar vóórdat er ook maar

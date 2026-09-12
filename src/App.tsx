@@ -25,6 +25,7 @@ import PaywallAnnouncementBanner from '@components/PaywallAnnouncementBanner';
 import PaymentFailedBanner from '@components/PaymentFailedBanner';
 import PageLoader from '@components/PageLoader';
 import RequirePlan from '@components/RequirePlan';
+import RouteSeo from '@components/RouteSeo';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -209,6 +210,7 @@ function ProtectedApp() {
       {!isLanding && !isRiderShare && <AiPolicyBanner />}
       {!isLanding && !isRiderShare && <Navbar externalShowSearch={showSearch} onExternalSearchClose={() => setShowSearch(false)} onMobileMenuChange={setMobileMenuOpen} />}
       <main className={isLanding || isRiderShare ? '' : isWorkspace ? 'flex flex-col' : 'pb-28 lg:pb-20 flex flex-col'}>
+        <RouteSeo />
         <ErrorBoundary>
           <Suspense fallback={<PageLoader />}>
             <Routes>

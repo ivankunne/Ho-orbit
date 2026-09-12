@@ -2,7 +2,27 @@
    Keep it conservative: only same-origin GET requests are touched so Supabase
    API/auth/storage calls (and any other cross-origin traffic) pass straight through. */
 
-const CACHE = 'horbit-v7';
+const CACHE = 'horbit-v8';
+
+/* Statische, publieke SEO-pagina's (gegenereerd door scripts/generate-seo.mjs)
+   zijn echte HTML-documenten, géén SPA-shell. Ze moeten dus nooit als
+   '/index.html' in de cache belanden — dan zou een koudstart van de app die
+   marketingpagina serveren in plaats van de shell. We laten ze gewoon langs
+   de service worker naar het netwerk gaan. */
+const STATIC_PAGES = [
+  '/voor-artiesten',
+  '/muziek-uploaden',
+  '/bandleden-vinden',
+  '/optredens-vinden',
+  '/muziek-promoten',
+  '/over-h-orbit',
+  '/veelgestelde-vragen',
+  '/podia',
+];
+
+function isStaticPage(pathname) {
+  return STATIC_PAGES.some((p) => pathname === p || pathname.startsWith(p + '/'));
+}
 
 self.addEventListener('install', (event) => {
   // Precache the app shell so navigations have an offline fallback to serve.
@@ -37,6 +57,9 @@ self.addEventListener('fetch', (event) => {
   // scherm kijkt. Na 2,5s serveren we de gecachte shell direct; de netwerk-
   // fetch loopt op de achtergrond door en ververst de cache voor de volgende keer.
   if (request.mode === 'navigate') {
+    // Publieke SEO-pagina's: niet aanraken (zie STATIC_PAGES hierboven).
+    if (isStaticPage(url.pathname)) return;
+
     event.respondWith(
       (async () => {
         const cache = await caches.open(CACHE);

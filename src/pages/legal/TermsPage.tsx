@@ -137,6 +137,8 @@ export default function TermsPage() {
   );
 }
 
+// Zelfde bouwstenen als PrivacyPage. SubTitle werd hier wel gebruikt maar nooit
+// gedefinieerd, waardoor /voorwaarden in de ErrorBoundary belandde.
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mb-10">
@@ -144,4 +146,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <div className="space-y-3 text-sm text-slate-400 leading-relaxed">{children}</div>
     </section>
   );
+}
+
+function SubTitle({ children }: { children: React.ReactNode }) {
+  return <h3 className="text-sm font-semibold text-slate-300 mt-5 mb-2">{children}</h3>;
 }

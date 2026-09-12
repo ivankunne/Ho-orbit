@@ -57,7 +57,52 @@ export default function AuthPage({ initialTab = 'login' }: { initialTab?: 'login
           )}
         </div>
 
+        {/* Publieke uitleg-pagina's. Bewust gewone <a>'s: dit zijn statische
+            HTML-pagina's (scripts/generate-seo.mjs), geen routes in de SPA.
+            Ze geven een uitgelogde bezoeker iets te lezen vóórdat hij een
+            account maakt — en ze zijn het enige wat een zoekmachine van
+            h-orbit te zien krijgt, dus ze moeten hiervandaan bereikbaar zijn. */}
+        <nav aria-label="Meer over H-orbit" className="mt-8">
+          <p className="text-center text-xs uppercase tracking-wide text-slate-500 mb-3">
+            Nieuw hier?
+          </p>
+          <ul className="grid grid-cols-2 gap-2 text-sm">
+            <li>
+              <a href="/voor-artiesten" className="block min-w-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-slate-300 hover:text-white hover:border-violet-500/40 transition-colors">
+                Beginnen als artiest
+              </a>
+            </li>
+            <li>
+              <a href="/muziek-uploaden" className="block min-w-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-slate-300 hover:text-white hover:border-violet-500/40 transition-colors">
+                Muziek uploaden
+              </a>
+            </li>
+            <li>
+              <a href="/bandleden-vinden" className="block min-w-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-slate-300 hover:text-white hover:border-violet-500/40 transition-colors">
+                Bandleden vinden
+              </a>
+            </li>
+            <li>
+              <a href="/optredens-vinden" className="block min-w-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-slate-300 hover:text-white hover:border-violet-500/40 transition-colors">
+                Optredens vinden
+              </a>
+            </li>
+            <li>
+              <a href="/podia" className="block min-w-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-slate-300 hover:text-white hover:border-violet-500/40 transition-colors">
+                Podia in Nederland
+              </a>
+            </li>
+            <li>
+              <a href="/veelgestelde-vragen" className="block min-w-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-slate-300 hover:text-white hover:border-violet-500/40 transition-colors">
+                Veelgestelde vragen
+              </a>
+            </li>
+          </ul>
+        </nav>
+
         <p className="text-center text-xs text-slate-500 mt-6">
+          <a href="/over-h-orbit" className="hover:text-slate-300 transition-colors">Over H-orbit</a>
+          <span className="mx-2">·</span>
           <a href="/privacy" target="_blank" rel="noreferrer" className="hover:text-slate-300 transition-colors">Privacy</a>
           <span className="mx-2">·</span>
           <a href="/voorwaarden" target="_blank" rel="noreferrer" className="hover:text-slate-300 transition-colors">Voorwaarden</a>

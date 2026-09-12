@@ -1,0 +1,13 @@
+{
+  "siteUrl": "https://www.h-orbit.nl",
+  "siteName": "H-orbit",
+  "legalName": "H-orbit",
+  "lang": "nl",
+  "locale": "nl_NL",
+  "titleSuffix": "H-orbit",
+  "defaultTitle": "H-orbit — platform voor Nederlandse muziek en beginnende artiesten",
+  "defaultDescription": "H-orbit is het Nederlandse muziekplatform waar beginnende artiesten hun muziek uploaden, bandleden en optredens vinden en de Nederlandse scene ontdekken.",
+  "defaultImage": "/og/h-orbit-og.png",
+  "contactEmail": "info@h-orbit.nl",
+  "sameAs": []
+}

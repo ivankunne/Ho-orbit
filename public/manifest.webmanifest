@@ -1,7 +1,7 @@
 {
-  "name": "h-orbit",
-  "short_name": "h-orbit",
-  "description": "h-orbit — de plek voor Nederlandse muziek, artiesten en fans.",
+  "name": "H-orbit — Nederlandse muziek en artiesten",
+  "short_name": "H-orbit",
+  "description": "Upload je muziek, vind bandleden en optredens, en ontdek de Nederlandse muziekscene.",
   "lang": "nl",
   "dir": "ltr",
   "start_url": "/muziek",
@@ -10,7 +10,11 @@
   "orientation": "portrait",
   "background_color": "#1a1528",
   "theme_color": "#1a1528",
-  "categories": ["music", "social", "entertainment"],
+  "categories": [
+    "music",
+    "social",
+    "entertainment"
+  ],
   "icons": [
     {
       "src": "/icons/icon-192.png",
