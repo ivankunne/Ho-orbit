@@ -5,20 +5,49 @@ geïndexeerd wordt, en wat je moet aanraken als je iets wilt veranderen.
 
 ---
 
-## Het uitgangspunt: de app is niet indexeerbaar
+## Twee lagen
 
-Vrijwel elke route in `src/App.tsx` zit achter `<ProtectedRoute>`. Een crawler
-is per definitie uitgelogd en wordt dus doorgestuurd naar het inlogscherm. Daar
-komt bij dat de app een client-side SPA is zonder server-rendering: het eerste
-document dat over de lijn komt is een lege shell.
+**1. De app zelf staat sinds september 2026 open.** Rondkijken kan zonder
+account: de homepage, artiesten, albums, de Nederlandse scene, radio, forums en
+de agenda zijn vrij te bekijken. Pas bij een hándeling — afspelen, liken,
+volgen, reageren, uploaden — verschijnt het inlogvenster. Die grens zit in
+`src/hooks/useRequireAuth.ts` en wordt centraal afgedwongen in `PlayerContext`,
+`RadioContext`, `PodcastContext` en `AppStateContext`, niet bij elke losse knop.
 
-Gevolg: `/muziek`, `/artists`, `/magazine`, `/forums` en de rest kúnnen niet
-ranken, hoeveel metadata je er ook op plakt. Ze staan daarom in `robots.txt` op
-`Disallow` en krijgen `noindex` mee — anders levert het alleen duplicate content
-van hetzelfde inlogscherm op.
+Alleen je eigen omgeving (bibliotheek, berichten, account, uploads, BandSpace)
+zit nog achter `ProtectedRoute`: daar valt zonder account niets te zien.
 
-De indexeerbare kant van h-orbit is een **aparte, statische laag** die bij het
-bouwen wordt gegenereerd.
+Gevolg voor SEO: muziek-, artiesten-, album- en scenepagina's kunnen nu echt
+geïndexeerd worden. Het blijft client-side gerenderd, dus Google moet er
+JavaScript voor draaien — trager en minder betrouwbaar dan server-rendering,
+maar het wérkt, wat daarvoor niet zo was.
+
+**2. Daarnaast staat er een statische laag** die geen JavaScript nodig heeft.
+Die is er voor de zoekopdrachten waar nog geen pagina in de app bij past
+("poppodium Groningen", "bandleden vinden"), en is sowieso robuuster dan een
+SPA-pagina.
+
+## Wat wel en niet de index in mag
+
+`noindex` volgt drie regels (zie `src/lib/routeSeo.ts`, en houd
+`robots.txt` in `scripts/generate-seo.mjs` daaraan gelijk):
+
+- **je eigen omgeving** — nooit indexeren;
+- **achter de paywall** (`/events`, `/netwerken`, `/venue`) — nooit, een crawler
+  ziet daar alleen de upgrade-pagina;
+- **lege inhoudstabellen** (`/magazine`, `/tutorials`, `/forums`, `/podcasts`,
+  `/masterclass`) — voorlopig niet; dunne pagina's helpen niet. Haal ze uit
+  `robots.txt` en zet `noindex` uit zodra er inhoud staat.
+
+Artiestenpagina's krijgen hun eigen titel, omschrijving en `MusicGroup`-markup
+(`ArtistDetailPage`), albums `MusicAlbum` (`AlbumDetailPage`). Ze staan ook in
+de sitemap, opgehaald uit de `artists`-tabel.
+
+**Let op bij het aanzetten van de paywall.** `has_paywalled_access()` laat nu
+iedereen door omdat de schakelaar uit staat. Zodra die aan gaat, geldt voor een
+uitgelogde bezoeker `auth.uid() is null` → geen toegang tot `events`, `venues`,
+`networking_posts`, `hub_posts` en `messages`. Die pagina's tonen dan een lege
+lijst in plaats van inhoud. Controleer dat voordat je "Ga live" indrukt.
 
 ## De statische laag
 
@@ -55,6 +84,8 @@ wijziging in `sw.js`.
 ## De app-kant
 
 - `src/lib/seo.ts` — constanten, `absoluteUrl`, `pageTitle`, JSON-LD-bouwers.
+- `src/hooks/useRequireAuth.ts` — de grens tussen kijken en meedoen.
+- `src/components/AuthPrompt.tsx` — staat waar anders een invoerveld zou staan.
 - `src/components/Seo.tsx` — schrijft de `<head>`. Bewust imperatief: `index.html`
   levert al een volledige set tags, en die werken we bij in plaats van te
   verdubbelen. Twee `<title>`'s is erger dan geen.
@@ -81,14 +112,16 @@ is een instelling in het Vercel-dashboard onder Domains, niet iets in deze repo.
 
 ## Wat hierna de meeste winst oplevert
 
-1. **Publieke artiestenpagina's.** `profiles`, `tracks` en `albums` zijn nu al
-   leesbaar voor anonieme bezoekers, dus technisch kan het meteen. Het is een
-   product- en privacybesluit, geen technisch probleem: het betekent dat de
-   profielen van je gebruikers in Google komen. Zet het pas aan als dat een
-   bewuste keuze is, en geef gebruikers de mogelijkheid zich af te melden.
-2. **Redactionele inhoud publiek maken.** `articles` en `tutorials` zijn nu leeg.
-   Zodra daar inhoud in staat, is dat het sterkste materiaal om mee te ranken —
-   mits die pagina's niet achter de login blijven.
-3. **Stadspagina's onder `/podia`.** Nu per provincie; per stad (`/podia/utrecht/
-   amersfoort`) sluit dichter aan op hoe mensen zoeken, zodra er meer locaties
-   per stad zijn.
+1. **Inhoud.** `articles`, `tutorials`, `forum_threads` en `podcasts` zijn leeg.
+   Die pagina's staan al open en zijn al ingericht; ze wachten alleen op tekst.
+   Dat is verreweg het sterkste materiaal om mee te ranken.
+2. **Gebruikersprofielen (`/profiel/:username`).** Bewust nog achter de login:
+   artiestenpagina's zijn een etalage, persoonlijke profielen niet. Openzetten
+   betekent dat de profielen van je leden in Google komen — een keuze om bewust
+   te maken, liefst met een opt-out voor je gebruikers.
+3. **Stadspagina's onder `/podia`.** Nu per provincie; per stad
+   (`/podia/utrecht/amersfoort`) sluit dichter aan op hoe mensen zoeken, zodra
+   er meer locaties per stad zijn.
+4. **Prerendering van de app-routes.** Artiestenpagina's zijn nu afhankelijk van
+   Google's JavaScript-rendering. Wil je dat robuuster, dan is een prerender-stap
+   voor `/artists/*` de volgende stap.

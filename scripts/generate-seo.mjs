@@ -338,6 +338,24 @@ async function fetchLocations() {
   }
 }
 
+/** Artiestenpagina's draaien in de SPA, maar staan sinds de open homepage vrij
+ *  toegankelijk — dus horen ze in de sitemap, zodat Google ze überhaupt vindt. */
+async function fetchArtists() {
+  if (!SUPABASE_URL || !SUPABASE_KEY) return [];
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/artists?select=slug,id&order=created_at.desc&limit=2000`,
+      { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } },
+    );
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows.map((r) => r.slug || r.id).filter(Boolean) : [];
+  } catch (err) {
+    console.warn(`[seo] Artiesten ophalen mislukt (${err.message}) — niet in de sitemap.`);
+    return [];
+  }
+}
+
 function buildPodiaPages(locations) {
   if (!locations.length) return [];
 
@@ -477,9 +495,18 @@ function buildPodiaPages(locations) {
 
 /* ── sitemap + robots ────────────────────────────────────────────────────── */
 
-/** Alleen paden die een crawler echt kan indexeren. De app-routes staan hier
- *  bewust niet in: die serveren uitgelogd allemaal hetzelfde inlogscherm. */
-const PUBLIC_APP_ROUTES = ['/', '/privacy', '/voorwaarden', '/cookies'];
+/** Alleen paden die een crawler echt kan indexeren. Sinds de open homepage zijn
+ *  dat ook de app-routes die zonder account te bekijken zijn — de rest (je eigen
+ *  omgeving, alles achter de paywall, en pagina's waarvan de tabel nog leeg is)
+ *  blijft er bewust buiten. Houd dit gelijk aan `noindex` in src/lib/routeSeo.ts. */
+const PUBLIC_APP_ROUTES = [
+  '/',
+  '/artists',
+  '/dutch-scene',
+  '/privacy',
+  '/voorwaarden',
+  '/cookies',
+];
 
 function buildSitemap(paths) {
   const today = new Date().toISOString().slice(0, 10);
@@ -504,8 +531,8 @@ function buildRobots() {
 User-agent: *
 Allow: /
 
-# Alles hieronder zit achter de login: uitgelogd levert het alleen het
-# inlogscherm op. Niet crawlen scheelt crawl budget en duplicate content.
+# Je eigen omgeving: zonder account valt hier niets te zien, dus ook niets
+# te indexeren. Niet crawlen scheelt crawl budget en duplicate content.
 Disallow: /login
 Disallow: /signup
 Disallow: /wachtwoord-herstellen
@@ -517,20 +544,20 @@ Disallow: /upload
 Disallow: /bandspace
 Disallow: /rider
 Disallow: /admin
-Disallow: /muziek
-Disallow: /artists
-Disallow: /albums
+
+# Achter de paywall: een crawler ziet hier alleen de upgrade-pagina.
 Disallow: /events
+Disallow: /netwerken
+Disallow: /venue
+
+# Wel vrij te bekijken, maar de inhoudstabel is nog leeg — dunne pagina's
+# helpen niets. Haal deze regels weg zodra er inhoud staat.
 Disallow: /magazine
 Disallow: /tutorials
 Disallow: /forums
-Disallow: /netwerken
-Disallow: /masterclass
-Disallow: /radio
 Disallow: /podcasts
+Disallow: /masterclass
 Disallow: /drop-your-demo
-Disallow: /dutch-scene
-Disallow: /venue
 
 # Intern — huisstijlgids
 Disallow: /huisstijl.html
@@ -549,16 +576,17 @@ async function main() {
   }
 
   const editorial = buildEditorialPages();
-  const locations = await fetchLocations();
+  const [locations, artists] = await Promise.all([fetchLocations(), fetchArtists()]);
   const podia = buildPodiaPages(locations);
+  const artistPaths = artists.map((slug) => `/artists/${slug}`);
 
-  const paths = [...PUBLIC_APP_ROUTES, ...editorial, ...podia];
+  const paths = [...PUBLIC_APP_ROUTES, ...editorial, ...podia, ...artistPaths];
   buildSitemap(paths);
   buildRobots();
 
   console.log(
     `[seo] ${editorial.length} redactionele pagina's, ${podia.length ? podia.length - 1 : 0} provinciepagina's ` +
-      `(${locations.length} locaties), sitemap met ${paths.length} URL's.`,
+      `(${locations.length} locaties), ${artistPaths.length} artiesten, sitemap met ${paths.length} URL's.`,
   );
 }
 

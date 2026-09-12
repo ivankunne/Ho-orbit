@@ -5,6 +5,7 @@ import { getCategories, getThreadsByCategory, createThread, deleteThread } from 
 import { useAuth } from '@context/AuthContext';
 import { useToast } from '@components/Toast';
 import { avatarPlaceholder } from '@utils/placeholder';
+import { useRequireAuth } from '@hooks/useRequireAuth';
 
 const iconMap = { MessageSquare, Sliders, Users, Calendar, Coffee };
 const colorMap = {
@@ -251,6 +252,7 @@ function ThreadList({ category, onBack, dbThreads, localThreads, onNewThread, ca
 
 export default function ForumsPage() {
   const { user } = useAuth();
+  const requireAuth = useRequireAuth();
   const addToast = useToast();
   const [view, setView] = useState('categories');
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -266,6 +268,8 @@ export default function ForumsPage() {
   }, []);
 
   const openNewThread = (cat = null) => {
+    // Meelezen kan zonder account, een discussie starten niet.
+    if (!requireAuth()) return;
     setNewThreadCategory(cat);
     setShowNewThread(true);
   };

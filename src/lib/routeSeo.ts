@@ -12,17 +12,29 @@ export type RouteSeo = {
  * terugvalt op de generieke sitetitel. Volgorde telt: de eerste match wint,
  * dus specifieke paden staan boven hun ouder.
  *
- * Let op: bijna alles hieronder zit achter <ProtectedRoute>. Die pagina's
- * krijgen bewust noindex — een uitgelogde crawler ziet er toch alleen het
- * inlogscherm, en dat als 30 losse URL's laten indexeren levert duplicate
- * content op. De publieke, indexeerbare kant van h-orbit wordt bij het
- * bouwen gegenereerd (scripts/generate-seo.mjs).
+ * `noindex` volgt drie regels:
+ *  - je eigen omgeving (bibliotheek, berichten, account, BandSpace) → nooit;
+ *  - wat achter de paywall zit (evenementen, netwerken, venues) → nooit, want
+ *    een crawler ziet daar alleen de upgrade-pagina;
+ *  - pagina's waarvan de inhoudstabel nu nog leeg is (magazine, tutorials,
+ *    forums, podcasts) → voorlopig niet, dunne pagina's helpen niet. Zet ze aan
+ *    zodra er inhoud staat.
+ *
+ * De rest — muziek, artiesten, albums en de Nederlandse scene — staat sinds de
+ * open homepage vrij toegankelijk en mag dus gewoon de index in. De statische
+ * pagina's daarnaast komen uit scripts/generate-seo.mjs.
  */
 const ROUTES: [string, RouteSeo][] = [
   ['/', {
     title: 'H-orbit — het platform voor Nederlandse muziek en beginnende artiesten',
     description:
-      'Upload je muziek, vind bandleden en optredens, en ontdek de Nederlandse muziekscene. H-orbit is gratis voor beginnende artiesten. Maak een account aan.',
+      'Ontdek nieuwe Nederlandse artiesten en muziek, verken de scene en vind bandleden en optredens. Rondkijken kan zonder account.',
+  }],
+  // Samengevoegd met '/'; de redirect mag zelf niet in de index belanden.
+  ['/muziek', {
+    title: 'Nieuwe Nederlandse muziek ontdekken',
+    description: 'Luister naar nieuwe nummers van Nederlandse artiesten, ontdek genres en stel je eigen bibliotheek samen.',
+    noindex: true,
   }],
   ['/login', {
     title: 'Inloggen',
@@ -55,25 +67,17 @@ const ROUTES: [string, RouteSeo][] = [
   }],
 
   /* ── Achter de login ───────────────────────────────────────────────── */
-  ['/muziek', {
-    title: 'Nieuwe Nederlandse muziek ontdekken',
-    description: 'Luister naar nieuwe nummers van Nederlandse artiesten, ontdek genres en stel je eigen bibliotheek samen.',
-    noindex: true,
-  }],
   ['/artists/:slug', {
     title: 'Artiest',
     description: 'Beluister de muziek van deze Nederlandse artiest op H-orbit.',
-    noindex: true,
   }],
   ['/artists', {
     title: 'Nederlandse artiesten ontdekken',
-    description: 'Blader door beginnende en gevestigde Nederlandse artiesten, per genre en per stad.',
-    noindex: true,
+    description: 'Blader door beginnende en gevestigde Nederlandse artiesten, per genre en per stad. Rondkijken kan zonder account.',
   }],
   ['/albums/:id', {
     title: 'Album',
     description: 'Beluister dit album van een Nederlandse artiest op H-orbit.',
-    noindex: true,
   }],
   ['/radio', {
     title: 'Radio — non-stop Nederlandse muziek',
@@ -123,17 +127,14 @@ const ROUTES: [string, RouteSeo][] = [
   ['/dutch-scene/locatie/:id', {
     title: 'Locatie in de Nederlandse muziekscene',
     description: 'Podium, oefenruimte of broedplaats in Nederland — adres, type en wat je er kunt doen.',
-    noindex: true,
   }],
   ['/dutch-scene/:slug', {
     title: 'Scene',
     description: 'Verken deze hoek van de Nederlandse muziekscene.',
-    noindex: true,
   }],
   ['/dutch-scene', {
     title: 'De Nederlandse muziekscene op de kaart',
     description: 'Podia, oefenruimtes en broedplaatsen door heel Nederland — per provincie en per stad.',
-    noindex: true,
   }],
   ['/venue/:id', {
     title: 'Venue',

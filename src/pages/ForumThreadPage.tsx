@@ -15,6 +15,8 @@ import { useAuth } from '@context/AuthContext';
 import { useToast } from '@components/Toast';
 import BlurImage from '@components/BlurImage';
 import UserAvatar from '@components/UserAvatar';
+import { useRequireAuth } from '@hooks/useRequireAuth';
+import AuthPrompt from '@components/AuthPrompt';
 
 function formatDate(iso) {
   try {
@@ -216,6 +218,7 @@ function ReplyCard({
 export default function ForumThreadPage() {
   const { threadId } = useParams();
   const { user } = useAuth();
+  const requireAuth = useRequireAuth();
   const addToast = useToast();
   const navigate = useNavigate();
 
@@ -325,7 +328,8 @@ export default function ForumThreadPage() {
   }
 
   async function handleReport(reply) {
-    if (!user) { addToast('Log in om te melden.', 'error'); return; }
+    if (!requireAuth()) return;
+    if (!user) return;
     try {
       await createReport({
         type: 'reply',
@@ -576,7 +580,11 @@ export default function ForumThreadPage() {
         )}
       </div>
 
-      {/* Reply box */}
+      {/* Reply box — uitgelogd tonen we de uitnodiging in plaats van een
+          formulier dat toch niets doet. */}
+      {!user ? (
+        <AuthPrompt message="Wil je meepraten in dit topic? Maak een gratis account." />
+      ) : (
       <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
         <div className="flex items-center gap-3 mb-4">
           <UserAvatar
@@ -644,6 +652,7 @@ export default function ForumThreadPage() {
           </div>
         </form>
       </div>
+      )}
 
       <div className="mt-6 pt-6 border-t border-white/8">
         <Link

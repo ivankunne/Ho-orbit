@@ -6,6 +6,8 @@ import { useToast } from './Toast';
 import { getComments, addComment, updateComment, deleteComment, toggleCommentLike } from '@services/commentService';
 import { addNotification } from '@services/notificationService';
 import { avatarPlaceholder } from '@utils/placeholder';
+import AuthPrompt from '@components/AuthPrompt';
+import { useRequireAuth } from '@hooks/useRequireAuth';
 
 const MAX_CHARS = 500;
 
@@ -27,6 +29,7 @@ function relativeTime(iso) {
 
 export default function CommentSection({ resourceType, resourceId, resourceTitle = '' }) {
   const { user } = useAuth();
+  const requireAuth = useRequireAuth();
   const addToast = useToast();
 
   const [comments, setComments] = useState([]);
@@ -112,6 +115,7 @@ export default function CommentSection({ resourceType, resourceId, resourceTitle
   };
 
   const handleLike = async (commentId) => {
+    if (!requireAuth()) return;
     if (!user) return;
     try {
       const next = await toggleCommentLike(resourceType, resourceId, commentId, user.id);
@@ -165,6 +169,8 @@ export default function CommentSection({ resourceType, resourceId, resourceTitle
           </div>
         </form>
       )}
+
+      {!user && <AuthPrompt message="Meepraten? Maak een gratis account." className="mb-8" />}
 
       {/* Comments list */}
       {loading ? (

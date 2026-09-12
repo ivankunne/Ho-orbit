@@ -137,26 +137,37 @@ function GlobalShortcuts({ onOpenSearch, onToggleShortcutsModal }) {
   return null;
 }
 
-// Root: uitgelogd → inlog-/registratiescherm; ingelogd → door naar de app
-// (of naar de pagina waar de bezoeker oorspronkelijk heen wilde).
-function RootGate({ tab }: { tab?: 'login' | 'signup' }) {
+// /login en /signup blijven bestaan als volwaardige pagina's (deeplinks,
+// e-mails, wachtwoordherstel). Ben je al ingelogd, dan heb je er niets te
+// zoeken en ga je door naar waar je heen wilde.
+function AuthRoute({ tab }: { tab: 'login' | 'signup' }) {
   const { user, loading } = useAuth();
   const location = useLocation();
   if (loading) return <PageLoader />;
   if (user) {
     const from = (location.state as { from?: string } | null)?.from;
-    return <Navigate to={from || '/muziek'} replace />;
+    return <Navigate to={from || '/'} replace />;
   }
-  return <AuthPage initialTab={tab ?? 'login'} />;
+  return <AuthPage initialTab={tab} />;
 }
 
+/**
+ * Voor je eigen hoekjes van de app: bibliotheek, berichten, account, uploads,
+ * BandSpace. Daar valt uitgelogd niets te bekijken — er ís geen inhoud zonder
+ * account — dus dat blijft een harde grens.
+ *
+ * De rest van de app is bewust wél vrij te doorlopen: alles wat inhoud toont
+ * (muziek, artiesten, de scene, forums, agenda) staat open, en pas zodra je
+ * iets wilt dóén verschijnt het inlogvenster. Die gate zit in de actie zelf
+ * (zie useRequireAuth), niet in de route.
+ */
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const location = useLocation();
   if (loading) return <PageLoader />;
   if (!user) {
     // Onthoud de bestemming zodat we er na het inloggen naartoe kunnen sturen.
-    return <Navigate to="/" replace state={{ from: location.pathname + location.search }} />;
+    return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
   }
   return <>{children}</>;
 }
@@ -175,12 +186,13 @@ function ProtectedApp() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   // Het inlog-/registratiescherm is chroomloos: geen navbar, footer of speler.
+  // '/' hoort daar sinds de open homepage níét meer bij — dat is nu gewoon de
+  // startpagina, mét navigatie, ook voor wie niet is ingelogd.
   // Elke useMatch onvoorwaardelijk aanroepen — met || ertussen zou React's
   // hook-volgorde breken zodra de route wisselt (error #310, wit scherm).
-  const matchRoot = useMatch('/');
   const matchLogin = useMatch('/login');
   const matchSignup = useMatch('/signup');
-  const isLanding = !!(matchRoot || matchLogin || matchSignup);
+  const isLanding = !!(matchLogin || matchSignup);
   // The band workspace is a full-height app shell with its own internal scroll.
   // Drop the page footer + bottom padding here so the window doesn't scroll on
   // top of it (which produced a nested scrollbar).
@@ -214,10 +226,38 @@ function ProtectedApp() {
         <ErrorBoundary>
           <Suspense fallback={<PageLoader />}>
             <Routes>
-              {/* Inlog-/registratiescherm — het startpunt voor uitgelogde bezoekers */}
-              <Route path="/" element={<RootGate />} />
-              <Route path="/login" element={<RootGate tab="login" />} />
-              <Route path="/signup" element={<RootGate tab="signup" />} />
+              {/* ── Open voor iedereen ───────────────────────────────────
+                  Rondkijken kan zonder account; pas bij een handeling
+                  (afspelen, liken, reageren) komt het inlogvenster. */}
+              <Route path="/" element={<HomePage />} />
+              {/* Oude startpagina — samengevoegd met '/' zodat er één
+                  homepage-URL overblijft in plaats van twee identieke. */}
+              <Route path="/muziek" element={<Navigate to="/" replace />} />
+              <Route path="/artists" element={<ArtistsPage />} />
+              <Route path="/artists/:slug" element={<ArtistDetailPage />} />
+              <Route path="/albums/:id" element={<AlbumDetailPage />} />
+              <Route path="/radio" element={<RadioPage />} />
+              <Route path="/podcasts" element={<PodcastsPage />} />
+              <Route path="/podcasts/:id" element={<PodcastDetailPage />} />
+              <Route path="/magazine" element={<MagazinePage />} />
+              <Route path="/magazine/:id" element={<ArticleDetailPage />} />
+              <Route path="/tutorials" element={<TutorialsPage />} />
+              <Route path="/tutorials/:id" element={<TutorialDetailPage />} />
+              <Route path="/dutch-scene" element={<DutchScenePage />} />
+              <Route path="/dutch-scene/locatie/:id" element={<SceneLocationDetailPage />} />
+              <Route path="/dutch-scene/:slug" element={<SceneDetailPage />} />
+              <Route path="/forums" element={<ForumsPage />} />
+              <Route path="/forums/thread/:threadId" element={<ForumThreadPage />} />
+              <Route path="/masterclass" element={<MasterclassPage />} />
+              <Route path="/drop-your-demo" element={<DropYourDemoPage />} />
+              <Route path="/netwerken"   element={<RequirePlan title="Netwerken is een Pro-functie" description="Upgrade naar H-orbit Pro voor Wanted, Jump on a Track en Open Calls."><NetworkingPage /></RequirePlan>} />
+              <Route path="/events" element={<RequirePlan title="Evenementen zijn een Pro-functie" description="Upgrade naar H-orbit Pro om evenementen te bekijken en tickets te regelen."><EventsPage /></RequirePlan>} />
+              <Route path="/events/:id" element={<RequirePlan title="Evenementen zijn een Pro-functie" description="Upgrade naar H-orbit Pro om evenementen te bekijken en tickets te regelen."><EventDetailPage /></RequirePlan>} />
+              <Route path="/venue/:id" element={<RequirePlan title="Venue-pagina's zijn een Pro-functie" description="Upgrade naar H-orbit Pro om venue-informatie te bekijken."><VenueDetailPage /></RequirePlan>} />
+
+              {/* Inloggen/registreren als losse pagina */}
+              <Route path="/login" element={<AuthRoute tab="login" />} />
+              <Route path="/signup" element={<AuthRoute tab="signup" />} />
 
               {/* Publiek — nodig zonder account */}
               <Route path="/wachtwoord-herstellen" element={<ResetPasswordPage />} />
@@ -228,27 +268,7 @@ function ProtectedApp() {
               <Route path="/cookies"     element={<CookiesPage />} />
               <Route path="/admin" element={<AdminGate />} />
 
-              {/* Alles hieronder vereist een account */}
-              <Route path="/radio" element={<ProtectedRoute><RadioPage /></ProtectedRoute>} />
-              <Route path="/podcasts" element={<ProtectedRoute><PodcastsPage /></ProtectedRoute>} />
-              <Route path="/podcasts/:id" element={<ProtectedRoute><PodcastDetailPage /></ProtectedRoute>} />
-              <Route path="/drop-your-demo" element={<ProtectedRoute><DropYourDemoPage /></ProtectedRoute>} />
-              <Route path="/muziek" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
-              <Route path="/artists" element={<ProtectedRoute><ArtistsPage /></ProtectedRoute>} />
-              <Route path="/artists/:slug" element={<ProtectedRoute><ArtistDetailPage /></ProtectedRoute>} />
-              <Route path="/albums/:id" element={<ProtectedRoute><AlbumDetailPage /></ProtectedRoute>} />
-              <Route path="/events" element={<ProtectedRoute><RequirePlan title="Evenementen zijn een Pro-functie" description="Upgrade naar H-orbit Pro om evenementen te bekijken en tickets te regelen."><EventsPage /></RequirePlan></ProtectedRoute>} />
-              <Route path="/events/:id" element={<ProtectedRoute><RequirePlan title="Evenementen zijn een Pro-functie" description="Upgrade naar H-orbit Pro om evenementen te bekijken en tickets te regelen."><EventDetailPage /></RequirePlan></ProtectedRoute>} />
-              <Route path="/magazine" element={<ProtectedRoute><MagazinePage /></ProtectedRoute>} />
-              <Route path="/magazine/:id" element={<ProtectedRoute><ArticleDetailPage /></ProtectedRoute>} />
-              <Route path="/tutorials" element={<ProtectedRoute><TutorialsPage /></ProtectedRoute>} />
-              <Route path="/tutorials/:id" element={<ProtectedRoute><TutorialDetailPage /></ProtectedRoute>} />
-              <Route path="/dutch-scene" element={<ProtectedRoute><DutchScenePage /></ProtectedRoute>} />
-              <Route path="/dutch-scene/locatie/:id" element={<ProtectedRoute><SceneLocationDetailPage /></ProtectedRoute>} />
-              <Route path="/dutch-scene/:slug" element={<ProtectedRoute><SceneDetailPage /></ProtectedRoute>} />
-              <Route path="/venue/:id" element={<ProtectedRoute><RequirePlan title="Venue-pagina's zijn een Pro-functie" description="Upgrade naar H-orbit Pro om venue-informatie te bekijken."><VenueDetailPage /></RequirePlan></ProtectedRoute>} />
-              <Route path="/forums" element={<ProtectedRoute><ForumsPage /></ProtectedRoute>} />
-              <Route path="/forums/thread/:threadId" element={<ProtectedRoute><ForumThreadPage /></ProtectedRoute>} />
+              {/* ── Je eigen omgeving: zonder account valt hier niets te zien ── */}
               <Route path="/upload" element={<ProtectedRoute><UploadPage /></ProtectedRoute>} />
               <Route path="/library" element={<ProtectedRoute><LibraryPage /></ProtectedRoute>} />
               <Route path="/library/playlists/:id" element={<ProtectedRoute><PlaylistDetailPage /></ProtectedRoute>} />
@@ -259,11 +279,9 @@ function ProtectedApp() {
               <Route path="/berichten/:id" element={<ProtectedRoute><ConversationPage /></ProtectedRoute>} />
               <Route path="/bandspace" element={<ProtectedRoute><RequirePlan title="BandSpace is een Pro-functie" description="Upgrade naar H-orbit Pro om je band-workspace te gebruiken."><BandSpacePage /></RequirePlan></ProtectedRoute>} />
               <Route path="/bandspace/:id" element={<ProtectedRoute><RequirePlan title="BandSpace is een Pro-functie" description="Upgrade naar H-orbit Pro om je band-workspace te gebruiken."><BandSpaceDetailPage /></RequirePlan></ProtectedRoute>} />
-              <Route path="/netwerken"   element={<ProtectedRoute><RequirePlan title="Netwerken is een Pro-functie" description="Upgrade naar H-orbit Pro voor Wanted, Jump on a Track en Open Calls."><NetworkingPage /></RequirePlan></ProtectedRoute>} />
-              <Route path="/masterclass" element={<ProtectedRoute><MasterclassPage /></ProtectedRoute>} />
 
-              {/* Onbekende URL's: uitgelogd → inlogscherm, ingelogd → 404 */}
-              <Route path="*" element={<ProtectedRoute><NotFoundPage /></ProtectedRoute>} />
+              {/* Onbekende URL's tonen gewoon een 404 — ook uitgelogd. */}
+              <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>
         </ErrorBoundary>
@@ -295,6 +313,10 @@ function ProtectedApp() {
 export default function App() {
   return (
     <AuthProvider>
+      {/* Staat bewust boven de overige providers: PlayerContext en
+          AppStateContext openen het inlogvenster zodra een uitgelogde
+          bezoeker iets probeert te doen, dus zij moeten erbij kunnen. */}
+      <AuthModalProvider>
       <PaywallProvider>
       <AppStateProvider>
         <GenreProvider>
@@ -303,12 +325,10 @@ export default function App() {
         <PodcastProvider>
         <ToastProvider>
           <BrowserRouter>
-            <AuthModalProvider>
-              <ScrollToTop />
-              <PlayerUserBridge />
-              <AppStateUserBridge />
-              <ProtectedApp />
-            </AuthModalProvider>
+            <ScrollToTop />
+            <PlayerUserBridge />
+            <AppStateUserBridge />
+            <ProtectedApp />
           </BrowserRouter>
         </ToastProvider>
         </PodcastProvider>
@@ -317,6 +337,7 @@ export default function App() {
         </GenreProvider>
       </AppStateProvider>
       </PaywallProvider>
+      </AuthModalProvider>
     </AuthProvider>
   );
 }

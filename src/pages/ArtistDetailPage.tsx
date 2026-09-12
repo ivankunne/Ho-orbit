@@ -26,6 +26,8 @@ import { deleteTrack, reorderAlbumTracks, mapTrack, type UploadedTrack } from '@
 import EditTrackModal from '@components/EditTrackModal';
 import AlbumModal from '@components/AlbumModal';
 import AddTracksToAlbumModal from '@components/AddTracksToAlbumModal';
+import Seo from '@components/Seo';
+import { breadcrumbLd, musicGroupLd, clampDescription } from '@lib/seo';
 
 export default function ArtistDetailPage() {
   const { slug } = useParams();
@@ -267,8 +269,38 @@ export default function ArtistDetailPage() {
     addToast('Nummers toegevoegd aan album', 'success');
   }
 
+  const artistPath = `/artists/${artist.slug || artist.id}`;
+
   return (
     <div>
+      {/* Artiestenpagina's zijn openbaar en worden geïndexeerd, dus krijgen ze
+          hun eigen titel, omschrijving en MusicGroup-markup in plaats van de
+          generieke route-tekst. */}
+      <Seo
+        title={artist.name}
+        description={
+          artist.bio?.trim()
+            ? clampDescription(artist.bio)
+            : `Beluister de muziek van ${artist.name}${artist.genre ? ` (${artist.genre})` : ''} op H-orbit, het platform voor Nederlandse artiesten.`
+        }
+        path={artistPath}
+        image={artist.image_url || undefined}
+        type="profile"
+        jsonLd={[
+          musicGroupLd({
+            name: artist.name,
+            path: artistPath,
+            description: artist.bio || undefined,
+            image: artist.image_url || undefined,
+            genres: artist.genre ? [artist.genre] : undefined,
+          }),
+          breadcrumbLd([
+            { name: 'Home', path: '/' },
+            { name: 'Artiesten', path: '/artists' },
+            { name: artist.name, path: artistPath },
+          ]),
+        ]}
+      />
       {/* Header — one large hero image, artist name overlaid at the bottom
           (Spotify-style single-image hero, no separate circular avatar). */}
       <div className="relative h-[42vh] min-h-[320px] max-h-[480px] overflow-hidden">

@@ -9,6 +9,8 @@ import { coverPlaceholder } from '@utils/placeholder';
 import { formatPlays } from '@utils/format';
 import { getAlbum, type Album } from '@services/albumService';
 import { getAlbumTracks, type UploadedTrack } from '@services/uploadService';
+import Seo from '@components/Seo';
+import { absoluteUrl } from '@lib/seo';
 
 interface OwnerProfile {
   username: string | null;
@@ -70,8 +72,30 @@ export default function AlbumDetailPage() {
   const ownerName = owner?.display_name || owner?.username || 'Onbekend';
   const isAlbumPlaying = isPlaying && tracks.some(t => t.id === currentTrack?.id);
 
+  const albumPath = `/albums/${album.id}`;
+  const albumArtist = tracks[0]?.artist || ownerName;
+
   return (
     <div className="max-w-4xl mx-auto px-4 lg:px-6 py-6">
+      {/* Albumpagina's zijn openbaar; eigen titel en MusicAlbum-markup in
+          plaats van de generieke route-tekst. */}
+      <Seo
+        title={albumArtist ? `${album.title} — ${albumArtist}` : album.title}
+        description={`Beluister het album ${album.title}${albumArtist ? ` van ${albumArtist}` : ''} op H-orbit, het platform voor Nederlandse artiesten.`}
+        path={albumPath}
+        image={album.coverUrl || undefined}
+        type="music.album"
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'MusicAlbum',
+          name: album.title,
+          url: absoluteUrl(albumPath),
+          ...(album.coverUrl ? { image: album.coverUrl } : {}),
+          ...(albumArtist ? { byArtist: { '@type': 'MusicGroup', name: albumArtist } } : {}),
+          ...(album.releaseDate ? { datePublished: album.releaseDate } : {}),
+          numTracks: tracks.length,
+        }}
+      />
       <button onClick={() => history.back()} className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white mb-6 transition-colors">
         <ChevronLeft size={16} /> Terug
       </button>

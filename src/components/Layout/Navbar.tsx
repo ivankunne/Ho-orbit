@@ -14,6 +14,7 @@ import { useRadio } from '@context/RadioContext';
 import SearchOverlay from '../SearchOverlay';
 import NotificationsPanel, { useNotificationCount } from '../NotificationsPanel';
 import { getUnreadMessageCount } from '@services/chatService';
+import { useRequireAuth } from '@hooks/useRequireAuth';
 
 function useUnreadMessageCount(userId: string | undefined): number {
   const [count, setCount] = useState(0);
@@ -27,7 +28,7 @@ function useUnreadMessageCount(userId: string | undefined): number {
 }
 
 const navItems = [
-  { label: 'Muziek', path: '/muziek', icon: Home },
+  { label: 'Muziek', path: '/', icon: Home },
   { label: 'Artiesten', path: '/artists', icon: Users },
   { label: 'Evenementen', path: '/events', icon: Calendar },
   { label: 'Podcasts', path: '/podcasts', icon: Headphones },
@@ -53,6 +54,7 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
   const location = useLocation();
   const { user, logout } = useAuth();
   const { open: openAuthModal } = useAuthModal();
+  const requireAuth = useRequireAuth();
   const { isLive } = useRadio();
   // Landing variant: a compact, transparent bar that floats over the bento grid.
   // Only the action cluster (zoeken · meldingen · account · hamburger) shows — the
@@ -256,10 +258,13 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
               <Search size={18} />
             </button>
 
-            {/* Uploadknop — altijd zichtbaar, route vereist login */}
+            {/* Uploadknop — altijd zichtbaar. Zonder account opent hij het
+                inlogvenster in plaats van de bezoeker naar /login te sturen;
+                die blijft dan gewoon staan waar hij was. */}
             {!isLandingVariant && (
               <Link
                 to="/upload"
+                onClick={(e) => { if (!user) { e.preventDefault(); requireAuth(); } }}
                 className="hidden sm:flex items-center gap-1.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors"
               >
                 <Upload size={14} />
@@ -563,7 +568,10 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
                 </Link>
                 <Link
                   to="/upload"
-                  onClick={() => setMobileMenuOpen(false)}
+                  onClick={(e) => {
+                    setMobileMenuOpen(false);
+                    if (!user) { e.preventDefault(); requireAuth(); }
+                  }}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-violet-600 text-white mt-2"
                 >
                   <Upload size={16} />

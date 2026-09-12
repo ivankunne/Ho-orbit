@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
 import { getStreamUrl, incrementPlays } from '@services/playerService';
 import { addToHistory } from '@services/historyService';
+import { useRequireAuth } from '@hooks/useRequireAuth';
 
 const PlayerContext = createContext(null);
 
@@ -10,6 +11,7 @@ let _pausePlayerAudio: () => void = () => {};
 export function pausePlayerAudio() { _pausePlayerAudio(); }
 
 export function PlayerProvider({ children }) {
+  const requireAuth = useRequireAuth();
   const [queue, setQueue]           = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying]   = useState(false);
@@ -172,7 +174,12 @@ export function PlayerProvider({ children }) {
     return () => { _pausePlayerAudio = () => {}; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Eén trechter voor élke afspeelknop in de app. Een bezoeker zonder account
+  // mag alles zien, maar hier houdt het op: in plaats van afspelen verschijnt
+  // het inlogvenster. Gate hier, niet bij de losse knoppen — dan kan er nooit
+  // eentje vergeten worden.
   const playTrack = useCallback((trackObj, newQueue = null) => {
+    if (!requireAuth()) return;
     const q = newQueue ?? queue;
     const idx = q.findIndex(t => t.id === trackObj.id);
     if (idx !== -1) {
@@ -191,14 +198,15 @@ export function PlayerProvider({ children }) {
       setCurrentIndex(newQ.length - 1);
       setIsPlaying(true);
     }
-  }, [queue, currentIndex]);
+  }, [queue, currentIndex, requireAuth]);
 
   const addToQueue = useCallback((trackObj) => {
+    if (!requireAuth()) return;
     setQueue(prev => {
       if (prev.find(t => t.id === trackObj.id)) return prev;
       return [...prev, trackObj];
     });
-  }, []);
+  }, [requireAuth]);
 
   const skipForward = useCallback(() => {
     if (queue.length === 0) return;

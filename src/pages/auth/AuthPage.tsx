@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
 import { LoginForm, SignupForm, QuickSignupForm } from '@components/AuthModal';
 
@@ -57,11 +59,20 @@ export default function AuthPage({ initialTab = 'login' }: { initialTab?: 'login
           )}
         </div>
 
+        {/* Sinds de app open staat is inloggen geen voorwaarde meer om iets te
+            zien: wie hier per ongeluk belandt, kan gewoon terug naar de site. */}
+        <p className="text-center mt-6">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors"
+          >
+            Eerst rondkijken zonder account
+            <ArrowRight size={14} />
+          </Link>
+        </p>
+
         {/* Publieke uitleg-pagina's. Bewust gewone <a>'s: dit zijn statische
-            HTML-pagina's (scripts/generate-seo.mjs), geen routes in de SPA.
-            Ze geven een uitgelogde bezoeker iets te lezen vóórdat hij een
-            account maakt — en ze zijn het enige wat een zoekmachine van
-            h-orbit te zien krijgt, dus ze moeten hiervandaan bereikbaar zijn. */}
+            HTML-pagina's (scripts/generate-seo.mjs), geen routes in de SPA. */}
         <nav aria-label="Meer over H-orbit" className="mt-8">
           <p className="text-center text-xs uppercase tracking-wide text-slate-500 mb-3">
             Nieuw hier?

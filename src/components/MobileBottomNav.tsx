@@ -2,17 +2,22 @@ import { useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Home, Users, User, MessageSquare } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
+import { useRequireAuth } from '@hooks/useRequireAuth';
 
+// `needsAccount`: tabbladen die zonder account niets te tonen hebben. Uitgelogd
+// tikken opent het inlogvenster in plaats van door te springen naar /login —
+// je blijft dan gewoon staan waar je was.
 const tabs = [
-  { label: 'Ontdekken', path: '/muziek',    icon: Home },
-  { label: 'Band',      path: '/bandspace', icon: Users },
-  { label: 'Berichten', path: '/berichten', icon: MessageSquare },
-  { label: 'Profiel',   path: '/profiel',   icon: User },
+  { label: 'Ontdekken', path: '/',          icon: Home,          needsAccount: false },
+  { label: 'Band',      path: '/bandspace', icon: Users,         needsAccount: true },
+  { label: 'Berichten', path: '/berichten', icon: MessageSquare, needsAccount: true },
+  { label: 'Profiel',   path: '/profiel',   icon: User,          needsAccount: true },
 ];
 
 export default function MobileBottomNav() {
   const { pathname } = useLocation();
   const { user } = useAuth();
+  const requireAuth = useRequireAuth();
   const ref = useRef<HTMLDivElement>(null);
 
   // Publish the bar's real rendered height (incl. the iOS safe-area inset) as a
@@ -39,14 +44,18 @@ export default function MobileBottomNav() {
       className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#1a1528] border-t border-white/10"
     >
       <div className="flex items-center px-1 pt-2" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
-        {tabs.map(({ label, path, icon: Icon, accent }) => {
+        {tabs.map(({ label, path, icon: Icon, accent, needsAccount }) => {
           const resolvedPath = path === '/profiel' && user?.username ? `/profiel/${user.username}` : path;
           const active = path === '/' ? pathname === '/' : pathname.startsWith(path);
+          const gate = needsAccount && !user
+            ? (e: React.MouseEvent) => { e.preventDefault(); requireAuth(); }
+            : undefined;
           if (accent) {
             return (
               <Link
                 key={path}
                 to={resolvedPath}
+                onClick={gate}
                 className="flex-1 flex flex-col items-center gap-0.5 py-1 min-h-[44px] justify-center"
               >
                 <div className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${
@@ -66,6 +75,7 @@ export default function MobileBottomNav() {
             <Link
               key={path}
               to={resolvedPath}
+              onClick={gate}
               className="flex-1 flex flex-col items-center gap-0.5 py-1 rounded-xl transition-all min-h-[44px] justify-center"
             >
               <div className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${

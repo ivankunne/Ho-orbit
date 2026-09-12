@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect } from 'rea
 import { supabase } from '@/lib/supabase';
 import { addNotification } from '@services/notificationService';
 import { notifyNewFollower } from '@services/emailService';
+import { useRequireAuth } from '@hooks/useRequireAuth';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isUUID = (id: string | null) => !!id && UUID_RE.test(id);
@@ -26,6 +27,9 @@ interface AppStateContextValue {
 const AppStateContext = createContext<AppStateContextValue | null>(null);
 
 export function AppStateProvider({ children }) {
+  // Liken, volgen en aanmelden zijn handelingen, geen inhoud: zonder account
+  // levert dat het inlogvenster op in plaats van een stille no-op.
+  const requireAuth = useRequireAuth();
   const [likedTracks,      setLikedTracks]      = useState<(number | string)[]>([]);
   const [followedArtists,  setFollowedArtists]  = useState<string[]>([]);
   const [rsvpEvents,       setRsvpEvents]       = useState<number[]>([]);
@@ -53,6 +57,7 @@ export function AppStateProvider({ children }) {
   }, [currentUserId]);
 
   const toggleLike = useCallback(async (trackId: number) => {
+    if (!requireAuth()) return;
     if (!currentUserId) return;
     const isLiking = !likedTracks.includes(trackId);
     setLikedTracks((prev) =>
@@ -78,9 +83,10 @@ export function AppStateProvider({ children }) {
         isLiking ? prev.filter((id) => id !== trackId) : [...prev, trackId]
       );
     }
-  }, [currentUserId, likedTracks]);
+  }, [currentUserId, likedTracks, requireAuth]);
 
   const toggleFollow = useCallback(async (artistId: number | string) => {
+    if (!requireAuth()) return;
     if (!currentUserId) return;
     const key = String(artistId);
 
@@ -168,9 +174,10 @@ export function AppStateProvider({ children }) {
         }
       }
     }
-  }, [currentUserId, followedArtists]);
+  }, [currentUserId, followedArtists, requireAuth]);
 
   const toggleRsvp = useCallback(async (eventId: number) => {
+    if (!requireAuth()) return;
     if (!currentUserId) return;
     const isRsvping = !rsvpEvents.includes(eventId);
     setRsvpEvents((prev) =>
@@ -197,7 +204,7 @@ export function AppStateProvider({ children }) {
         isRsvping ? prev.filter((id) => id !== eventId) : [...prev, eventId]
       );
     }
-  }, [currentUserId, rsvpEvents]);
+  }, [currentUserId, rsvpEvents, requireAuth]);
 
   const setTutorialWatched = useCallback(async (id: number) => {
     setTutorialProgress((prev) => ({ ...prev, [id]: 100 }));

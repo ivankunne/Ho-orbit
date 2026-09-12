@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useRef, useEffect, useCallback } f
 import { supabase } from '@/lib/supabase';
 import { pausePlayerAudio } from '@context/PlayerContext';
 import { pausePodcastAudio } from '@context/PodcastContext';
+import { useRequireAuth } from '@hooks/useRequireAuth';
 
 export interface RadioStation {
   id: string;
@@ -49,6 +50,8 @@ interface RadioContextValue {
 const RadioContext = createContext<RadioContextValue | null>(null);
 
 export function RadioProvider({ children }) {
+  // Luisteren is een handeling: zonder account eerst inloggen.
+  const requireAuth = useRequireAuth();
   const [stations, setStations]           = useState<RadioStation[]>([]);
   const [currentStation, setCurrentStation] = useState<RadioStation | null>(null);
   const [isRadioPlaying, setIsRadioPlaying] = useState(false);
@@ -161,6 +164,7 @@ export function RadioProvider({ children }) {
   }, []);
 
   const playStation = useCallback((station: RadioStation) => {
+    if (!requireAuth()) return;
     if (!station.stream_url || !station.is_live) return;
     pausePlayerAudio(); // stop track audio synchronously before starting radio
     pausePodcastAudio(); // stop podcast audio synchronously before starting radio
@@ -172,7 +176,7 @@ export function RadioProvider({ children }) {
     audio.play().catch(streamFailed);
     setCurrentStation(station);
     setIsRadioPlaying(true);
-  }, [streamFailed, stopRecording]);
+  }, [streamFailed, stopRecording, requireAuth]);
 
   const toggleStation = useCallback((station: RadioStation) => {
     if (isRadioPlaying && currentStation?.id === station.id) stopRadio();
@@ -180,6 +184,7 @@ export function RadioProvider({ children }) {
   }, [isRadioPlaying, currentStation, playStation, stopRadio]);
 
   const playRecording = useCallback((recording: RadioRecording) => {
+    if (!requireAuth()) return;
     if (!recording.audio_url) return;
     pausePlayerAudio();
     pausePodcastAudio();
@@ -191,7 +196,7 @@ export function RadioProvider({ children }) {
     audio.play().catch(recordingFailed);
     setCurrentRecording(recording);
     setIsRecordingPlaying(true);
-  }, [recordingFailed, stopRadio]);
+  }, [recordingFailed, stopRadio, requireAuth]);
 
   const toggleRecording = useCallback((recording: RadioRecording) => {
     if (isRecordingPlaying && currentRecording?.id === recording.id) stopRecording();

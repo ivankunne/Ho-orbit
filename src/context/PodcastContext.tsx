@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useRef, useEffect, useCallback } f
 import { supabase } from '@/lib/supabase';
 import { pausePlayerAudio } from '@context/PlayerContext';
 import { useRadio } from '@context/RadioContext';
+import { useRequireAuth } from '@hooks/useRequireAuth';
 
 export interface Podcast {
   id: string;
@@ -47,6 +48,8 @@ let _stopPodcastAudio: () => void = () => {};
 export function pausePodcastAudio() { _stopPodcastAudio(); }
 
 export function PodcastProvider({ children }) {
+  // Luisteren is een handeling: zonder account eerst inloggen.
+  const requireAuth = useRequireAuth();
   const { stopRadio, stopRecording } = useRadio();
   const [podcasts, setPodcasts] = useState<Podcast[]>([]);
   const [episodeCounts, setEpisodeCounts] = useState<Record<string, number>>({});
@@ -121,6 +124,7 @@ export function PodcastProvider({ children }) {
   }, [stopPodcast]);
 
   const playEpisode = useCallback((podcast: Podcast, episode: PodcastEpisode) => {
+    if (!requireAuth()) return;
     if (!episode.audio_url) return;
     pausePlayerAudio(); // stop track audio
     stopRadio(); // stop live radio
@@ -133,7 +137,7 @@ export function PodcastProvider({ children }) {
     setCurrentPodcast(podcast);
     setCurrentEpisode(episode);
     setIsPodcastPlaying(true);
-  }, [stopRadio, stopRecording, streamFailed]);
+  }, [stopRadio, stopRecording, streamFailed, requireAuth]);
 
   const toggleEpisode = useCallback((podcast: Podcast, episode: PodcastEpisode) => {
     if (isPodcastPlaying && currentEpisode?.id === episode.id) stopPodcast();
