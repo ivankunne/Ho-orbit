@@ -2,7 +2,7 @@
    Keep it conservative: only same-origin GET requests are touched so Supabase
    API/auth/storage calls (and any other cross-origin traffic) pass straight through. */
 
-const CACHE = 'horbit-v8';
+const CACHE = 'horbit-v9';
 
 /* Statische, publieke SEO-pagina's (gegenereerd door scripts/generate-seo.mjs)
    zijn echte HTML-documenten, géén SPA-shell. Ze moeten dus nooit als
@@ -65,7 +65,14 @@ self.addEventListener('fetch', (event) => {
         const cache = await caches.open(CACHE);
         const networkFetch = fetch(request)
           .then((fresh) => {
-            cache.put('/index.html', fresh.clone()).catch(() => {});
+            // Alléén een geslaagd antwoord mag de shell worden. Zonder deze
+            // controle belandt ook een 404- of foutpagina als '/index.html' in
+            // de cache, en serveert een koude start daarna die foutpagina in
+            // plaats van de app — precies wat er gebeurde toen een verkeerde
+            // vercel.json elke diepe link liet mislukken.
+            if (fresh && fresh.ok && fresh.type === 'basic') {
+              cache.put('/index.html', fresh.clone()).catch(() => {});
+            }
             return fresh;
           });
         const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 2500));
