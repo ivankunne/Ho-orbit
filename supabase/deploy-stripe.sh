@@ -8,7 +8,9 @@
 #   - Logged in                (supabase login)
 #   - supabase/functions/.env  filled in with STRIPE_SECRET_KEY,
 #                              STRIPE_PRICE_ID, STRIPE_PRICE_ID_YEARLY,
-#                              and STRIPE_WEBHOOK_SECRET (see .env.example)
+#                              STRIPE_WEBHOOK_SECRET en (optioneel, voor
+#                              BandSpace-stoelen) STRIPE_SEAT_PRICE_ID +
+#                              STRIPE_SEAT_PRICE_ID_YEARLY
 #   - stripe_subscriptions_migration.sql already run in the Supabase SQL editor
 
 set -euo pipefail
@@ -46,11 +48,34 @@ STRIPE_SECRET_KEY_VAL=$(grep -E '^STRIPE_SECRET_KEY=' "$ENV_FILE" | cut -d= -f2-
 STRIPE_PRICE_ID_VAL=$(grep -E '^STRIPE_PRICE_ID=' "$ENV_FILE" | cut -d= -f2-)
 STRIPE_PRICE_ID_YEARLY_VAL=$(grep -E '^STRIPE_PRICE_ID_YEARLY=' "$ENV_FILE" | cut -d= -f2-)
 STRIPE_WEBHOOK_SECRET_VAL=$(grep -E '^STRIPE_WEBHOOK_SECRET=' "$ENV_FILE" | cut -d= -f2-)
+STRIPE_SEAT_PRICE_ID_VAL=$(grep -E '^STRIPE_SEAT_PRICE_ID=' "$ENV_FILE" | cut -d= -f2-)
+STRIPE_SEAT_PRICE_ID_YEARLY_VAL=$(grep -E '^STRIPE_SEAT_PRICE_ID_YEARLY=' "$ENV_FILE" | cut -d= -f2-)
+
+# De stoelprijzen zijn optioneel: zolang ze leeg zijn draait de rest gewoon
+# door, alleen het bijkopen van BandSpace-plekken werkt dan niet. Een lege
+# waarde meesturen zou een eerder gezet secret overschrijven met niets.
+#
+# De omslachtige ${arr[@]+"${arr[@]}"} is nodig omdat dit script onder
+# `set -u` draait en macOS nog bash 3.2 meelevert: daar breekt "${arr[@]}" op
+# een lege array af met "unbound variable", precies in de situatie die hier
+# normaal is — nog geen stoelprijzen ingevuld.
+SEAT_SECRETS=()
+if [ -n "$STRIPE_SEAT_PRICE_ID_VAL" ]; then
+  SEAT_SECRETS+=("STRIPE_SEAT_PRICE_ID=$STRIPE_SEAT_PRICE_ID_VAL")
+fi
+if [ -n "$STRIPE_SEAT_PRICE_ID_YEARLY_VAL" ]; then
+  SEAT_SECRETS+=("STRIPE_SEAT_PRICE_ID_YEARLY=$STRIPE_SEAT_PRICE_ID_YEARLY_VAL")
+fi
+if [ ${#SEAT_SECRETS[@]} -eq 0 ]; then
+  echo "  ! STRIPE_SEAT_PRICE_ID(_YEARLY) is leeg — BandSpace-stoelen bijkopen werkt nog niet."
+fi
+
 supabase secrets set \
   "STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY_VAL" \
   "STRIPE_PRICE_ID=$STRIPE_PRICE_ID_VAL" \
   "STRIPE_PRICE_ID_YEARLY=$STRIPE_PRICE_ID_YEARLY_VAL" \
-  "STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET_VAL"
+  "STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET_VAL" \
+  ${SEAT_SECRETS[@]+"${SEAT_SECRETS[@]}"}
 
 echo "→ Deploying stripe-checkout…"
 supabase functions deploy stripe-checkout
@@ -66,6 +91,9 @@ supabase functions deploy stripe-webhook --no-verify-jwt
 
 echo "→ Deploying stripe-plan (public, no JWT verification)…"
 supabase functions deploy stripe-plan --no-verify-jwt
+
+echo "→ Deploying stripe-seats…"
+supabase functions deploy stripe-seats
 
 echo "✓ Done."
 echo "  Now go to Stripe Dashboard → Developers → Webhooks and point an endpoint at:"

@@ -14,6 +14,10 @@ dist-ssr
 
 # Supabase Edge Function secrets (keep .env.example, ignore the real one)
 supabase/functions/.env
+# Ook kopieën/backups — die vallen anders buiten de regel hierboven
+# en bevatten wél de live sleutels.
+supabase/functions/.env.*
+!supabase/functions/.env.example
 supabase/.temp
 
 # Contains the plaintext master-admin password — must never enter git history
