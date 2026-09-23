@@ -20,9 +20,9 @@ export default function Footer() {
         <p>
           Made by{' '}
           <a
-            href="https://frameflow.no"
+            href="https://www.frameflow.no/prosjekter/h-orbit"
             target="_blank"
-            rel="noopener noreferrer"
+            rel="noopener"
             className="text-slate-500 hover:text-slate-400 transition-colors"
           >
             frameflow.no

@@ -230,6 +230,7 @@ ${body}
       <li><a href="mailto:${esc(SITE.contactEmail)}">${esc(SITE.contactEmail)}</a></li>
     </ul>
     <p>© ${new Date().getFullYear()} H-orbit. Nederlands muziekplatform voor artiesten en de mensen om hen heen.</p>
+    <p>Made by <a href="https://www.frameflow.no/prosjekter/h-orbit" target="_blank" rel="noopener">frameflow.no</a></p>
   </div>
 </footer>
 </body>
