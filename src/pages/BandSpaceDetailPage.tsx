@@ -34,6 +34,7 @@ import {
   type BandInvite, type InviteCandidate, type InviteRole,
   listBandInvites, searchProfilesForInvite, addBandMemberDirect, createBandInvite, revokeBandInvite,
 } from '@services/bandInviteService';
+import { fetchBandSeatState } from '@services/bandSeatService';
 import {
   type ChannelKey, type ChannelPreview, type BandEvent, type EventType, type BandPost,
   type BandEventContact, type BandEventRsvp, type RsvpStatus,
@@ -298,6 +299,9 @@ export default function BandSpaceDetailPage() {
   const [inviteName, setInviteName]       = useState('');
   const [inviteEmail, setInviteEmail]     = useState('');
   const [inviteRole, setInviteRole]       = useState<InviteRole>('member');
+  // Stoelenstand van de eigenaar — zodat de grens zichtbaar is vóórdat je
+  // ertegenaan loopt, in plaats van als foutmelding erna.
+  const [seats, setSeats] = useState<{ included: number; allowance: number; used: number; is_owner: boolean } | null>(null);
   const [sendingInvite, setSendingInvite] = useState(false);
   const [pendingInvites, setPendingInvites] = useState<BandInvite[]>([]);
   const [loadingInvites, setLoadingInvites] = useState(false);
@@ -1076,7 +1080,9 @@ export default function BandSpaceDetailPage() {
   }
   async function handleAccept(memberId: string, profile: any) {
     const { error } = await supabase.from('band_members').update({ status: 'active' }).eq('id', memberId);
-    if (error) { addToast('Accepteren mislukt', 'error'); return; }
+    // Hier kan de stoellimiet toeslaan: een verzoek goedkeuren maakt iemand
+    // actief lid, net zo goed als een uitnodiging.
+    if (error) { addToast(describeBandError(error, 'Accepteren mislukt'), 'error'); return; }
     const accepted = pending.find(m => m.id === memberId);
     if (accepted) { setPending(prev => prev.filter(m => m.id !== memberId)); setMembers(prev => [...prev, { ...accepted, status: 'active' }]); }
     addToast(`${profile?.display_name || profile?.username} geaccepteerd`, 'success');
@@ -1254,6 +1260,7 @@ export default function BandSpaceDetailPage() {
       setPendingInvites(invites.filter(i => i.status === 'pending'));
       setLoadingInvites(false);
     });
+    fetchBandSeatState(id).then(setSeats);
   }, [showShareModal, isAdmin, id]);
 
   // ── Debounced existing-user search for the invite modal ───────────────────
@@ -3272,7 +3279,37 @@ export default function BandSpaceDetailPage() {
             {/* Invite (owner/admin only) — members can't self-serve invites anymore */}
             {isAdmin && (
               <div className="mb-5">
-                <p className="text-xs font-medium text-slate-400 mb-2">Lid uitnodigen</p>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <p className="text-xs font-medium text-slate-400">Lid uitnodigen</p>
+                  {seats && (
+                    <span className={`text-[11px] font-semibold ${seats.used >= seats.allowance ? 'text-amber-400' : 'text-slate-500'}`}>
+                      {seats.used} / {seats.allowance} plekken
+                    </span>
+                  )}
+                </div>
+
+                {/* Vol: zeggen wat er aan de hand is en wat de uitweg is, in
+                    plaats van een formulier dat bij het verzenden faalt. */}
+                {seats && seats.used >= seats.allowance && (
+                  <div className="mb-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5">
+                    <p className="text-[11px] text-amber-200 leading-relaxed">
+                      {seats.allowance === 0
+                        ? 'BandSpace hoort bij H-orbit Pro. Met Pro kun je vijf mensen uitnodigen.'
+                        : `Alle ${seats.allowance} plekken zijn bezet. ${seats.is_owner
+                            ? 'Verwijder een lid, of koop een extra plek voor € 2,50 per maand.'
+                            : 'De eigenaar van de band kan een extra plek bijkopen.'}`}
+                    </p>
+                    {seats.is_owner && (
+                      <Link
+                        to="/account"
+                        onClick={() => setShowShareModal(false)}
+                        className="inline-block mt-1.5 text-[11px] font-semibold text-amber-300 hover:text-amber-200 transition-colors"
+                      >
+                        Naar abonnement →
+                      </Link>
+                    )}
+                  </div>
+                )}
                 <div className="flex gap-1.5 mb-3 bg-black/20 rounded-xl p-1">
                   <button
                     onClick={() => setInviteTab('search')}

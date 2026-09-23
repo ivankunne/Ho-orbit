@@ -27,6 +27,7 @@ import PaywallAnnouncementBanner from '@components/PaywallAnnouncementBanner';
 import PaymentFailedBanner from '@components/PaymentFailedBanner';
 import PageLoader from '@components/PageLoader';
 import RequirePlan from '@components/RequirePlan';
+import RequireBandSpace from '@components/RequireBandSpace';
 import RouteSeo from '@components/RouteSeo';
 
 function ScrollToTop() {
@@ -283,8 +284,10 @@ function ProtectedApp() {
               <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
               <Route path="/berichten" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
               <Route path="/berichten/:id" element={<ProtectedRoute><ConversationPage /></ProtectedRoute>} />
-              <Route path="/bandspace" element={<ProtectedRoute><RequirePlan title="BandSpace is een Pro-functie" description="Upgrade naar H-orbit Pro om je band-workspace te gebruiken."><BandSpacePage /></RequirePlan></ProtectedRoute>} />
-              <Route path="/bandspace/:id" element={<ProtectedRoute><RequirePlan title="BandSpace is een Pro-functie" description="Upgrade naar H-orbit Pro om je band-workspace te gebruiken."><BandSpaceDetailPage /></RequirePlan></ProtectedRoute>} />
+              {/* RequireBandSpace i.p.v. RequirePlan: uitgenodigde leden vallen
+                  onder het abonnement van de bandeigenaar en betalen niet zelf. */}
+              <Route path="/bandspace" element={<ProtectedRoute><RequireBandSpace><BandSpacePage /></RequireBandSpace></ProtectedRoute>} />
+              <Route path="/bandspace/:id" element={<ProtectedRoute><RequireBandSpace><BandSpaceDetailPage /></RequireBandSpace></ProtectedRoute>} />
 
               {/* Onbekende URL's tonen gewoon een 404 — ook uitgelogd. */}
               <Route path="*" element={<NotFoundPage />} />

@@ -4,6 +4,7 @@ import { User, Bell, Lock, Check, LogOut, Camera, AlertTriangle, Eye, EyeOff, Lo
 import { pushSupported, pushPermission, isPushEnabled, enablePush, disablePush, type PushState } from '@services/pushService';
 import { startCheckout, openBillingPortal, cancelSubscription, getPlanInfo, formatPlanPrice, yearlySavingsLabel, type PlanInterval, type PlanOptions } from '@services/subscriptionService';
 import { FREE_FEATURES, PRO_FEATURES } from '@data/subscriptionPlans';
+import BandSeatsCard from '@components/BandSeatsCard';
 import UserAvatar from '@components/UserAvatar';
 import { useAuth } from '@context/AuthContext';
 import { changePassword, deleteAccount, updateEmail, updateProfile as persistProfile, updatePreferences, uploadAvatar, uploadBanner } from '@services/userService';
@@ -291,6 +292,14 @@ function AbonnementSection({ user }: { user: any }) {
           )}
         </div>
       </div>
+
+      {/* Stoelen horen bij een lopend abonnement — zonder Pro valt er niets te
+          verdelen, dan staat de Pro-kaart hierboven al klaar. */}
+      {isPaid && (
+        <div className="mt-4">
+          <BandSeatsCard />
+        </div>
+      )}
 
       {showCancelDialog && (
         <Dialog open={true} onOpenChange={setShowCancelDialog}>

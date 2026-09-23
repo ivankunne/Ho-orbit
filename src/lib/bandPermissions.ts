@@ -93,10 +93,16 @@ const ERROR_MESSAGES: Record<string, string> = {
   invalid_token: 'Deze uitnodigingslink is ongeldig.',
   invite_already_used: 'Deze uitnodiging is al gebruikt.',
   invite_expired: 'Deze uitnodiging is verlopen. Vraag om een nieuwe.',
+  band_seat_limit_reached:
+    'Alle plekken zijn bezet. Verwijder eerst een lid of koop een extra plek bij (€ 2,50 per maand).',
 };
 
 export function describeBandError(error: { message?: string } | null | undefined, fallback: string): string {
   const code = error?.message?.trim();
-  if (code && ERROR_MESSAGES[code]) return ERROR_MESSAGES[code];
-  return fallback;
+  if (!code) return fallback;
+  if (ERROR_MESSAGES[code]) return ERROR_MESSAGES[code];
+  // De stoeltrigger vuurt vanuit de database, dus de melding komt binnen als
+  // een Postgres-fout met de code érgens in de tekst, niet als kale code.
+  const match = Object.keys(ERROR_MESSAGES).find((key) => code.includes(key));
+  return match ? ERROR_MESSAGES[match] : fallback;
 }

@@ -20,6 +20,24 @@ import { stripeRequest, verifyStripeSignature, subscriptionPeriodEnd } from '../
 
 const STRIPE_WEBHOOK_SECRET = Deno.env.get('STRIPE_WEBHOOK_SECRET') ?? '';
 
+// De BandSpace-stoelprijzen. Alles op een abonnement dat hier niet in staat,
+// is het plan zelf.
+const SEAT_PRICE_IDS = new Set(
+  [Deno.env.get('STRIPE_SEAT_PRICE_ID'), Deno.env.get('STRIPE_SEAT_PRICE_ID_YEARLY')].filter(
+    (id): id is string => !!id,
+  ),
+);
+
+/** Aantal bijgekochte stoelen op dit abonnement (0 als er geen stoel-regel is). */
+function seatQuantity(subscription: {
+  items?: { data?: { quantity?: number; price?: { id?: string } }[] };
+}): number {
+  const item = (subscription.items?.data ?? []).find(
+    (entry) => entry.price?.id && SEAT_PRICE_IDS.has(entry.price.id),
+  );
+  return item?.quantity ?? 0;
+}
+
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
@@ -42,19 +60,35 @@ async function syncSubscriptionByCustomer(
   status: string,
   currentPeriodEnd: number | null,
   cancelAtPeriodEnd: boolean,
+  extraSeats = 0,
 ) {
   const plan = subscriptionId && ACTIVE_STATUSES.has(status) ? 'paid' : 'free';
-  const { error } = await supabaseAdmin
+  const periodEnd = currentPeriodEnd ? new Date(currentPeriodEnd * 1000).toISOString() : null;
+
+  const { data: rows, error } = await supabaseAdmin
     .from('profiles')
     .update({
       plan,
       stripe_subscription_id: subscriptionId,
       subscription_status: status,
-      current_period_end: currentPeriodEnd ? new Date(currentPeriodEnd * 1000).toISOString() : null,
+      current_period_end: periodEnd,
       cancel_at_period_end: cancelAtPeriodEnd,
     })
-    .eq('stripe_customer_id', customerId);
+    .eq('stripe_customer_id', customerId)
+    .select('id');
   if (error) throw error;
+
+  // Stoelen apart, ná het plan: band_seat_allowance leest profiles.plan, dus
+  // die moet al kloppen. sync_band_seats zet het aantal en bepaalt of er
+  // afgeschaald moet worden — met een waarschuwingstermijn, niet meteen.
+  for (const row of rows ?? []) {
+    const { error: seatError } = await supabaseAdmin.rpc('sync_band_seats', {
+      p_user: (row as { id: string }).id,
+      p_extra: plan === 'paid' ? extraSeats : 0,
+      p_period_end: periodEnd,
+    });
+    if (seatError) throw seatError;
+  }
 }
 
 Deno.serve(async (req) => {
@@ -83,8 +117,8 @@ Deno.serve(async (req) => {
             id: string;
             status: string;
             cancel_at_period_end: boolean;
-            items?: { data?: { current_period_end?: number }[] };
-          }>('GET', `/subscriptions/${session.subscription}`);
+            items?: { data?: { current_period_end?: number; quantity?: number; price?: { id?: string } }[] };
+          }>('GET', `/subscriptions/${session.subscription}`, { 'expand[]': 'items.data.price' });
           await syncSubscriptionByCustomer(
             supabaseAdmin,
             session.customer,
@@ -92,6 +126,7 @@ Deno.serve(async (req) => {
             subscription.status,
             subscriptionPeriodEnd(subscription),
             subscription.cancel_at_period_end,
+            seatQuantity(subscription),
           );
         }
         break;
@@ -106,6 +141,7 @@ Deno.serve(async (req) => {
           event.type === 'customer.subscription.deleted' ? 'canceled' : subscription.status,
           subscriptionPeriodEnd(subscription),
           event.type === 'customer.subscription.deleted' ? false : !!subscription.cancel_at_period_end,
+          event.type === 'customer.subscription.deleted' ? 0 : seatQuantity(subscription),
         );
         break;
       }

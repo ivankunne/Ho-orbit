@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@context/AuthContext';
 import { useToast } from '@components/Toast';
 import GenrePicker from '@components/GenrePicker';
+import BandSeatWarning from '@components/BandSeatWarning';
 
 // Preview chips for the hero — mirrors the 6 Orbit channels inside a band
 // workspace (BandSpaceDetailPage's CHANNELS), kept as a local display-only
@@ -157,6 +158,10 @@ export default function BandSpacePage() {
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 lg:px-6 py-10">
+      {/* Staat bovenaan en niet weg te klikken: dit is de enige plek waar een
+          eigenaar ziet dat zijn band binnenkort wordt teruggezet. */}
+      <BandSeatWarning />
+
       {/* Hero */}
       <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-gradient-to-br from-violet-600/15 via-[#1e1833] to-[#1e1833] mb-10">
         <div className="pointer-events-none absolute -top-24 -right-24 w-72 h-72 rounded-full bg-violet-600/20 blur-3xl" />

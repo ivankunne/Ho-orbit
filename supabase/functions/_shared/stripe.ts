@@ -63,14 +63,21 @@ export async function stripeRequest<T = any>(
 
 // As of API version 2025-03-31.basil, a Subscription's current_period_end no
 // longer lives on the object itself — it moved to each subscription item, to
-// support items with independent billing cycles. This account only ever puts
-// one price per subscription, so the first item's value is the one that
-// matters. Always read the period end through this helper, never
-// `subscription.current_period_end` directly (that field is gone).
+// support items with independent billing cycles. Always read the period end
+// through this helper, never `subscription.current_period_end` directly
+// (that field is gone).
+//
+// Since BandSpace seats were added there can be two items on one subscription
+// (the plan and the seat add-on), so picking items[0] is no longer safe —
+// item order is not guaranteed. They bill on the same cycle, but take the
+// latest of the two rather than trust the ordering.
 export function subscriptionPeriodEnd(subscription: {
   items?: { data?: { current_period_end?: number }[] };
 }): number | null {
-  return subscription.items?.data?.[0]?.current_period_end ?? null;
+  const ends = (subscription.items?.data ?? [])
+    .map((item) => item.current_period_end)
+    .filter((value): value is number => typeof value === 'number');
+  return ends.length ? Math.max(...ends) : null;
 }
 
 // Verifies a Stripe-Signature header per
