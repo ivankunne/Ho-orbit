@@ -16,7 +16,7 @@ const CHANNEL_PREVIEWS = [
   { label: 'Repetities',     icon: Music,     color: 'text-violet-400',  bg: 'bg-violet-500/15'  },
   { label: 'Gigs',           icon: Mic2,      color: 'text-pink-400',    bg: 'bg-pink-500/15'    },
   { label: 'Socials',        icon: Globe,     color: 'text-sky-400',     bg: 'bg-sky-500/15'     },
-  { label: 'Muziekbladen',   icon: Newspaper, color: 'text-amber-400',   bg: 'bg-amber-500/15'   },
+  { label: 'Leadsheet',      icon: Newspaper, color: 'text-amber-400',   bg: 'bg-amber-500/15'   },
   { label: 'Media',          icon: Video,     color: 'text-emerald-400', bg: 'bg-emerald-500/15' },
   { label: 'Samenwerkingen', icon: Handshake, color: 'text-teal-400',    bg: 'bg-teal-500/15'    },
 ];

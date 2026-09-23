@@ -63,7 +63,7 @@ const CHANNELS = [
   { key: 'rehearsals' as ChannelKey, label: 'Repetities',  icon: Music,     color: 'text-violet-400',  bg: 'bg-violet-500/20',  accent: 'bg-violet-500',  border: 'border-violet-500/30'  },
   { key: 'gigs'       as ChannelKey, label: 'Gigs',         icon: Mic2,      color: 'text-pink-400',    bg: 'bg-pink-500/20',    accent: 'bg-pink-500',    border: 'border-pink-500/30'    },
   { key: 'socials'    as ChannelKey, label: 'Socials',       icon: Globe,     color: 'text-sky-400',     bg: 'bg-sky-500/20',     accent: 'bg-sky-500',     border: 'border-sky-500/30'     },
-  { key: 'magazine'   as ChannelKey, label: 'Muziekbladen', icon: Newspaper, color: 'text-amber-400',   bg: 'bg-amber-500/20',   accent: 'bg-amber-500',   border: 'border-amber-500/30'   },
+  { key: 'magazine'   as ChannelKey, label: 'Leadsheet', icon: Newspaper, color: 'text-amber-400',   bg: 'bg-amber-500/20',   accent: 'bg-amber-500',   border: 'border-amber-500/30'   },
   { key: 'media'      as ChannelKey, label: 'Media',         icon: Video,     color: 'text-emerald-400', bg: 'bg-emerald-500/20', accent: 'bg-emerald-500', border: 'border-emerald-500/30' },
   { key: 'collabs'    as ChannelKey, label: 'Samenwerkingen', icon: Handshake, color: 'text-teal-400',   bg: 'bg-teal-500/20',    accent: 'bg-teal-500',    border: 'border-teal-500/30'    },
 ] as const;
