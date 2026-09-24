@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, ZoomControl } from 'react-leaflet';
-import { ChevronDown, X, Plus, Pencil } from 'lucide-react';
+import { ChevronDown, X, Plus, Pencil, MapPinPlus } from 'lucide-react';
 import MapAttributionNl from '@components/MapAttributionNl';
 import L from 'leaflet';
 import { Link } from 'react-router-dom';
@@ -120,13 +120,14 @@ function ZoomTracker({ onZoom }: { onZoom: (z: number) => void }) {
 }
 
 // Keuzes in het formulier: één type per legendagroep, met de legendanaam.
-const TYPE_OPTIONS = LEGEND_GROUPS.map(g => ({ value: g.types[0], label: g.label }));
+export const TYPE_OPTIONS = LEGEND_GROUPS.map(g => ({ value: g.types[0], label: g.label }));
 
 export default function SceneMap() {
   const { user } = useAuth();
   const isAdmin = !!user?.isAdmin;
-  // null = dicht, 'new' = toevoegen, anders de locatie die bewerkt wordt.
-  const [editing, setEditing] = useState<SceneLocation | 'new' | null>(null);
+  // null = dicht, 'new' = toevoegen (admin), 'submit' = aanmelden (iedereen),
+  // anders de locatie die bewerkt wordt.
+  const [editing, setEditing] = useState<SceneLocation | 'new' | 'submit' | null>(null);
   const [zoom, setZoom] = useState(7);
   const [locations, setLocations] = useState<SceneLocation[]>([]);
   const [active, setActive] = useState<string | null>(null);
@@ -168,14 +169,23 @@ export default function SceneMap() {
 
   return (
     <>
-    {isAdmin && (
-      <div className="mb-3 flex justify-end">
-        <button type="button" onClick={() => setEditing('new')}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-violet-900/30 hover:bg-violet-500 active:scale-[0.98] transition-[background-color,transform]">
-          <Plus size={16} strokeWidth={2.5} /> Locatie toevoegen
+    <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border border-violet-500/25 bg-violet-600/10 px-4 py-3">
+      <p className="flex-1 text-sm text-violet-200">
+        Heb je een oefenruimte, podium of zaal? Zet hem op de kaart zodat muzikanten je kunnen vinden.
+      </p>
+      <div className="flex flex-wrap gap-2 shrink-0">
+        <button type="button" onClick={() => setEditing('submit')}
+          className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-violet-400/40 bg-violet-600/20 px-4 text-sm font-semibold text-white hover:bg-violet-600/35 transition-colors">
+          <MapPinPlus size={16} /> Meld je locatie aan
         </button>
+        {isAdmin && (
+          <button type="button" onClick={() => setEditing('new')}
+            className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl bg-violet-600 px-4 text-sm font-semibold text-white shadow-lg shadow-violet-900/30 hover:bg-violet-500 active:scale-[0.98] transition-[background-color,transform]">
+            <Plus size={16} strokeWidth={2.5} /> Locatie toevoegen
+          </button>
+        )}
       </div>
-    )}
+    </div>
     <div className="relative rounded-2xl overflow-hidden border border-white/10 scene-map-wrapper" style={{ height: '540px' }}>
       {/* Hint */}
       <div className="absolute top-3 left-3 z-10 bg-[#231d3a]/90 backdrop-blur-sm border border-white/10 text-xs text-slate-400 px-3 py-2 rounded-lg pointer-events-none">
@@ -396,7 +406,8 @@ export default function SceneMap() {
     </div>
     {editing && (
       <SceneLocationForm
-        location={editing === 'new' ? null : editing}
+        mode={editing === 'submit' ? 'public' : 'admin'}
+        location={editing === 'new' || editing === 'submit' ? null : editing}
         typeOptions={TYPE_OPTIONS}
         existing={locations}
         onClose={() => setEditing(null)}

@@ -5,7 +5,7 @@ import { Loader2, MapPin, Search, Trash2 } from 'lucide-react';
 import { useToast } from '@components/Toast';
 import { Sheet, Field, inputCls } from '@components/LearningForms';
 import {
-  createSceneLocation, updateSceneLocation, deleteSceneLocation, geocodeAddress,
+  createSceneLocation, updateSceneLocation, deleteSceneLocation, geocodeAddress, submitSceneLocation,
   PROVINCES, type SceneLocation, type SceneLocationInput,
 } from '@services/sceneLocationService';
 
@@ -40,24 +40,34 @@ function FixSize() {
 type TypeOption = { value: string; label: string };
 
 /**
- * Locatie toevoegen of wijzigen op de scenekaart. Alleen voor admins — de
- * knoppen die dit openen zijn verborgen voor anderen, en de database weigert
- * het sowieso (scene_locations_admin_migration.sql).
+ * Locatie toevoegen of wijzigen op de scenekaart.
+ *
+ * - `mode="admin"`: direct opslaan. Alleen voor admins — de knoppen die dit
+ *   openen zijn verborgen voor anderen, en de database weigert het sowieso
+ *   (scene_locations_admin_migration.sql).
+ * - `mode="public"`: "Meld je locatie aan" voor iedereen. Vraagt ook naam en
+ *   e-mail van de aanvrager en stuurt het naar de admins ter beoordeling
+ *   (edge function scene-submission); er komt niets direct op de kaart.
  *
  * De plek komt uit het adres (OpenStreetMap) en is daarna met de pin bij te
  * stellen: een adres alleen legt een marker soms midden in een straat, of op
  * het verkeerde pand bij een groot complex.
  */
-export default function SceneLocationForm({ location, typeOptions, existing, onClose, onSaved, onDeleted }: {
+export default function SceneLocationForm({ mode = 'admin', location, typeOptions, existing, onClose, onSaved, onDeleted }: {
+  mode?: 'admin' | 'public';
   location?: SceneLocation | null;
   typeOptions: TypeOption[];
   existing: SceneLocation[];
   onClose: () => void;
-  onSaved: (row: SceneLocation) => void;
+  onSaved?: (row: SceneLocation) => void;
   onDeleted?: (id: number) => void;
 }) {
   const addToast = useToast();
   const editing = !!location;
+  const isPublic = mode === 'public';
+  const [contact, setContact] = useState({ name: '', email: '', message: '', website_confirm: '' });
+  const upContact = (k: keyof typeof contact) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    setContact(s => ({ ...s, [k]: e.target.value }));
   const [f, setF] = useState({
     name: location?.name ?? '',
     type: location?.type ?? typeOptions[0]?.value ?? '',
@@ -96,6 +106,8 @@ export default function SceneLocationForm({ location, typeOptions, existing, onC
     province: !f.province ? 'Kies een provincie.' : undefined,
     website: website && !/^[^\s/]+\.[a-z]{2,}(\/\S*)?$/i.test(website) ? 'Dit lijkt geen geldig webadres, bv. www.voorbeeld.nl' : undefined,
     pos: !pos ? 'Zoek het adres op of tik op de kaart om de plek aan te geven.' : undefined,
+    contactName: isPublic && !contact.name.trim() ? 'Vul je naam in.' : undefined,
+    contactEmail: isPublic && !/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(contact.email.trim()) ? 'Vul een geldig e-mailadres in.' : undefined,
   };
   const show = (k: keyof typeof errors) => (tried ? errors[k] : undefined);
 
@@ -131,9 +143,15 @@ export default function SceneLocationForm({ location, typeOptions, existing, onC
       lng: Number(pos[1].toFixed(7)),
     };
     try {
+      if (isPublic) {
+        await submitSceneLocation(input, contact);
+        addToast('Bedankt! We bekijken je aanmelding en laten het je per e-mail weten.', 'success');
+        onClose();
+        return;
+      }
       const row = editing ? await updateSceneLocation(location!.id, input) : await createSceneLocation(input);
       addToast(editing ? 'Locatie bijgewerkt' : 'Locatie op de kaart gezet', 'success');
-      onSaved(row);
+      onSaved?.(row);
       onClose();
     } catch (err) {
       addToast((err as Error)?.message || 'Opslaan is mislukt.', 'error');
@@ -157,13 +175,22 @@ export default function SceneLocationForm({ location, typeOptions, existing, onC
   }
 
   return (
-    <Sheet title={editing ? 'Locatie bewerken' : 'Locatie toevoegen'} onClose={onClose} busy={busy} onSubmit={submit}>
+    <Sheet title={isPublic ? 'Meld je locatie aan' : editing ? 'Locatie bewerken' : 'Locatie toevoegen'}
+      submitLabel={isPublic ? 'Versturen' : 'Opslaan'} onClose={onClose} busy={busy} onSubmit={submit}>
+      {isPublic && (
+        <p className="-mt-1 text-sm text-slate-400">
+          Heb je een oefenruimte, podium of zaal waar muzikanten terecht kunnen? Vul de gegevens in; na een korte
+          controle door ons team staat hij op de kaart.
+        </p>
+      )}
       <Field label="Naam" required error={show('name')}>
         <input value={f.name} onChange={up('name')} placeholder="bv. Poppodium De Vorstin" className={inputCls} />
       </Field>
       {duplicate && (
         <p className="-mt-3 rounded-lg bg-amber-500/10 border border-amber-500/25 px-3 py-2 text-xs text-amber-200">
-          Er staat al een “{duplicate.name}” in {duplicate.city} op de kaart. Weet je zeker dat dit een andere plek is?
+          {isPublic
+            ? <>“{duplicate.name}” in {duplicate.city} staat al op de kaart. Klopt er iets niet? Meld het gerust, zet het dan in je bericht.</>
+            : <>Er staat al een “{duplicate.name}” in {duplicate.city} op de kaart. Weet je zeker dat dit een andere plek is?</>}
         </p>
       )}
 
@@ -229,7 +256,25 @@ export default function SceneLocationForm({ location, typeOptions, existing, onC
         <textarea value={f.description} onChange={up('description')} rows={4} className={`${inputCls} py-2.5 resize-y`} />
       </Field>
 
-      {editing && (
+      {isPublic && (
+        <div className="space-y-5 border-t border-white/8 pt-5">
+          <p className="text-sm font-semibold text-white">Jouw gegevens</p>
+          <Field label="Je naam" required error={show('contactName')}>
+            <input value={contact.name} onChange={upContact('name')} autoComplete="name" className={inputCls} />
+          </Field>
+          <Field label="Je e-mailadres" required error={show('contactEmail')} hint="Alleen om je te laten weten dat je locatie op de kaart staat. Niet zichtbaar voor anderen.">
+            <input value={contact.email} onChange={upContact('email')} type="email" autoComplete="email" inputMode="email" className={inputCls} />
+          </Field>
+          <Field label="Bericht voor ons" hint="Optioneel.">
+            <textarea value={contact.message} onChange={upContact('message')} rows={3} maxLength={1000} className={`${inputCls} py-2.5 resize-y`} />
+          </Field>
+          {/* Honeypot: onzichtbaar voor mensen, bots vullen het in. */}
+          <input value={contact.website_confirm} onChange={upContact('website_confirm')} tabIndex={-1} autoComplete="off"
+            aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 opacity-0" name="website_confirm" />
+        </div>
+      )}
+
+      {editing && !isPublic && (
         <div className="border-t border-white/8 pt-4">
           {confirmDelete ? (
             <div className="flex flex-col sm:flex-row gap-2">

@@ -33,8 +33,8 @@ export function AdminAddButton({ label, onClick }: { label: string; onClick: () 
 
 /* ── Venster ───────────────────────────────────────────────────────────── */
 
-export function Sheet({ title, onClose, busy, onSubmit, children }: {
-  title: string; onClose: () => void; busy: boolean; onSubmit: () => void; children: ReactNode;
+export function Sheet({ title, onClose, busy, onSubmit, children, submitLabel = 'Opslaan' }: {
+  title: string; onClose: () => void; busy: boolean; onSubmit: () => void; children: ReactNode; submitLabel?: string;
 }) {
   const panelRef = useRef<HTMLFormElement>(null);
 
@@ -70,7 +70,7 @@ export function Sheet({ title, onClose, busy, onSubmit, children }: {
           </button>
           <button type="submit" disabled={busy}
             className="flex-1 min-h-[48px] inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 text-sm font-semibold text-white hover:bg-violet-500 disabled:opacity-60 transition-colors">
-            {busy && <Loader2 size={16} className="animate-spin" />} Opslaan
+            {busy && <Loader2 size={16} className="animate-spin" />} {submitLabel}
           </button>
         </div>
       </form>

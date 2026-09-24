@@ -23,6 +23,7 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { sendEmail } from '../_shared/resend.ts';
 import { newFollowerEmail, newMessageEmail, bandInviteEmail, uploadForReviewEmail } from '../_shared/emails.ts';
 import { sendPushToUser } from '../_shared/push.ts';
+import { getUserEmail, adminEmailRecipients } from '../_shared/adminEmails.ts';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -38,20 +39,6 @@ const prefEnabled = (prefs: Record<string, unknown> | null, key: string) =>
 
 function displayName(p: { display_name?: string | null; username?: string | null } | null): string {
   return p?.display_name || p?.username || 'iemand';
-}
-
-// profiles.email is only set once at signup and never updated afterward —
-// changing your email in Account Settings only updates auth.users (see
-// userService.ts:updateEmail). Reading it from auth.users here instead means
-// notification emails always follow the account's current confirmed email,
-// never a stale one left behind after a change.
-async function getUserEmail(admin: ReturnType<typeof createClient>, userId: string): Promise<string | null> {
-  const { data, error } = await admin.auth.admin.getUserById(userId);
-  if (error) {
-    console.warn('[notify] getUserEmail failed:', error.message);
-    return null;
-  }
-  return data.user?.email ?? null;
 }
 
 // Schrijft een melding voor de lijst in de app. Het resultaat wordt
@@ -384,21 +371,6 @@ const UPLOAD_LABELS: Record<string, string> = {
 // voor elke kleinigheid een mail.
 const NEEDS_APPROVAL = new Set(['track']);
 
-// Adressen zonder echte mailbox: niet naar mailen. Het superadmin-account logt
-// in met een gegenereerd adres (zelfde als MASTER_ADMIN_EMAIL in
-// src/pages/AdminLoginPage.tsx) waar geen post binnenkomt — elke mail erheen
-// zou bouncen en de afzenderreputatie van h-orbit.nl bij Resend schaden.
-// Meldingen in de app en push blijven voor dit account gewoon werken.
-const NO_MAILBOX = new Set(['ivan-master-2cc51a5f@h-orbit.nl']);
-
-// Extra ontvangers van de goedkeuringsmails die geen account hebben (en ook
-// geen adminrechten nodig hebben): alleen de mail, geen melding in de app.
-// Kommagescheiden, als secret op het project — niet in de code, want de repo
-// staat op GitHub. Zet met: supabase secrets set ADMIN_NOTIFY_EMAILS=a@x.nl,b@y.nl
-const EXTRA_ADMIN_EMAILS = (Deno.env.get('ADMIN_NOTIFY_EMAILS') ?? '')
-  .split(',')
-  .map((e) => e.trim().toLowerCase())
-  .filter((e) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e) && !NO_MAILBOX.has(e));
 
 // Fans out to every admin whenever a user uploads content. Deliberately
 // ignores each admin's notification_prefs opt-out (unlike every other
@@ -445,14 +417,9 @@ async function handleUpload(
   // zie getUserEmail.
   let emailed = 0;
   if (wantsEmail) {
-    const byAddress = new Map<string, string>(); // adres → aanhef
-    await Promise.all(
-      recipients.map(async (a) => {
-        const to = (await getUserEmail(admin, a.id as string))?.toLowerCase();
-        if (to && !NO_MAILBOX.has(to)) byAddress.set(to, displayName(a));
-      }),
+    const byAddress = await adminEmailRecipients(
+      admin, recipients.map((a) => ({ id: a.id as string, name: displayName(a) })),
     );
-    for (const to of EXTRA_ADMIN_EMAILS) if (!byAddress.has(to)) byAddress.set(to, '');
 
     await Promise.all(
       [...byAddress].map(async ([to, name]) => {

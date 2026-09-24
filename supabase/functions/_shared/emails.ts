@@ -182,3 +182,57 @@ export function uploadForReviewEmail(opts: {
   };
 }
 
+
+/** Aanmelding voor de scenekaart → admins. De knop opent de beoordeelpagina
+ *  in de app; accepteren gebeurt daar pas na een klik, niet door de link zelf
+ *  (mailscanners openen links automatisch). */
+export function sceneSubmissionEmail(opts: {
+  recipientName: string;
+  reviewUrl: string;
+  place: { name: string; type: string; address: string | null; city: string; province: string; website: string | null; notes: string | null };
+  contactName: string;
+  contactEmail: string;
+  message: string | null;
+}): { subject: string; html: string } {
+  const p = opts.place;
+  const row = (label: string, value: string | null) => value
+    ? `<tr><td style="padding:4px 12px 4px 0;color:rgba(255,255,255,0.45);vertical-align:top;white-space:nowrap;">${label}</td><td style="padding:4px 0;color:#ffffff;">${escapeHtml(value)}</td></tr>`
+    : '';
+  return {
+    subject: `Nieuwe aanmelding voor de kaart: ${p.name} (${p.city})`,
+    html: layout({
+      preheader: `${opts.contactName} wil ${p.name} in ${p.city} op de scenekaart. Accepteer of wijs af met één klik.`,
+      heading: 'Nieuwe locatie aangemeld',
+      bodyHtml: `
+        <p style="margin:0 0 16px;">Hoi${opts.recipientName ? ' ' + escapeHtml(opts.recipientName) : ''},</p>
+        <p style="margin:0 0 16px;">Er is een plek aangemeld voor de scenekaart. Hij staat er pas op als een admin hem accepteert.</p>
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px;font-size:14px;">
+          ${row('Naam', p.name)}${row('Type', p.type)}${row('Adres', p.address)}${row('Plaats', `${p.city}, ${p.province}`)}
+          ${row('Website', p.website)}${row('Omschrijving', p.notes)}
+          ${row('Aangemeld door', `${opts.contactName} (${opts.contactEmail})`)}${row('Bericht', opts.message)}
+        </table>`,
+      ctaLabel: 'Bekijken en accepteren',
+      ctaUrl: opts.reviewUrl,
+      footerNoteHtml: 'Je ontvangt deze mail omdat je admin bent op h-orbit. De link werkt maar voor één beoordeling; stuur hem niet door.',
+    }),
+  };
+}
+
+/** Bevestiging aan de aanvrager dat de plek op de kaart staat. */
+export function sceneApprovedEmail(opts: { contactName: string; placeName: string; mapUrl: string }): { subject: string; html: string } {
+  return {
+    subject: `${opts.placeName} staat op de h-orbit scenekaart`,
+    html: layout({
+      preheader: `Je aanmelding is geaccepteerd: ${opts.placeName} staat nu op de kaart.`,
+      heading: 'Je locatie staat op de kaart',
+      bodyHtml: `
+        <p style="margin:0 0 16px;">Hoi ${escapeHtml(opts.contactName)},</p>
+        <p style="margin:0 0 16px;">Bedankt voor je aanmelding! <strong style="color:#ffffff;">${escapeHtml(opts.placeName)}</strong>
+          staat nu op de scenekaart van h-orbit, zodat muzikanten in de buurt je kunnen vinden.</p>
+        <p style="margin:0 0 16px;">Klopt er iets niet of verandert er iets? Beantwoord deze mail, dan passen we het aan.</p>`,
+      ctaLabel: 'Bekijk de kaart',
+      ctaUrl: opts.mapUrl,
+      footerNoteHtml: 'Je ontvangt deze eenmalige mail omdat je deze locatie bij h-orbit hebt aangemeld.',
+    }),
+  };
+}

@@ -64,6 +64,7 @@ const DutchScenePage = lazy(() => import('@pages/DutchScenePage'));
 const SceneDetailPage = lazy(() => import('@pages/SceneDetailPage'));
 const VenueDetailPage = lazy(() => import('@pages/VenueDetailPage'));
 const SceneLocationDetailPage = lazy(() => import('@pages/SceneLocationDetailPage'));
+const SceneSubmissionReviewPage = lazy(() => import('@pages/SceneSubmissionReviewPage'));
 const ForumsPage = lazy(() => import('@pages/ForumsPage'));
 const ForumThreadPage = lazy(() => import('@pages/ForumThreadPage'));
 const EventsPage = lazy(() => import('@pages/EventsPage'));
@@ -250,6 +251,7 @@ function ProtectedApp() {
               <Route path="/tutorials/:id" element={<TutorialDetailPage />} />
               <Route path="/dutch-scene" element={<DutchScenePage />} />
               <Route path="/dutch-scene/locatie/:id" element={<SceneLocationDetailPage />} />
+              <Route path="/dutch-scene/aanvraag/:token" element={<SceneSubmissionReviewPage />} />
               <Route path="/dutch-scene/:slug" element={<SceneDetailPage />} />
               <Route path="/forums" element={<ForumsPage />} />
               <Route path="/forums/thread/:threadId" element={<ForumThreadPage />} />

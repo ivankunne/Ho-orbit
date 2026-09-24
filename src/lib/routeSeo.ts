@@ -129,6 +129,12 @@ const ROUTES: [string, RouteSeo][] = [
     description: 'Leer opnemen, mixen, releasen en promoten — uitleg op maat voor beginnende artiesten.',
     noindex: true,
   }],
+  // Beoordeellink uit de admin-mail; de token in de URL mag nergens belanden.
+  ['/dutch-scene/aanvraag/:token', {
+    title: 'Aanmelding beoordelen',
+    description: 'Een aangemelde locatie voor de scenekaart beoordelen.',
+    noindex: true,
+  }],
   ['/dutch-scene/locatie/:id', {
     title: 'Locatie in de Nederlandse muziekscene',
     description: 'Podium, oefenruimte of broedplaats in Nederland — adres, type en wat je er kunt doen.',

@@ -48,6 +48,48 @@ export async function deleteSceneLocation(id: number): Promise<void> {
   assertRow(data, error);
 }
 
+/** Bij een 4xx van de edge function zit onze eigen (Nederlandse) melding in de body. */
+async function functionError(error: unknown, fallback: string): Promise<string> {
+  const ctx = (error as { context?: Response }).context;
+  const msg = await ctx?.json?.().then((b: { error?: string }) => b?.error).catch(() => null);
+  return msg || fallback;
+}
+
+/** Aanmelding van een bezoeker: gaat naar de admins, niet direct op de kaart. */
+export async function submitSceneLocation(
+  place: SceneLocationInput,
+  contact: { name: string; email: string; message: string; website_confirm: string },
+): Promise<void> {
+  const { data, error } = await supabase.functions.invoke('scene-submission', {
+    body: {
+      action: 'submit', place,
+      contact: { name: contact.name, email: contact.email, message: contact.message },
+      website_confirm: contact.website_confirm,
+    },
+  });
+  if (error) throw new Error(await functionError(error, 'Versturen is mislukt. Probeer het later opnieuw.'));
+  if (data?.error) throw new Error(data.error);
+}
+
+export interface Submission extends SceneLocationInput {
+  status: 'pending' | 'approved' | 'rejected';
+  expired: boolean;
+  contact_name: string;
+  contact_email: string;
+  message: string | null;
+  created_at: string;
+  reviewed_at: string | null;
+  location_id: number | null;
+}
+
+/** Beoordeelpagina (link uit de admin-mail): ophalen, accepteren, afwijzen. */
+export async function submissionAction(action: 'get' | 'approve' | 'reject', token: string): Promise<Submission> {
+  const { data, error } = await supabase.functions.invoke('scene-submission', { body: { action, token } });
+  if (error) throw new Error(await functionError(error, 'Er ging iets mis. Probeer het opnieuw.'));
+  if (data?.error) throw new Error(data.error);
+  return data.submission as Submission;
+}
+
 export interface GeocodeHit {
   lat: number;
   lng: number;

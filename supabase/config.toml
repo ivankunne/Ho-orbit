@@ -42,3 +42,11 @@ entrypoint = "./functions/stripe-webhook/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/stripe-plan/index.ts"
+
+# Aanmeldingen voor de scenekaart. Uit: aanvragers hebben meestal geen
+# account, en admins beoordelen via een link met een geheime token in de mail.
+# De function controleert zelf de token, invoer en een limiet per IP.
+[functions.scene-submission]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/scene-submission/index.ts"
