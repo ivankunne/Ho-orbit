@@ -1,11 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Play, Clock, Eye, BookOpen, Sliders, Disc3, Calendar,
-  Loader2, Lock, CheckCircle2
+  Lock, CheckCircle2, X,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { formatPlays } from '@utils/format';
 import { optimizedImage } from '@lib/image';
+import EmptyState from '@components/EmptyState';
+import { Skeleton, TileSkeletons } from '@components/Skeleton';
+import VideoEmbed, { parseVideo } from '@components/VideoEmbed';
+import { AdminAddButton, MasterclassFormModal } from '@components/LearningForms';
+import { useRequirePlan } from '@hooks/useRequirePlan';
+import type { MasterclassCategory } from '@services/learningService';
 
 const CATEGORIES = [
   { key: 'all',      label: 'Alles' },
@@ -39,84 +46,47 @@ interface Masterclass {
   created_at: string;
 }
 
-// Placeholder data so the page isn't empty before DB content is added
-const PLACEHOLDER: Masterclass[] = [
-  {
-    id: 'ph1', title: 'Van idee naar beat: het productieproces ontrafeld', category: 'producer',
-    description: 'Hoe werk je een ruwe melodie uit tot een volledige productie? Stapsgewijs uitgelegd door een van de meest productieve beatmakers van de Benelux.',
-    video_url: '', thumbnail_url: '', instructor_name: 'DJ Promo',
-    instructor_avatar: '', duration: '38 min', is_free: true, views_count: 1240, created_at: new Date().toISOString(),
-  },
-  {
-    id: 'ph2', title: 'Mix zoals de groten: stems, busses en glue', category: 'mixer',
-    description: 'Van ruwe opname naar radiokwaliteit. Leer hoe je met een clean mixchain ruimte creëert en je tracks laat doordrukken.',
-    video_url: '', thumbnail_url: '', instructor_name: 'MixCloud Nine',
-    instructor_avatar: '', duration: '55 min', is_free: true, views_count: 876, created_at: new Date().toISOString(),
-  },
-  {
-    id: 'ph3', title: 'Mastering voor streaming: Spotify, Apple Music, Tidal', category: 'master',
-    description: 'Loudness targets, true peak, dithering — alles wat je moet weten om je track goed te laten klinken op alle platformen.',
-    video_url: '', thumbnail_url: '', instructor_name: 'Studio Loud',
-    instructor_avatar: '', duration: '42 min', is_free: false, views_count: 654, created_at: new Date().toISOString(),
-  },
-  {
-    id: 'ph4', title: 'Gigs boeken in 2025: van pitch tot contract', category: 'booker',
-    description: 'Hoe schrijf je een overtuigende pitch? Welke venues zijn open voor nieuwe artiesten? En wat staat er in een standaard optreedcontract?',
-    video_url: '', thumbnail_url: '', instructor_name: 'Boekingscentrale NL',
-    instructor_avatar: '', duration: '61 min', is_free: true, views_count: 1103, created_at: new Date().toISOString(),
-  },
-  {
-    id: 'ph5', title: 'Sampling legaal doen: clearances & credits', category: 'producer',
-    description: 'Sample clearance is ingewikkeld maar niet onmogelijk. Leer wanneer je toestemming nodig hebt en hoe je dat aanvraagt.',
-    video_url: '', thumbnail_url: '', instructor_name: 'DJ Promo',
-    instructor_avatar: '', duration: '29 min', is_free: true, views_count: 788, created_at: new Date().toISOString(),
-  },
-  {
-    id: 'ph6', title: 'Zang opnemen: microfoon, preamp en ruimte', category: 'mixer',
-    description: 'Alles over het opnemen van zang in een thuisstudio. Welke microfoon voor welk stemtype? Hoe behandel je de ruimte?',
-    video_url: '', thumbnail_url: '', instructor_name: 'MixCloud Nine',
-    instructor_avatar: '', duration: '47 min', is_free: false, views_count: 512, created_at: new Date().toISOString(),
-  },
-];
-
 export default function MasterclassPage() {
   const [activeCategory, setActiveCategory] = useState<CategoryKey>('all');
-  const [masterclasses, setMasterclasses] = useState<Masterclass[]>([]);
+  const [all, setAll] = useState<Masterclass[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [playing, setPlaying] = useState<Masterclass | null>(null);
+  const requirePlan = useRequirePlan();
 
+  // Eén keer alles ophalen en in de browser filteren. Filterde de database per
+  // categorie, dan was "geen masterclasses in deze categorie" niet te
+  // onderscheiden van "er zijn nog helemaal geen masterclasses".
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      let query = supabase
-        .from('masterclasses')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(60);
+    supabase.from('masterclasses').select('*').order('created_at', { ascending: false }).limit(200)
+      .then(({ data }) => { setAll((data ?? []) as Masterclass[]); setLoading(false); });
+  }, []);
 
-      if (activeCategory !== 'all') query = query.eq('category', activeCategory);
-
-      const { data } = await query;
-      // Use DB data if available, otherwise fall through to placeholders
-      const list = data && data.length > 0 ? data : PLACEHOLDER;
-      const filtered = activeCategory === 'all'
-        ? list
-        : list.filter(m => m.category === activeCategory);
-      setMasterclasses(filtered);
-      setLoading(false);
-    })();
-  }, [activeCategory]);
+  const masterclasses = useMemo(
+    () => (activeCategory === 'all' ? all : all.filter(m => m.category === activeCategory)),
+    [all, activeCategory],
+  );
 
   const featured = masterclasses[0];
   const rest = masterclasses.slice(1);
 
+  // Betaalde masterclasses: bekijken is een Pro-handeling, net als elders.
+  function open(mc: Masterclass) {
+    if (!mc.is_free && !requirePlan('Deze masterclass is voor Pro-leden', 'Upgrade naar H-orbit Pro om alle masterclasses te bekijken.')) return;
+    setPlaying(mc);
+  }
+
   return (
     <div className="w-full max-w-7xl mx-auto px-4 lg:px-6 py-10">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Masterclass Archief</h1>
-        <p className="text-slate-400 max-w-lg">
-          Leer van producenten, mixers, masters en bookers uit de Nederlandse muziekscene. Gratis en betaald.
-        </p>
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-3xl font-bold text-white mb-2">Masterclass Archief</h1>
+          <p className="text-slate-400 max-w-lg">
+            Leer van producenten, mixers, masters en bookers uit de Nederlandse muziekscene. Gratis en betaald.
+          </p>
+        </div>
+        <AdminAddButton label="Masterclass" onClick={() => setShowForm(true)} />
       </div>
 
       {/* Category tabs */}
@@ -137,8 +107,9 @@ export default function MasterclassPage() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-20">
-          <Loader2 size={28} className="animate-spin text-violet-400" />
+        <div role="status" aria-busy="true" aria-label="Masterclasses laden…">
+          <Skeleton className="mb-10 h-56 w-full rounded-2xl" />
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5"><TileSkeletons count={3} imageClassName="aspect-video h-auto" /></div>
         </div>
       ) : (
         <>
@@ -161,8 +132,12 @@ export default function MasterclassPage() {
                   {featured.duration && <span className="flex items-center gap-1"><Clock size={11} />{featured.duration}</span>}
                   <span className="flex items-center gap-1"><Eye size={11} />{formatPlays(featured.views_count)}</span>
                 </div>
-                <button className="flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors w-fit">
-                  <Play size={16} fill="white" /> Bekijken
+                <button
+                  type="button"
+                  onClick={() => open(featured)}
+                  className="flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors w-fit"
+                >
+                  {featured.is_free ? <Play size={16} fill="white" /> : <Lock size={15} />} Bekijken
                 </button>
               </div>
             </div>
@@ -172,26 +147,78 @@ export default function MasterclassPage() {
           {rest.length > 0 && (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {rest.map(mc => (
-                <MasterclassCard key={mc.id} mc={mc} />
+                <MasterclassCard key={mc.id} mc={mc} onOpen={() => open(mc)} />
               ))}
             </div>
           )}
 
-          {masterclasses.length === 0 && (
-            <div className="text-center py-20 text-slate-500">
-              <BookOpen size={40} className="mx-auto mb-3 opacity-30" />
-              <p className="font-medium text-slate-400">Geen masterclasses gevonden</p>
-            </div>
+          {all.length === 0 && (
+            <EmptyState
+              title="Nog geen masterclasses"
+              subtitle="Er zijn nog geen masterclasses. Kom binnenkort terug om de nieuwe masterclasses te bekijken!"
+            />
+          )}
+          {all.length > 0 && masterclasses.length === 0 && (
+            <EmptyState
+              title="Geen masterclasses in deze categorie"
+              subtitle="Er zijn hier nog geen masterclasses. Kijk in een andere categorie."
+              action={{ label: 'Alle masterclasses', onClick: () => setActiveCategory('all') }}
+            />
           )}
         </>
       )}
+
+      {showForm && (
+        <MasterclassFormModal
+          categories={CATEGORIES.filter(c => c.key !== 'all') as unknown as { key: MasterclassCategory; label: string }[]}
+          onClose={() => setShowForm(false)}
+          onCreated={(row) => setAll(prev => [row as Masterclass, ...prev])}
+        />
+      )}
+      {playing && <MasterclassPlayer mc={playing} onClose={() => setPlaying(null)} />}
     </div>
   );
 }
 
-function MasterclassCard({ mc }: { mc: Masterclass }) {
+/** Speler in een venster — er is geen aparte detailpagina voor masterclasses. */
+function MasterclassPlayer({ mc, onClose }: { mc: Masterclass; onClose: () => void }) {
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => { document.body.style.overflow = prev; document.removeEventListener('keydown', onKey); };
+  }, [onClose]);
+  const hasVideo = !!parseVideo(mc.video_url);
+
+  return createPortal(
+    <div className="fixed inset-0 z-[160] flex items-center justify-center p-3 sm:p-6" role="dialog" aria-modal="true" aria-label={mc.title}>
+      <div className="absolute inset-0 bg-black/85 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-4xl overflow-hidden rounded-2xl border border-white/10 bg-[#1e1833] shadow-2xl">
+        <button type="button" onClick={onClose} aria-label="Sluiten"
+          className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors">
+          <X size={18} />
+        </button>
+        <div className="relative aspect-video w-full bg-black">
+          {hasVideo
+            ? <VideoEmbed url={mc.video_url} title={mc.title} poster={mc.thumbnail_url || undefined} />
+            : <div className="absolute inset-0 flex items-center justify-center text-sm text-slate-400">De video voor deze masterclass volgt binnenkort.</div>}
+        </div>
+        <div className="p-5">
+          <CategoryBadge category={mc.category} />
+          <h2 className="mt-2 text-lg font-bold text-white">{mc.title}</h2>
+          {mc.instructor_name && <p className="mt-0.5 text-sm text-slate-400">door {mc.instructor_name}</p>}
+          {mc.description && <p className="mt-3 text-sm leading-relaxed text-slate-300">{mc.description}</p>}
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+function MasterclassCard({ mc, onOpen }: { mc: Masterclass; onOpen: () => void }) {
   return (
-    <div className="group bg-white/3 hover:bg-white/5 border border-white/8 rounded-2xl overflow-hidden cursor-pointer transition-all">
+    <button type="button" onClick={onOpen} className="group block w-full text-left bg-white/3 hover:bg-white/5 border border-white/8 rounded-2xl overflow-hidden cursor-pointer transition-all">
       <div className="relative aspect-video bg-white/5 flex items-center justify-center overflow-hidden">
         {mc.thumbnail_url
           ? <img decoding="async" loading="lazy" src={optimizedImage(mc.thumbnail_url, 240)} alt={mc.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
@@ -214,7 +241,7 @@ function MasterclassCard({ mc }: { mc: Masterclass }) {
           }
         </div>
       </div>
-    </div>
+    </button>
   );
 }
 

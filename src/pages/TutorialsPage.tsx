@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase';
 import { useAppState } from '@context/AppStateContext';
 import EmptyState from '@components/EmptyState';
 import { optimizedImage } from '@lib/image';
+import { TileSkeletons } from '@components/Skeleton';
+import { AdminAddButton, TutorialFormModal } from '@components/LearningForms';
 
 const difficultyColors = {
   Beginner:  'bg-green-500/20 text-green-400',
@@ -39,10 +41,14 @@ export default function TutorialsPage() {
   const [activeTag, setActiveTag] = useState('Alles');
   const [activeDifficulty, setActiveDifficulty] = useState('Alles');
   const [tutorials, setTutorials] = useState([]);
+  // Zonder laadvlag toonde de pagina tijdens het ophalen al "Nog geen tutorials".
+  const [loaded, setLoaded] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const { tutorialProgress, setTutorialWatched, clearTutorialProgress } = useAppState();
 
   useEffect(() => {
-    supabase.from('tutorials').select('*').then(({ data }) => setTutorials(data ?? []));
+    supabase.from('tutorials').select('*').order('created_at', { ascending: false })
+      .then(({ data }) => { setTutorials(data ?? []); setLoaded(true); });
   }, []);
 
   const filtered = useMemo(() =>
@@ -63,9 +69,12 @@ export default function TutorialsPage() {
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 lg:px-6 py-10">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white mb-2">Tutorials</h1>
-        <p className="text-slate-400">Leer produceren, mixen, opnemen en meer van de gemeenschap</p>
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold text-white mb-2">Tutorials</h1>
+          <p className="text-slate-400">Leer produceren, mixen, opnemen en meer van de gemeenschap</p>
+        </div>
+        <AdminAddButton label="Tutorial" onClick={() => setShowForm(true)} />
       </div>
 
       {/* Uitgelichte tutorial */}
@@ -185,13 +194,14 @@ export default function TutorialsPage() {
 
       {/* Tutorial raster */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-        {filtered.length === 0 && tutorials.length === 0 && (
+        {!loaded && <TileSkeletons count={4} imageClassName="aspect-video h-auto" />}
+        {loaded && filtered.length === 0 && tutorials.length === 0 && (
           <EmptyState
             title="Nog geen tutorials"
             subtitle="Er zijn nog geen tutorials beschikbaar. Kom later terug!"
           />
         )}
-        {filtered.length === 0 && tutorials.length > 0 && (
+        {loaded && filtered.length === 0 && tutorials.length > 0 && (
           <EmptyState
             title="Geen tutorials gevonden"
             subtitle="Er zijn geen tutorials die overeenkomen met deze filters. Probeer een andere moeilijkheidsgraad of tag."
@@ -259,6 +269,13 @@ export default function TutorialsPage() {
           );
         })}
       </div>
+      {showForm && (
+        <TutorialFormModal
+          tags={allTags.filter(t => t !== 'Alles')}
+          onClose={() => setShowForm(false)}
+          onCreated={(row) => setTutorials(prev => [row, ...prev])}
+        />
+      )}
     </div>
   );
 }

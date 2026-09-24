@@ -1,4 +1,10 @@
-export default function EmptyState({ title = 'Niets gevonden', subtitle = 'Probeer andere filters of zoektermen.', action }) {
+interface EmptyStateProps {
+  title?: string;
+  subtitle?: string;
+  action?: { label: string; onClick: () => void };
+}
+
+export default function EmptyState({ title = 'Niets gevonden', subtitle = 'Probeer andere filters of zoektermen.', action }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center py-20 px-4 text-center col-span-full">
       {/* SVG illustration */}

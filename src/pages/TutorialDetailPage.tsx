@@ -4,6 +4,7 @@ import { Play, Clock, Eye, ChevronLeft, BookOpen, Video, CheckCircle2, Wrench } 
 import { supabase } from '@/lib/supabase';
 import CommentSection from '@components/CommentSection';
 import { optimizedImage } from '@lib/image';
+import VideoEmbed, { parseVideo } from '@components/VideoEmbed';
 
 const difficultyColors = {
   Beginner: 'bg-green-500/20 text-green-400 border-green-500/30',
@@ -26,7 +27,13 @@ export default function TutorialDetailPage() {
 
   useEffect(() => {
     supabase.from('tutorials').select('*').eq('id', id).single()
-      .then(({ data }) => { setTutorial(data); setLoading(false); });
+      .then(({ data }) => {
+        setTutorial(data);
+        // Heeft de tutorial een video, dan is dat waar je naartoe komt; anders
+        // blijft het stappenplan het startpunt, zoals voorheen.
+        if (parseVideo(data?.video_url)) setActiveTab('video');
+        setLoading(false);
+      });
   }, [id]);
 
   useEffect(() => {
@@ -124,7 +131,13 @@ export default function TutorialDetailPage() {
           {/* Video tab */}
           {activeTab === 'video' && (
             <div>
-              {/* Video placeholder */}
+              {/* Video: speelt af als een admin een link heeft ingevuld, anders
+                  de oude "binnenkort"-plaatshouder. */}
+              {parseVideo(tutorial.video_url) ? (
+                <div className="relative rounded-2xl overflow-hidden bg-black border border-white/8 mb-6 aspect-video">
+                  <VideoEmbed url={tutorial.video_url} title={tutorial.title} poster={tutorial.thumbnail_url || undefined} />
+                </div>
+              ) : (
               <div className="relative rounded-2xl overflow-hidden bg-[#231d3a] border border-white/8 mb-6 aspect-video flex items-center justify-center">
                 <img decoding="async"
                   src={optimizedImage(tutorial.thumbnail_url, 640)}
@@ -141,6 +154,7 @@ export default function TutorialDetailPage() {
                   {tutorial.duration}
                 </div>
               </div>
+              )}
 
               {/* Chapters */}
               {tutorial.chapters && (
