@@ -371,6 +371,13 @@ const UPLOAD_LABELS: Record<string, string> = {
 // voor elke kleinigheid een mail.
 const NEEDS_APPROVAL = new Set(['track']);
 
+// Adressen zonder echte mailbox: niet naar mailen. Het superadmin-account logt
+// in met een gegenereerd adres (zelfde als MASTER_ADMIN_EMAIL in
+// src/pages/AdminLoginPage.tsx) waar geen post binnenkomt — elke mail erheen
+// zou bouncen en de afzenderreputatie van h-orbit.nl bij Resend schaden.
+// Meldingen in de app en push blijven voor dit account gewoon werken.
+const NO_MAILBOX = new Set(['ivan-master-2cc51a5f@h-orbit.nl']);
+
 // Fans out to every admin whenever a user uploads content. Deliberately
 // ignores each admin's notification_prefs opt-out (unlike every other
 // handler here) — admins need to see all uploads, so this ships unconditionally.
@@ -412,7 +419,7 @@ async function handleUpload(
       if (!wantsEmail) return;
       // Adres uit auth.users, niet profiles.email — zie getUserEmail.
       const to = await getUserEmail(admin, adminId);
-      if (!to) return;
+      if (!to || NO_MAILBOX.has(to.toLowerCase())) return;
       const { subject, html } = uploadForReviewEmail({
         recipientName: displayName(a),
         uploaderName,
