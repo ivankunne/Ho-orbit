@@ -10,6 +10,8 @@ import { shareContent, buildShareUrl } from '@utils/share';
 import UserAvatar from '@components/UserAvatar';
 import GenreBadge from '@components/GenreBadge';
 import { optimizedImage } from '@lib/image';
+import EventPhaseBadge from '@components/EventPhaseBadge';
+import { eventPhase, isEnded } from '@lib/eventStatus';
 
 function safeExternalUrl(url) {
   if (!url) return null;
@@ -114,6 +116,7 @@ export default function EventDetailPage() {
   }
 
   const rsvpd = rsvpEvents.includes(event.id);
+  const ended = isEnded(event.date);
   const attendeesCount = event.attendees_count ?? 0;
   const maxCapacity = event.max_capacity ?? 0;
   const attendance = maxCapacity > 0 ? Math.round((attendeesCount / maxCapacity) * 100) : 0;
@@ -139,6 +142,12 @@ export default function EventDetailPage() {
             )}
           </div>
 
+          {ended && (
+            <div className="mb-3"><EventPhaseBadge phase="ended" /></div>
+          )}
+          {!ended && eventPhase(event.date) === 'today' && (
+            <div className="mb-3"><EventPhaseBadge phase="today" /></div>
+          )}
           <h1 className="text-2xl lg:text-3xl font-bold text-white mb-4">{event.name}</h1>
 
           <div className="grid sm:grid-cols-2 gap-4 mb-6">
@@ -232,8 +241,17 @@ export default function EventDetailPage() {
                 </div>
               </div>
             )}
+            {/* Afgelopen: geen tickets of aanmelding meer — wel wie erbij was. */}
+            {ended && (
+              <div className="mb-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3.5 text-center">
+                <p className="text-sm font-semibold text-white">Dit evenement is afgelopen</p>
+                <p className="mt-0.5 text-xs text-slate-400">
+                  {rsvpd ? 'Je was aangemeld. ' : ''}Kijk bij de evenementen voor wat er nog komt.
+                </p>
+              </div>
+            )}
             {/* Primary: Get my ticket */}
-            {safeExternalUrl(event.ticket_link) && (
+            {!ended && safeExternalUrl(event.ticket_link) && (
               <a
                 href={safeExternalUrl(event.ticket_link)!}
                 target="_blank"
@@ -243,7 +261,7 @@ export default function EventDetailPage() {
                 <Ticket size={18} /> Haal mijn ticket
               </a>
             )}
-            <button
+            {!ended && <button
               onClick={() => {
                 toggleRsvp(event.id);
                 addToast(!rsvpd ? `Aangemeld voor ${event.name}!` : 'Afmelding verwerkt', !rsvpd ? 'success' : 'info');
@@ -255,7 +273,7 @@ export default function EventDetailPage() {
               }`}
             >
               {rsvpd ? '✓ Aangemeld!' : 'Gratis aanmelden'}
-            </button>
+            </button>}
             <button
               onClick={async () => {
                 const result = await shareContent({

@@ -15,6 +15,8 @@ import { AddToPlaylistPopover } from '@components/AddToPlaylistPopover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@components/ui/tabs';
 import { Button } from '@components/ui/button';
 import { optimizedImage } from '@lib/image';
+import EventPhaseBadge from '@components/EventPhaseBadge';
+import { isEnded } from '@lib/eventStatus';
 
 const tabList = [
   { key: 'nummers',        label: 'Gelikte nummers',  icon: Heart },
@@ -259,13 +261,16 @@ export default function LibraryPage() {
                   to={`/events/${event.id}`}
                   className="flex items-center gap-4 p-4 bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl transition-all group"
                 >
-                  <img decoding="async" loading="lazy" src={optimizedImage(event.poster_url, 80)} alt={event.name} className="w-14 h-20 object-cover rounded-lg shrink-0" />
+                  <img decoding="async" loading="lazy" src={optimizedImage(event.poster_url, 80)} alt={event.name} className={`w-14 h-20 object-cover rounded-lg shrink-0 ${isEnded(event.date) ? 'opacity-50 grayscale' : ''}`} />
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-white mb-1 truncate">{event.name}</p>
+                    <div className="flex items-center gap-2 mb-1 min-w-0">
+                      <p className={`font-semibold truncate ${isEnded(event.date) ? 'text-slate-400' : 'text-white'}`}>{event.name}</p>
+                      <EventPhaseBadge date={event.date} className="shrink-0" />
+                    </div>
                     <p className="text-xs text-violet-400">{event.date} · {event.time}</p>
                     <p className="text-xs text-slate-400 mt-0.5">{event.venue}, {event.city}</p>
                     <div className="flex items-center gap-2 mt-2">
-                      <span className="text-xs bg-green-500/15 text-green-400 px-2 py-0.5 rounded-full font-medium">✓ Aangemeld</span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${isEnded(event.date) ? 'bg-white/6 text-slate-400' : 'bg-green-500/15 text-green-400'}`}>{isEnded(event.date) ? 'Was aangemeld' : '✓ Aangemeld'}</span>
                       <button
                         onClick={e => { e.preventDefault(); toggleRsvp(event.id); }}
                         className="text-xs text-slate-500 hover:text-red-400 transition-colors"

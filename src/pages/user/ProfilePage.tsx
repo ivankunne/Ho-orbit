@@ -19,6 +19,8 @@ import AddTracksToAlbumModal from '@components/AddTracksToAlbumModal';
 import ExpandableText from '@components/ExpandableText';
 import { SOCIAL_PLATFORM_MAP } from '@data/socialPlatforms';
 import { optimizedImage } from '@lib/image';
+import EventPhaseBadge from '@components/EventPhaseBadge';
+import { isEnded } from '@lib/eventStatus';
 
 // Tracks come back from the DB ordered by upload date; within an album (or
 // within the "no album" group) the artist's chosen order lives in sortOrder.
@@ -659,12 +661,15 @@ export default function ProfilePage() {
                     to={`/events/${event.id}`}
                     className="flex items-center gap-4 p-4 bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl transition-colors"
                   >
-                    <img decoding="async" loading="lazy" src={optimizedImage(event.poster_url, 80)} alt={event.name} className="w-14 h-20 object-cover rounded-lg shrink-0" />
+                    <img decoding="async" loading="lazy" src={optimizedImage(event.poster_url, 80)} alt={event.name} className={`w-14 h-20 object-cover rounded-lg shrink-0 ${isEnded(event.date) ? 'opacity-50 grayscale' : ''}`} />
                     <div>
-                      <p className="text-sm font-semibold text-white mb-1">{event.name}</p>
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className={`text-sm font-semibold ${isEnded(event.date) ? 'text-slate-400' : 'text-white'}`}>{event.name}</p>
+                        <EventPhaseBadge date={event.date} />
+                      </div>
                       <p className="text-xs text-violet-400">{event.date} · {event.time}</p>
                       <p className="text-xs text-slate-400 mt-0.5">{event.venue}, {event.city}</p>
-                      <span className="inline-block mt-2 text-xs bg-green-500/15 text-green-400 px-2 py-0.5 rounded-full">✓ Aangemeld</span>
+                      <span className={`inline-block mt-2 text-xs px-2 py-0.5 rounded-full ${isEnded(event.date) ? 'bg-white/6 text-slate-400' : 'bg-green-500/15 text-green-400'}`}>{isEnded(event.date) ? 'Was aangemeld' : '✓ Aangemeld'}</span>
                     </div>
                   </Link>
                 ))}

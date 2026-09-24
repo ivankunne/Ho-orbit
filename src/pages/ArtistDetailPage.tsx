@@ -29,6 +29,8 @@ import AddTracksToAlbumModal from '@components/AddTracksToAlbumModal';
 import Seo from '@components/Seo';
 import { breadcrumbLd, musicGroupLd, clampDescription } from '@lib/seo';
 import { optimizedImage } from '@lib/image';
+import EventPhaseBadge from '@components/EventPhaseBadge';
+import { isEnded } from '@lib/eventStatus';
 
 export default function ArtistDetailPage() {
   const { slug } = useParams();
@@ -702,25 +704,34 @@ export default function ArtistDetailPage() {
             {artistEvents.length === 0 ? (
               <p className="text-slate-400 text-center py-8">Geen aankomende evenementen</p>
             ) : (
-              artistEvents.map(event => (
+              // Eerst wat nog komt (eerstvolgende bovenaan), daarna wat al
+              // geweest is (meest recente eerst), met een label.
+              [...artistEvents]
+                .sort((a, b) => {
+                  const ea = isEnded(a.date), eb = isEnded(b.date);
+                  if (ea !== eb) return ea ? 1 : -1;
+                  return ea ? (a.date < b.date ? 1 : -1) : (a.date < b.date ? -1 : 1);
+                })
+                .map(event => (
                 <Link
                   key={event.id}
                   to={`/events/${event.id}`}
-                  className="flex flex-col sm:flex-row gap-4 p-4 bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl transition-colors"
+                  className={`flex flex-col sm:flex-row gap-4 p-4 border rounded-xl transition-colors ${isEnded(event.date) ? 'bg-white/[0.02] hover:bg-white/[0.04] border-white/5' : 'bg-white/3 hover:bg-white/6 border-white/5'}`}
                 >
-                  <img decoding="async" loading="lazy" src={optimizedImage(event.poster_url, 112)} alt={event.name} className="w-full sm:w-20 sm:h-28 object-cover rounded-lg" />
+                  <img decoding="async" loading="lazy" src={optimizedImage(event.poster_url, 112)} alt={event.name} className={`w-full sm:w-20 sm:h-28 object-cover rounded-lg ${isEnded(event.date) ? 'opacity-50 grayscale' : ''}`} />
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <Calendar size={14} className="text-violet-400" />
                       <span className="text-sm text-violet-400 font-medium">{event.date} · {event.time}</span>
+                      <EventPhaseBadge date={event.date} />
                     </div>
                     <h3 className="font-semibold text-white mb-1">{event.name}</h3>
                     <p className="text-sm text-slate-400">{event.venue}, {event.city}</p>
                     <p className="text-sm text-slate-500 mt-1">{event.price}</p>
                   </div>
                   <div className="sm:self-center">
-                    <span className="bg-violet-600/20 text-violet-400 text-xs font-medium px-3 py-1.5 rounded-lg">
-                      Tickets
+                    <span className={`text-xs font-medium px-3 py-1.5 rounded-lg ${isEnded(event.date) ? 'bg-white/6 text-slate-400' : 'bg-violet-600/20 text-violet-400'}`}>
+                      {isEnded(event.date) ? 'Bekijken' : 'Tickets'}
                     </span>
                   </div>
                 </Link>

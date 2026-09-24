@@ -11,6 +11,8 @@ import { notifyAdminUpload } from '@services/emailService';
 import { useRequirePlan } from '@hooks/useRequirePlan';
 import { optimizedImage } from '@lib/image';
 import { Skeleton, TileSkeletons } from '@components/Skeleton';
+import EventPhaseBadge from '@components/EventPhaseBadge';
+import { eventPhase, isEnded, todayNL } from '@lib/eventStatus';
 
 function calcCountdown(dateStr, nowMs) {
   const diff = new Date(dateStr + 'T00:00:00').getTime() - nowMs;
@@ -50,6 +52,8 @@ function groupByMonth(events) {
 }
 
 function EventCard({ event, featured = false, rsvpd, onToggleRsvp, now }) {
+  const phase = eventPhase(event.date, now);
+  const ended = phase === 'ended';
   const attendeesCount = event.attendees_count ?? 0;
   const maxCapacity = event.max_capacity ?? 0;
   const attendance = maxCapacity > 0 ? Math.round((attendeesCount / maxCapacity) * 100) : 0;
@@ -96,21 +100,33 @@ function EventCard({ event, featured = false, rsvpd, onToggleRsvp, now }) {
   return (
     <Link
       to={`/events/${event.id}`}
-      className="group flex gap-4 p-4 bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl transition-all cursor-pointer"
+      className={`group flex gap-4 p-4 border rounded-xl transition-all cursor-pointer ${
+        ended ? 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04]' : 'bg-white/3 hover:bg-white/6 border-white/5'
+      }`}
     >
-      <BlurImage
-        src={event.poster_url}
-        alt={event.name}
-        className="w-20 h-28 shrink-0 rounded-lg"
-        imgClassName="object-cover group-hover:scale-105 transition-transform duration-300"
-      />
+      {/* self-start: anders rekt de flex-rij deze wrapper op tot de hele
+          kaarthoogte en zakt het label onder de poster. */}
+      <div className="relative shrink-0 self-start">
+        <BlurImage
+          src={event.poster_url}
+          alt={event.name}
+          className={`w-20 h-28 rounded-lg ${ended ? 'opacity-50 grayscale' : ''}`}
+          imgClassName="object-cover group-hover:scale-105 transition-transform duration-300"
+        />
+        {/* Op de poster, niet naast de titel: op mobiel drukte het label de
+            titel anders terug tot een paar letters. */}
+        {ended && <EventPhaseBadge phase="ended" className="absolute bottom-1.5 left-1/2 -translate-x-1/2 whitespace-nowrap" />}
+      </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2 mb-1">
-          <h3 className="font-semibold text-white group-hover:text-violet-300 transition-colors line-clamp-2 min-w-0 flex-1">{event.name}</h3>
-          <div className="shrink-0"><CountdownBadge date={event.date} now={now} /></div>
+          <h3 className={`font-semibold group-hover:text-violet-300 transition-colors line-clamp-2 min-w-0 flex-1 ${ended ? 'text-slate-400' : 'text-white'}`}>{event.name}</h3>
+          <div className="shrink-0">
+            {phase === 'upcoming' && <CountdownBadge date={event.date} now={now} />}
+            {phase === 'today' && <EventPhaseBadge phase="today" />}
+          </div>
         </div>
         <div className="space-y-1 text-xs text-slate-400">
-          <div className="flex items-center gap-1.5"><Clock size={11} /> {event.time}</div>
+          <div className="flex items-center gap-1.5"><Clock size={11} /> {ended ? `${new Date(event.date + 'T00:00:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' })} · ` : ''}{String(event.time ?? '').slice(0, 5)}</div>
           <div className="flex items-center gap-1.5"><MapPin size={11} /> {event.venue}, {event.city}</div>
           <div className="flex items-center gap-1.5"><Users size={11} /> {attendeesCount.toLocaleString('nl-NL')} aanwezigen</div>
         </div>
@@ -129,8 +145,11 @@ function EventCard({ event, featured = false, rsvpd, onToggleRsvp, now }) {
       </div>
       <div className="shrink-0 self-center flex flex-col items-end gap-2">
         <span className="bg-white/6 text-xs text-slate-300 px-2 py-1 rounded-lg">{event.genre}</span>
-        {rsvpd && (
+        {rsvpd && !ended && (
           <span className="text-xs bg-green-500/15 text-green-400 px-2 py-0.5 rounded-full font-medium">✓ Aangemeld</span>
+        )}
+        {rsvpd && ended && (
+          <span className="text-xs bg-white/6 text-slate-400 px-2 py-0.5 rounded-full font-medium">Was aangemeld</span>
         )}
       </div>
     </Link>
@@ -162,8 +181,20 @@ export default function EventsPage() {
     return () => clearInterval(id);
   }, []);
 
-  const featured = events.find(e => e.featured) || events[0];
-  const grouped = useMemo(() => groupByMonth(events), [events]);
+  // Afgelopen volgt uit de datum — niets om bij te houden. `now` tikt elke
+  // seconde, dus rond middernacht verschuift een evenement vanzelf.
+  const today = todayNL(now);
+  const { upcoming, ended } = useMemo(() => {
+    const up = [], past = [];
+    for (const e of events) (eventPhase(e.date, now) === 'ended' ? past : up).push(e);
+    past.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0)); // meest recente eerst
+    return { upcoming: up, ended: past };
+  }, [events, today]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Uitgelicht: alleen iets dat nog komt. Voorheen kon een afgelopen show hier
+  // bovenaan staan, mét een knop om je aan te melden.
+  const featured = upcoming.find(e => e.featured) || upcoming[0];
+  const grouped = useMemo(() => groupByMonth(upcoming), [upcoming]);
+  const [showEnded, setShowEnded] = useState(false);
 
   function handleRsvp(event) {
     const wasRsvpd = rsvpEvents.includes(event.id);
@@ -226,6 +257,12 @@ export default function EventsPage() {
               </div>
             </div>
           )}
+          {loaded && events.length > 0 && upcoming.length === 0 && (
+            <div className="mb-8 rounded-2xl border border-white/8 bg-white/[0.02] px-5 py-6 text-center">
+              <p className="text-sm font-semibold text-white mb-1">Geen komende evenementen</p>
+              <p className="text-sm text-slate-500">Er staat op dit moment niets gepland. Hieronder vind je wat er al geweest is.</p>
+            </div>
+          )}
           {loaded && events.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <Calendar size={40} className="text-slate-600 mb-4" />
@@ -248,6 +285,27 @@ export default function EventsPage() {
               </div>
             </div>
           ))}
+
+          {ended.length > 0 && (
+            <section className="mt-12" aria-labelledby="afgelopen-kop">
+              <div className="flex items-center gap-3 mb-4">
+                <h2 id="afgelopen-kop" className="text-base font-bold text-slate-300">Afgelopen evenementen</h2>
+                <div className="flex-1 h-px bg-white/8" />
+                <span className="text-xs text-slate-500">{ended.length}</span>
+              </div>
+              <div className="space-y-3">
+                {(showEnded ? ended : ended.slice(0, 3)).map(event => (
+                  <EventCard key={event.id} event={event} rsvpd={rsvpEvents.includes(event.id)} onToggleRsvp={() => handleRsvp(event)} now={now} />
+                ))}
+              </div>
+              {ended.length > 3 && (
+                <button type="button" onClick={() => setShowEnded(v => !v)}
+                  className="mt-3 w-full min-h-[44px] rounded-xl border border-white/10 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors">
+                  {showEnded ? 'Minder tonen' : `Alle ${ended.length} afgelopen evenementen tonen`}
+                </button>
+              )}
+            </section>
+          )}
         </>
       )}
 
@@ -345,9 +403,11 @@ function CalendarView({ events, rsvpEvents, onRsvp }) {
                     onClick={e => { e.stopPropagation(); navigate(`/events/${ev.id}`); }}
                     title={ev.name}
                     className={`text-[9px] font-medium px-1 py-0.5 rounded truncate leading-tight ${
-                      rsvpEvents.includes(ev.id)
-                        ? 'bg-green-500/20 text-green-300'
-                        : 'bg-violet-600/20 text-violet-300 hover:bg-violet-600/30'
+                      isEnded(ev.date)
+                        ? 'bg-white/5 text-slate-500 line-through decoration-slate-600 hover:bg-white/10'
+                        : rsvpEvents.includes(ev.id)
+                          ? 'bg-green-500/20 text-green-300'
+                          : 'bg-violet-600/20 text-violet-300 hover:bg-violet-600/30'
                     }`}
                   >
                     {ev.name}
@@ -385,10 +445,11 @@ function CalendarView({ events, rsvpEvents, onRsvp }) {
                           <Calendar size={14} className="text-violet-400" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-white truncate">{ev.name}</p>
+                          <p className={`text-sm font-medium truncate ${isEnded(ev.date) ? 'text-slate-400' : 'text-white'}`}>{ev.name}</p>
                           <p className="text-xs text-slate-400">{ev.time} · {ev.venue}, {ev.city}</p>
                         </div>
-                        {rsvpEvents.includes(ev.id) && (
+                        <EventPhaseBadge date={ev.date} className="shrink-0" />
+                        {rsvpEvents.includes(ev.id) && !isEnded(ev.date) && (
                           <span className="text-xs bg-green-500/15 text-green-400 px-2 py-0.5 rounded-full shrink-0">✓</span>
                         )}
                       </div>
