@@ -33,7 +33,7 @@ export function AdminAddButton({ label, onClick }: { label: string; onClick: () 
 
 /* ── Venster ───────────────────────────────────────────────────────────── */
 
-function Sheet({ title, onClose, busy, onSubmit, children }: {
+export function Sheet({ title, onClose, busy, onSubmit, children }: {
   title: string; onClose: () => void; busy: boolean; onSubmit: () => void; children: ReactNode;
 }) {
   const panelRef = useRef<HTMLFormElement>(null);
@@ -81,9 +81,9 @@ function Sheet({ title, onClose, busy, onSubmit, children }: {
 
 /* ── Velden ────────────────────────────────────────────────────────────── */
 
-const inputCls = 'w-full min-h-[44px] rounded-xl border border-white/10 bg-white/5 px-3.5 text-[15px] text-white placeholder-slate-500 focus:border-violet-500/60 focus:outline-none transition-colors';
+export const inputCls = 'w-full min-h-[44px] rounded-xl border border-white/10 bg-white/5 px-3.5 text-[15px] text-white placeholder-slate-500 focus:border-violet-500/60 focus:outline-none transition-colors';
 
-function Field({ label, hint, error, children, required }: { label: string; hint?: string; error?: string; children: ReactNode; required?: boolean }) {
+export function Field({ label, hint, error, children, required }: { label: string; hint?: string; error?: string; children: ReactNode; required?: boolean }) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-sm font-medium text-slate-300">

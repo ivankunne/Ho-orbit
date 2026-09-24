@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, ZoomControl } from 'react-leaflet';
-import { ChevronDown, X } from 'lucide-react';
+import { ChevronDown, X, Plus, Pencil } from 'lucide-react';
 import MapAttributionNl from '@components/MapAttributionNl';
 import L from 'leaflet';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@context/AuthContext';
+import SceneLocationForm from '@components/SceneLocationForm';
+import type { SceneLocation } from '@services/sceneLocationService';
 
 // Fix Leaflet default icon broken paths in Vite
 delete L.Icon.Default.prototype._getIconUrl;
@@ -13,20 +16,6 @@ L.Icon.Default.mergeOptions({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
-
-interface SceneLocation {
-  id: number;
-  province: string;
-  city: string;
-  name: string;
-  address: string;
-  type: string;
-  website: string;
-  notes: string;
-  description: string | null;
-  lat: number;
-  lng: number;
-}
 
 // Keeps the map locked to the Netherlands — panning/zooming further out
 // reaches tiles outside our basemap's coverage (shown as broken "API key
@@ -130,7 +119,14 @@ function ZoomTracker({ onZoom }: { onZoom: (z: number) => void }) {
   return null;
 }
 
+// Keuzes in het formulier: één type per legendagroep, met de legendanaam.
+const TYPE_OPTIONS = LEGEND_GROUPS.map(g => ({ value: g.types[0], label: g.label }));
+
 export default function SceneMap() {
+  const { user } = useAuth();
+  const isAdmin = !!user?.isAdmin;
+  // null = dicht, 'new' = toevoegen, anders de locatie die bewerkt wordt.
+  const [editing, setEditing] = useState<SceneLocation | 'new' | null>(null);
   const [zoom, setZoom] = useState(7);
   const [locations, setLocations] = useState<SceneLocation[]>([]);
   const [active, setActive] = useState<string | null>(null);
@@ -166,7 +162,20 @@ export default function SceneMap() {
       });
   }, []);
 
+  const saved = (row: SceneLocation) => setLocations(ls =>
+    ls.some(l => l.id === row.id) ? ls.map(l => (l.id === row.id ? row : l)) : [...ls, row]);
+  const removed = (id: number) => setLocations(ls => ls.filter(l => l.id !== id));
+
   return (
+    <>
+    {isAdmin && (
+      <div className="mb-3 flex justify-end">
+        <button type="button" onClick={() => setEditing('new')}
+          className="inline-flex items-center gap-1.5 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-violet-900/30 hover:bg-violet-500 active:scale-[0.98] transition-[background-color,transform]">
+          <Plus size={16} strokeWidth={2.5} /> Locatie toevoegen
+        </button>
+      </div>
+    )}
     <div className="relative rounded-2xl overflow-hidden border border-white/10 scene-map-wrapper" style={{ height: '540px' }}>
       {/* Hint */}
       <div className="absolute top-3 left-3 z-10 bg-[#231d3a]/90 backdrop-blur-sm border border-white/10 text-xs text-slate-400 px-3 py-2 rounded-lg pointer-events-none">
@@ -340,6 +349,20 @@ export default function SceneMap() {
                     Website bekijken →
                   </a>
                 )}
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => setEditing(loc)}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                      width: '100%', marginTop: '8px', padding: '7px 0', borderRadius: '8px',
+                      background: 'transparent', border: '1px solid rgba(255,255,255,0.15)',
+                      color: '#cbd5e1', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                    }}
+                  >
+                    <Pencil size={12} /> Bewerken
+                  </button>
+                )}
               </div>
             </Popup>
           </Marker>
@@ -371,5 +394,16 @@ export default function SceneMap() {
         .leaflet-control-attribution a { color: #7c3aed !important; }
       `}</style>
     </div>
+    {editing && (
+      <SceneLocationForm
+        location={editing === 'new' ? null : editing}
+        typeOptions={TYPE_OPTIONS}
+        existing={locations}
+        onClose={() => setEditing(null)}
+        onSaved={saved}
+        onDeleted={removed}
+      />
+    )}
+    </>
   );
 }
