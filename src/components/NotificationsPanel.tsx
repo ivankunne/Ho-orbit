@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Bell, Music, Calendar, FileText, MessageSquare, Heart, UserPlus,
-  X, CheckCheck, BellOff, Trash2, Upload,
+  X, CheckCheck, BellOff, Trash2, Upload, AtSign,
 } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
 import {
@@ -18,6 +18,7 @@ const TYPE_ICON = {
   forum_reply: { icon: MessageSquare, color: 'text-orange-400 bg-orange-500/15' },
   system:      { icon: Upload,       color: 'text-pink-400 bg-pink-500/15' },
   admin_upload:{ icon: Upload,       color: 'text-amber-400 bg-amber-500/15' },
+  band_mention:{ icon: AtSign,       color: 'text-violet-400 bg-violet-600/15' },
   article:     { icon: FileText,     color: 'text-green-400 bg-green-500/15' },
   default:     { icon: Bell,         color: 'text-slate-400 bg-white/10' },
 };

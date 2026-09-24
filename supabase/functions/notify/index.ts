@@ -54,6 +54,19 @@ async function getUserEmail(admin: ReturnType<typeof createClient>, userId: stri
   return data.user?.email ?? null;
 }
 
+// Schrijft een melding voor de lijst in de app. Het resultaat wordt
+// gecontroleerd: jarenlang faalde deze insert stil voor admin_upload, message
+// en band_mention (een check-constraint kende die types niet), terwijl push en
+// e-mail gewoon aankwamen — niemand zag het. Een fout mag de rest van de
+// melding (push, e-mail) niet tegenhouden, maar moet wel in de logs staan.
+async function insertNotification(
+  admin: ReturnType<typeof createClient>,
+  row: { user_id: string; type: string; title: string; body: string; link?: string },
+) {
+  const { error } = await admin.from('notifications').insert(row);
+  if (error) console.error(`[notify] melding (${row.type}) niet opgeslagen voor ${row.user_id}:`, error.message);
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
@@ -147,7 +160,7 @@ async function handleMessage(
   const link = `/berichten/${conversationId}`;
 
   // In-app notification (always — fixes recipients previously getting nothing).
-  await admin.from('notifications').insert({
+  await insertNotification(admin, {
     user_id: recipientId,
     type: 'message',
     title,
@@ -208,7 +221,7 @@ async function handleFollow(
   const link = followerUsername ? `/profiel/${followerUsername}` : '/profiel';
   const body = `${followerName} volgt je nu`;
 
-  await admin.from('notifications').insert({
+  await insertNotification(admin, {
     user_id: targetUserId,
     type: 'follow',
     title: 'Nieuwe volger',
@@ -291,7 +304,7 @@ async function handleBandMention(
       const { data: recipient } = await admin
         .from('profiles').select('notification_prefs').eq('id', recipientId).single();
 
-      await admin.from('notifications').insert({
+      await insertNotification(admin, {
         user_id: recipientId, type: 'band_mention', title, body: preview, link,
       });
 
@@ -419,7 +432,7 @@ async function handleUpload(
   await Promise.all(
     recipients.map(async (a) => {
       const adminId = a.id as string;
-      await admin.from('notifications').insert({
+      await insertNotification(admin, {
         user_id: adminId, type: 'admin_upload', title, body, link,
       });
       const res = await sendPushToUser(admin, adminId, { title, body, url: link, tag: `upload-${contentType}` });
