@@ -58,7 +58,7 @@ export default function ConversationPage() {
         const otherId = data.participant_1 === user.id ? data.participant_2 : data.participant_1;
         supabase
           .from('profiles')
-          .select('id, username, display_name, avatar_url, role')
+          .select('id, username, display_name, avatar_url, role, roles')
           .eq('id', otherId)
           .single()
           .then(({ data: profile }) => {
@@ -137,7 +137,7 @@ export default function ConversationPage() {
   const rolesKnown = !!other;
   // Only the master admin bypasses — see RequirePlan.tsx's comment.
   const requiresPro = paywallLive && user?.email !== MASTER_ADMIN_EMAIL && user?.plan !== 'paid';
-  const locked = rolesKnown && requiresPro && !isFreeConversation(user?.role, other?.role);
+  const locked = rolesKnown && requiresPro && !isFreeConversation(user, other);
 
   const handleUpgrade = async () => {
     setUpgradeError('');

@@ -366,10 +366,14 @@ const UPLOAD_LABELS: Record<string, string> = {
 };
 
 // Uploads die pas online komen nadat een admin ze goedkeurt. Alleen daarvoor
-// gaat er ook een e-mail uit — voor al het andere (podcastafleveringen,
-// radio-opnames…) is de melding in de app + push genoeg, anders krijgen admins
-// voor elke kleinigheid een mail.
-const NEEDS_APPROVAL = new Set(['track']);
+// gaat er ook een e-mail uit — voor al het andere (radio-opnames, een nieuwe
+// podcastshow…) is de melding in de app + push genoeg, anders krijgen admins
+// voor elke kleinigheid een mail. Podcastafleveringen wachten sinds
+// podcast_episode_approval_migration.sql ook op goedkeuring.
+const NEEDS_APPROVAL = new Set(['track', 'podcast_episode']);
+// Een aflevering die een admin zelf toevoegt staat meteen live (trigger in die
+// migratie) — daar hoeft niemand iets voor goed te keuren.
+const ADMIN_UPLOAD_IS_LIVE = new Set(['podcast_episode']);
 
 
 // Fans out to every admin whenever a user uploads content. Deliberately
@@ -388,7 +392,7 @@ async function handleUpload(
   if (!contentTitle) return json({ error: 'title is required' }, 400);
 
   const [{ data: uploader }, { data: admins }] = await Promise.all([
-    admin.from('profiles').select('display_name, username').eq('id', callerId).single(),
+    admin.from('profiles').select('display_name, username, is_admin').eq('id', callerId).single(),
     admin.from('profiles').select('id, display_name, username').eq('is_admin', true),
   ]);
 
@@ -397,7 +401,8 @@ async function handleUpload(
   const body = `${uploaderName} uploadde "${contentTitle}"`;
 
   const recipients = (admins ?? []).filter((a) => a.id !== callerId);
-  const wantsEmail = NEEDS_APPROVAL.has(contentType);
+  const wantsEmail = NEEDS_APPROVAL.has(contentType)
+    && !(ADMIN_UPLOAD_IS_LIVE.has(contentType) && uploader?.is_admin);
 
   // In de app + push: per admin-account.
   let pushed = 0;

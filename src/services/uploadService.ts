@@ -326,15 +326,10 @@ export async function uploadTrack({
     .single();
   if (error || !data) throw new Error(error?.message || 'Opslaan in database mislukt');
 
-  // Upsert into artists table and promote role
+  // Artiestenpagina aanmaken/bijwerken. De Artiest-rol zelf (profiles.roles)
+  // zet de uploadpagina aan; andere rollen (Podcast, Radio) blijven staan.
   if (isUUID(userId)) {
-    await Promise.all([
-      upsertArtistFromProfile(userId, genre, artistName),
-      // Only auto-promote a plain listener — never clobber a specialized role
-      // (Radio, Podcast, Admin) that a Radio/Podcast host also uploading a
-      // track would otherwise lose, silently hiding their Studio access.
-      supabase.from('profiles').update({ role: 'Artiest' }).eq('id', userId).eq('role', 'Luisteraar'),
-    ]);
+    await upsertArtistFromProfile(userId, genre, artistName);
   }
 
   return mapTrack(data);
@@ -446,9 +441,8 @@ export async function approveUpload(trackId: string, adminId: string): Promise<v
     const { data: fullTrack } = await supabase.from('tracks').select('genre, artist_name').eq('id', trackId).single();
     await Promise.all([
       upsertArtistFromProfile(track.uploaded_by, fullTrack?.genre || 'Overig', fullTrack?.artist_name || 'Artiest'),
-      // Same guard as uploadTrack() — only promote a plain listener, never a
-      // specialized role (Radio, Podcast, Admin).
-      supabase.from('profiles').update({ role: 'Artiest' }).eq('id', track.uploaded_by).eq('role', 'Luisteraar'),
+      // Artiest-rol erbij; de andere rollen (Podcast, Radio) blijven staan.
+      supabase.rpc('admin_toggle_user_role', { target_user_id: track.uploaded_by, toggled_role: 'Artiest', enabled: true }),
     ]);
   }
 }

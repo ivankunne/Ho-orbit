@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { hasRole } from '@lib/roles';
 import { Radio, Play, Pause, WifiOff, Settings2, CheckCircle, RefreshCw, Plus, Trash2, ChevronDown, ChevronUp, History, Upload, Image as ImageIcon } from 'lucide-react';
 import { useRadio, type RadioStation, type RadioRecording } from '@context/RadioContext';
 import { useAuth } from '@context/AuthContext';
@@ -609,7 +610,7 @@ export default function RadioPage() {
   const { stations, liveStations, fetchStations, recordingCounts } = useRadio();
   const { user } = useAuth();
   const isAdmin    = Boolean(user?.isAdmin);
-  const isRadioHost = user?.role === 'Radio';
+  const isRadioHost = hasRole(user, 'Radio');
   const isStudio   = isAdmin || isRadioHost;
   const [showAddForm, setShowAddForm] = useState(false);
 

@@ -1,5 +1,8 @@
 import { supabase } from '@/lib/supabase';
+import { hasRole } from '@lib/roles';
 import { notifyNewMessage } from '@services/emailService';
+
+type ProfileRoles = { roles?: string[] | null; role?: string | null } | null | undefined;
 
 export interface ConversationParticipant {
   id: string;
@@ -7,15 +10,17 @@ export interface ConversationParticipant {
   display_name: string | null;
   avatar_url: string | null;
   role: string | null;
+  roles?: string[] | null;
 }
 
 /**
  * Fan → artiest DM's are free even once the paywall is live; every other
- * combination (artiest ↔ artiest, fan ↔ fan, etc.) requires Pro. "Fan" here
- * just means "not role='Artiest'" — exactly one side must be an artiest.
+ * combination (artiest ↔ artiest, fan ↔ fan, etc.) requires Pro. "Artiest"
+ * means the Artiest role in profiles.roles — exactly one side must have it.
+ * Same rule as can_access_conversation() in profile_roles_migration.sql.
  */
-export function isFreeConversation(roleA?: string | null, roleB?: string | null): boolean {
-  return (roleA === 'Artiest') !== (roleB === 'Artiest');
+export function isFreeConversation(a: ProfileRoles, b: ProfileRoles): boolean {
+  return hasRole(a, 'Artiest') !== hasRole(b, 'Artiest');
 }
 
 export interface Conversation {
@@ -82,7 +87,7 @@ export async function getConversations(userId: string): Promise<Conversation[]> 
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('id, username, display_name, avatar_url, role')
+        .select('id, username, display_name, avatar_url, role, roles')
         .eq('id', otherId)
         .single();
 
@@ -103,7 +108,7 @@ export async function getConversations(userId: string): Promise<Conversation[]> 
 
       return {
         ...conv,
-        other_participant: profile ?? { id: otherId, username: 'onbekend', display_name: null, avatar_url: null, role: null },
+        other_participant: profile ?? { id: otherId, username: 'onbekend', display_name: null, avatar_url: null, role: null, roles: null },
         last_message: lastMsg?.content ?? null,
         unread_count: unread ?? 0,
       };

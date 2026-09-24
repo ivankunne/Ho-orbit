@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { SELF_SERVICE_ROLES } from '@lib/roles';
 import { Link } from 'react-router-dom';
 import { Music, Eye, EyeOff, ArrowRight, Check } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
@@ -24,6 +25,7 @@ export default function SignupPage() {
     displayName: '',
     location: '',
     isArtist: false,
+    isPodcaster: false,
     genre: '',
     agreeTerms: false,
   });
@@ -204,20 +206,29 @@ export default function SignupPage() {
                 />
               </div>
 
-              {/* Artiest toggle */}
-              <label className="flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all"
-                onClick={() => set('isArtist', !form.isArtist)}
-              >
-                <Checkbox
-                  checked={form.isArtist}
-                  onCheckedChange={(checked) => set('isArtist', checked)}
-                  className="shrink-0"
-                />
-                <div>
-                  <p className="text-white text-sm font-medium">Ik ben een artiest</p>
-                  <p className="text-slate-400 text-xs">Je krijgt toegang tot upload- en artiestenfuncties</p>
-                </div>
-              </label>
+              {/* Wat maak je? Artiest en/of podcaster */}
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-slate-300">Wat maak je? <span className="font-normal text-slate-500">Allebei kan, of geen van beide</span></p>
+                {SELF_SERVICE_ROLES.map(r => {
+                  const key = r.id === 'Artiest' ? 'isArtist' : 'isPodcaster';
+                  return (
+                    <label key={r.id}
+                      className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all ${form[key] ? 'border-violet-500/40 bg-violet-600/10' : 'border-white/10 hover:border-violet-500/30'}`}
+                    >
+                      <Checkbox
+                        checked={form[key]}
+                        onCheckedChange={(checked) => set(key, checked === true)}
+                        className="shrink-0"
+                      />
+                      <div>
+                        <p className="text-white text-sm font-medium">{r.label}</p>
+                        <p className="text-slate-400 text-xs">{r.desc}</p>
+                      </div>
+                    </label>
+                  );
+                })}
+                <p className="text-xs text-slate-500">Je kunt dit later altijd aanpassen in je instellingen.</p>
+              </div>
 
               {form.isArtist && (
                 <div>
@@ -248,7 +259,7 @@ export default function SignupPage() {
                   { label: 'E-mail', value: form.email },
                   { label: 'Naam', value: form.displayName || form.username },
                   { label: 'Locatie', value: form.location || '—' },
-                  { label: 'Type', value: form.isArtist ? `Artiest${form.genre ? ` · ${form.genre}` : ''}` : 'Luisteraar' },
+                  { label: 'Type', value: [form.isArtist && `Artiest${form.genre ? ` · ${form.genre}` : ''}`, form.isPodcaster && 'Podcaster'].filter(Boolean).join(' + ') || 'Luisteraar' },
                 ].map(item => (
                   <div key={item.label} className="flex justify-between text-sm">
                     <span className="text-slate-400">{item.label}</span>

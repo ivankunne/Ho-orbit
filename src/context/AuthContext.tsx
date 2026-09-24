@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { supabase } from '@lib/supabase';
+import { rolesOf, type CreatorRole } from '@lib/roles';
 
 const AuthContext = createContext<any>(null);
 
@@ -14,6 +15,9 @@ function mapProfile(profile: any, authUser: any) {
     bio: profile?.bio || '',
     location: profile?.location || '',
     role: profile?.role || 'Luisteraar',
+    // Wat iemand maakt (Artiest/Podcast/Radio) — bepaalt de rechten; `role`
+    // is alleen het label. Zie src/lib/roles.ts.
+    roles: rolesOf(profile),
     verified: profile?.verified || false,
     isAdmin: profile?.is_admin || false,
     followers: profile?.followers_count || 0,
@@ -35,6 +39,11 @@ function mapProfile(profile: any, authUser: any) {
     currentPeriodEnd: profile?.current_period_end || null,
     cancelAtPeriodEnd: profile?.cancel_at_period_end ?? false,
   };
+}
+
+/** Rollen uit het aanmeldformulier ("Ik maak muziek" / "Ik maak een podcast"). */
+function signupRoles(data: { isArtist?: boolean; isPodcaster?: boolean }): CreatorRole[] {
+  return [...(data.isArtist ? ['Artiest' as const] : []), ...(data.isPodcaster ? ['Podcast' as const] : [])];
 }
 
 function translateError(msg: string): string {
@@ -260,7 +269,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         display_name: data.displayName || data.username,
         email: data.email,
         location: data.location || null,
-        role: data.isArtist ? 'Artiest' : 'Luisteraar',
+        roles: signupRoles(data),
+        role: signupRoles(data)[0] ?? 'Luisteraar',
         needs_onboarding: authData.session ? true : false,
         followers_count: 0,
         following_count: 0,
@@ -342,7 +352,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const EDITABLE = [
       'displayName', 'bio', 'location', 'email', 'avatar', 'banner',
       'preferredGenres', 'notifications', 'social', 'bookingInfo',
-      'needsOnboarding', 'role', 'discoverPrefs',
+      'needsOnboarding', 'role', 'roles', 'discoverPrefs',
     ];
     const safe = Object.fromEntries(Object.entries(updates).filter(([k]) => EDITABLE.includes(k)));
     setUser((prev: any) => {
@@ -353,7 +363,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (cached) {
           const fieldMap: Record<string, string> = {
             avatar: 'avatar_url', banner: 'banner_url', displayName: 'display_name',
-            bio: 'bio', location: 'location', role: 'role',
+            bio: 'bio', location: 'location', role: 'role', roles: 'roles',
             preferredGenres: 'preferred_genres', social: 'social',
             bookingInfo: 'booking_info', needsOnboarding: 'needs_onboarding',
           };

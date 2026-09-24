@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { rolesOf, type CreatorRole } from '@lib/roles';
 import { avatarPlaceholder, coverPlaceholder } from '@utils/placeholder';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -10,6 +11,8 @@ export interface ManagedUser {
   email: string;
   avatar: string;
   role: string;
+  /** Wat iemand maakt: Artiest/Podcast/Radio (zie src/lib/roles.ts). */
+  roles: CreatorRole[];
   verified: boolean;
   joinedDate: string;
   suspended: boolean;
@@ -92,10 +95,10 @@ export async function unsuspendUser(userId: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
-export async function setUserRole(userId: string, role: string): Promise<void> {
-  const { error } = await supabase.rpc('admin_set_user_role', {
-    target_user_id: userId,
-    new_role: role,
+/** Eén rol (Artiest/Podcast/Radio) aan- of uitzetten; de andere rollen blijven staan. */
+export async function toggleUserRole(userId: string, role: CreatorRole, enabled: boolean): Promise<void> {
+  const { error } = await supabase.rpc('admin_toggle_user_role', {
+    target_user_id: userId, toggled_role: role, enabled,
   });
   if (error) throw new Error(error.message);
 }
@@ -109,6 +112,7 @@ function mapProfile(d: Record<string, unknown>): ManagedUser {
     email: '',
     avatar: (d.avatar_url as string) || avatarPlaceholder(d.display_name as string || username),
     role: (d.role as string) ?? 'Luisteraar',
+    roles: rolesOf(d as { roles?: string[]; role?: string }),
     verified: (d.verified as boolean) ?? false,
     joinedDate: d.joined_date
       ? new Date(d.joined_date as string).toLocaleDateString('nl-NL', { month: 'long', year: 'numeric' })

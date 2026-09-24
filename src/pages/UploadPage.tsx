@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Upload, Music, Image, X, CheckCircle, Loader, Pencil } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Upload, Music, Image, X, CheckCircle, Loader, Pencil, Mic } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import PodcastUploadForm from '@components/PodcastUploadForm';
+import { hasRole, rolesOf, saveMyRoles } from '@lib/roles';
 import GenrePicker from '@components/GenrePicker';
 import ImageCropModal from '@components/ImageCropModal';
 import { useAuth } from '@context/AuthContext';
@@ -16,9 +18,37 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 const TAGS_OPTIONS = ['Instrumentaal', 'Akoestisch', 'Live opname', 'Demo', 'Remix', 'Cover', 'Origineel', 'Samenwerking'];
 
+/** Muziek of podcast — bovenaan /upload. Muziek komt na goedkeuring bij de
+ *  muziek, een aflevering bij Podcasts. */
+function UploadTypeTabs({ type, onChange }: { type: 'muziek' | 'podcast'; onChange: (t: 'muziek' | 'podcast') => void }) {
+  const tab = (t: 'muziek' | 'podcast', Icon: typeof Music, label: string, sub: string) => (
+    <button type="button" role="tab" aria-selected={type === t} onClick={() => onChange(t)}
+      className={`flex flex-1 items-center gap-3 rounded-xl px-4 py-3 text-left transition-colors ${type === t ? 'bg-violet-600 text-white shadow-lg shadow-violet-900/30' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}>
+      <Icon size={20} className="shrink-0" />
+      <span className="min-w-0">
+        <span className="block text-sm font-semibold">{label}</span>
+        <span className={`block text-xs ${type === t ? 'text-violet-100' : 'text-slate-500'}`}>{sub}</span>
+      </span>
+    </button>
+  );
+  return (
+    <div role="tablist" aria-label="Wat wil je uploaden?" className="mb-8 flex gap-1.5 rounded-2xl border border-white/10 bg-white/[0.03] p-1.5">
+      {tab('muziek', Music, 'Muziek', 'Nummer of album')}
+      {tab('podcast', Mic, 'Podcast', 'Een aflevering')}
+    </div>
+  );
+}
+
 export default function UploadPage() {
-  const { user } = useAuth();
+  const { user, updateProfile } = useAuth();
   const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
+  // ?type=podcast of ?type=muziek; anders wat bij je rol past (podcaster
+  // zonder Artiest-rol → Podcast).
+  const type: 'muziek' | 'podcast' = params.get('type') === 'podcast' || params.get('type') === 'muziek'
+    ? (params.get('type') as 'muziek' | 'podcast')
+    : hasRole(user, 'Podcast') && !hasRole(user, 'Artiest') ? 'podcast' : 'muziek';
+  const setType = (t: 'muziek' | 'podcast') => setParams({ type: t }, { replace: true });
   const [dragOver, setDragOver] = useState(false);
   const [artworkDragOver, setArtworkDragOver] = useState(false);
   const [trackFile, setTrackFile] = useState(null);
@@ -144,6 +174,10 @@ export default function UploadPage() {
           link: '/profiel',
         });
         notifyAdminUpload('track', track.title, '/admin');
+        // Wie muziek uploadt is artiest (bestaande rollen blijven staan).
+        if (!hasRole(user, 'Artiest')) {
+          saveMyRoles(user.id, [...rolesOf(user), 'Artiest'], user.role).then(updateProfile).catch(() => {});
+        }
       }
       setUploadState('success');
     } catch (err: any) {
@@ -166,6 +200,17 @@ export default function UploadPage() {
     setIsrcError('');
     setUpcError('');
   };
+
+  if (type === 'podcast' && uploadState !== 'success') {
+    return (
+      <div className="w-full max-w-3xl mx-auto px-4 lg:px-6 py-10">
+        <h1 className="text-2xl font-bold text-white mb-2">Uploaden</h1>
+        <p className="text-slate-400 mb-6">Podcastafleveringen komen na goedkeuring op je podcastpagina.</p>
+        <UploadTypeTabs type={type} onChange={setType} />
+        <PodcastUploadForm />
+      </div>
+    );
+  }
 
   if (uploadState === 'success') {
     return (
@@ -193,8 +238,12 @@ export default function UploadPage() {
   return (
     <div className="w-full max-w-7xl mx-auto px-4 lg:px-6 py-10">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white mb-2">Muziek uploaden</h1>
-        <p className="text-slate-400">Deel je muziek met de h-orbit gemeenschap</p>
+        <h1 className="text-2xl font-bold text-white mb-2">Uploaden</h1>
+        <p className="text-slate-400 mb-6">Muziek komt na goedkeuring op je artiestenpagina en bij de muziek.</p>
+        <UploadTypeTabs type={type} onChange={setType} />
+        {!hasRole(user, 'Artiest') && (
+          <p className="-mt-4 mb-2 text-xs text-slate-500">Als je muziek uploadt, krijgt je profiel ook de rol Artiest (met een artiestenpagina).</p>
+        )}
       </div>
 
       <div className="space-y-6">

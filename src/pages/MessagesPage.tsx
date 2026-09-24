@@ -95,7 +95,7 @@ export default function MessagesPage() {
           {filtered.map((conv) => {
             const name = conv.other_participant.display_name || conv.other_participant.username;
             const hasUnread = conv.unread_count > 0;
-            const locked = requiresPro && !isFreeConversation(user?.role, conv.other_participant.role);
+            const locked = requiresPro && !isFreeConversation(user, conv.other_participant);
 
             return (
               <button

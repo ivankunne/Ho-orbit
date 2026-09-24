@@ -24,6 +24,8 @@ export interface PodcastEpisode {
   episode_number: number | null;
   published_at: string;
   created_at: string;
+  /** 'pending' tot een admin hem goedkeurt; alleen de maker en admins zien die. */
+  upload_status?: 'pending' | 'approved' | 'rejected';
 }
 
 interface PodcastContextValue {
@@ -75,7 +77,7 @@ export function PodcastProvider({ children }) {
   }, []);
 
   const fetchEpisodeCounts = useCallback(async () => {
-    const { data } = await supabase.from('podcast_episodes').select('podcast_id');
+    const { data } = await supabase.from('podcast_episodes').select('podcast_id').eq('upload_status', 'approved');
     if (!data) return;
     const counts: Record<string, number> = {};
     for (const row of data as { podcast_id: string }[]) {

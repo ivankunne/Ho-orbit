@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { SELF_SERVICE_ROLES } from '@lib/roles';
 import { X, Music, Eye, EyeOff, ArrowRight, Check, Camera } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
 import { useAuthModal } from '@context/AuthModalContext';
@@ -212,6 +213,7 @@ export function SignupForm({ onSuccess, onSwitch, onQuickSignup }: { onSuccess: 
     displayName: '',
     location: '',
     isArtist: false,
+    isPodcaster: false,
     genre: '',
     agreeTerms: false,
   });
@@ -426,20 +428,28 @@ export function SignupForm({ onSuccess, onSwitch, onQuickSignup }: { onSuccess: 
               placeholder="bijv. Amsterdam, Nederland"
             />
           </div>
-          <label
-            className="flex items-center gap-3 p-3.5 rounded-xl border border-white/10 cursor-pointer hover:border-violet-500/30 transition-colors"
-            onClick={() => set('isArtist', !form.isArtist)}
-          >
-            <Checkbox
-              checked={form.isArtist}
-              onCheckedChange={(checked) => set('isArtist', checked)}
-              className="shrink-0"
-            />
-            <div>
-              <p className="text-white text-sm font-medium">Ik ben een artiest</p>
-              <p className="text-slate-400 text-xs">Krijg toegang tot upload- en artiestenfuncties</p>
-            </div>
-          </label>
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-slate-300">Wat maak je? <span className="font-normal text-slate-500">Allebei kan, of geen van beide</span></p>
+            {SELF_SERVICE_ROLES.map(r => {
+              const key = r.id === 'Artiest' ? 'isArtist' : 'isPodcaster';
+              return (
+                <label key={r.id}
+                  className={`flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer transition-colors ${form[key] ? 'border-violet-500/40 bg-violet-600/10' : 'border-white/10 hover:border-violet-500/30'}`}
+                >
+                  <Checkbox
+                    checked={form[key]}
+                    onCheckedChange={(checked) => set(key, checked === true)}
+                    className="shrink-0"
+                  />
+                  <div>
+                    <p className="text-white text-sm font-medium">{r.label}</p>
+                    <p className="text-slate-400 text-xs">{r.desc}</p>
+                  </div>
+                </label>
+              );
+            })}
+            <p className="text-xs text-slate-500">Je kunt dit later altijd aanpassen in je instellingen.</p>
+          </div>
           {form.isArtist && (
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-1.5">Primair genre</label>
@@ -468,7 +478,7 @@ export function SignupForm({ onSuccess, onSwitch, onQuickSignup }: { onSuccess: 
               <p className="text-white font-semibold text-sm truncate">{form.displayName || form.username}</p>
               <p className="text-slate-400 text-xs">@{form.username}</p>
               <p className="text-slate-500 text-xs mt-0.5">
-                {form.isArtist ? `Artiest${form.genre ? ` · ${form.genre}` : ''}` : 'Luisteraar'}
+                {[form.isArtist && `Artiest${form.genre ? ` · ${form.genre}` : ''}`, form.isPodcaster && 'Podcaster'].filter(Boolean).join(' + ') || 'Luisteraar'}
               </p>
             </div>
           </div>

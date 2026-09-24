@@ -5,6 +5,7 @@ import { pushSupported, pushPermission, isPushEnabled, enablePush, disablePush, 
 import { startCheckout, openBillingPortal, cancelSubscription, getPlanInfo, formatPlanPrice, yearlySavingsLabel, type PlanInterval, type PlanOptions } from '@services/subscriptionService';
 import { FREE_FEATURES, PRO_FEATURES } from '@data/subscriptionPlans';
 import BandSeatsCard from '@components/BandSeatsCard';
+import CreatorRolesCard from '@components/CreatorRolesCard';
 import UserAvatar from '@components/UserAvatar';
 import { useAuth } from '@context/AuthContext';
 import { changePassword, deleteAccount, updateEmail, updateProfile as persistProfile, updatePreferences, uploadAvatar, uploadBanner } from '@services/userService';
@@ -114,6 +115,7 @@ export default function AccountPage() {
 
         {/* Main content */}
         <div className="lg:col-span-3 min-w-0">
+          {activeSection === 'profiel' && <CreatorRolesCard />}
           {activeSection === 'profiel' && (
             <ProfielSection
               user={user}
@@ -328,13 +330,10 @@ function AbonnementSection({ user }: { user: any }) {
 }
 
 /* ─── Profiel ─────────────────────────────────────────────── */
-const ALL_ROLES = [
-  { value: 'Luisteraar', label: 'Luisteraar' },
-  { value: 'Artiest', label: 'Artiest' },
-  { value: 'Producer', label: 'Producer' },
-  { value: 'Journalist', label: 'Journalist' },
-  { value: 'Organisator', label: 'Organisator' },
-];
+// Alleen het label bij je naam. Wat je mag uploaden (Artiest/Podcast) staat
+// los hiervan in "Wat maak je?" (CreatorRolesCard) — daarom staat Artiest hier
+// niet meer tussen: dit veld gaf de indruk dat het iets aanzette.
+const PROFILE_LABELS = ['Luisteraar', 'Muziekliefhebber', 'Fan & Community', 'Producer', 'Journalist', 'Organisator'];
 
 function ProfielSection({ user, updateProfile, userId }: { user: any; updateProfile: (u: any) => void; userId: string | null }) {
   const [form, setForm] = useState({
@@ -454,17 +453,18 @@ function ProfielSection({ user, updateProfile, userId }: { user: any; updateProf
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-300 mb-2">Rol</label>
+          <label className="block text-sm font-medium text-slate-300 mb-2">Profieltitel</label>
           <Select value={form.role} onValueChange={v => set('role', v)}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {ALL_ROLES.map(r => (
-                <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+              {(PROFILE_LABELS.includes(form.role) ? PROFILE_LABELS : [form.role, ...PROFILE_LABELS]).map(r => (
+                <SelectItem key={r} value={r}>{r}</SelectItem>
               ))}
             </SelectContent>
           </Select>
+          <p className="mt-1.5 text-xs text-slate-500">Staat bij je naam. Wat je kunt uploaden stel je hierboven in bij “Wat maak je?”.</p>
         </div>
 
         <div>

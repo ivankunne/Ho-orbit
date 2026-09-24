@@ -16,7 +16,7 @@ import {
   type UploadedTrack,
 } from '@services/uploadService';
 import {
-  getUsers, suspendUser, unsuspendUser, setUserRole,
+  getUsers, suspendUser, unsuspendUser, toggleUserRole,
   getPendingEvents, approveEvent, rejectEvent,
   getReports, resolveReport, dismissReport,
   getHiddenItems, hideForumItem, unhideForumItem,
@@ -27,6 +27,7 @@ import { getThreadsByCategory } from '@services/forumService';
 import { coverPlaceholder } from '@utils/placeholder';
 import { useToast } from '@components/Toast';
 import { optimizedImage } from '@lib/image';
+import { getEpisodesForReview, reviewEpisode, type ReviewEpisode } from '@services/podcastService';
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -175,22 +176,39 @@ function TrackPlayer({ src, hasRealAudio }: { src: string; hasRealAudio: boolean
 function UploadsSection({ adminId }: { adminId: string }) {
   const [tab, setTab] = useState<ReviewTab>('pending');
   const [tracks, setTracks] = useState<UploadedTrack[]>([]);
+  const [episodes, setEpisodes] = useState<ReviewEpisode[]>([]);
   const [search, setSearch] = useState('');
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const addToast = useToast();
 
-  const load = useCallback(async () => { setLoading(true); setTracks(await getAllUploads()); setLoading(false); }, []);
+  const load = useCallback(async () => {
+    setLoading(true);
+    const [t, e] = await Promise.all([getAllUploads(), getEpisodesForReview()]);
+    setTracks(t); setEpisodes(e); setLoading(false);
+  }, []);
   useEffect(() => { load(); }, [load]);
 
+  const status = (x: { status?: string; upload_status?: string }) => x.status ?? x.upload_status;
+  const all = [...tracks, ...episodes] as { status?: string; upload_status?: string }[];
   const counts = {
-    pending: tracks.filter(t => t.status === 'pending').length,
-    approved: tracks.filter(t => t.status === 'approved').length,
-    rejected: tracks.filter(t => t.status === 'rejected').length,
-    all: tracks.length,
+    pending: all.filter(x => status(x) === 'pending').length,
+    approved: all.filter(x => status(x) === 'approved').length,
+    rejected: all.filter(x => status(x) === 'rejected').length,
+    all: all.length,
   };
+  const q = search.toLowerCase();
   const visible = tracks
     .filter(t => tab === 'all' || t.status === tab)
-    .filter(t => !search || t.title.toLowerCase().includes(search.toLowerCase()) || t.artist.toLowerCase().includes(search.toLowerCase()));
+    .filter(t => !search || t.title.toLowerCase().includes(q) || t.artist.toLowerCase().includes(q));
+  const visibleEpisodes = episodes
+    .filter(e => tab === 'all' || e.upload_status === tab)
+    .filter(e => !search || e.title.toLowerCase().includes(q) || (e.podcast?.title ?? '').toLowerCase().includes(q));
+
+  async function review(e: ReviewEpisode, next: 'approved' | 'rejected', reason?: string) {
+    try { await reviewEpisode(e.id, adminId, next, reason); load(); }
+    catch (err) { addToast((err as Error).message, 'error'); }
+  }
 
   return (
     <div className="space-y-5">
@@ -210,7 +228,58 @@ function UploadsSection({ adminId }: { adminId: string }) {
         <SectionSearch value={search} onChange={setSearch} placeholder="Zoek op titel of artiest…" />
       </div>
 
-      {loading ? <LoadingState /> : visible.length === 0 ? <EmptyState icon={<Music size={32} />} label="Geen uploads gevonden." /> : (
+      {!loading && visibleEpisodes.length > 0 && (
+        <div className="space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Podcastafleveringen</p>
+          {visibleEpisodes.map(e => (
+            <div key={e.id} className="bg-white/[0.03] border border-white/8 rounded-2xl overflow-hidden hover:border-white/15 transition-all">
+              <div className="flex flex-col sm:flex-row gap-4 p-4 sm:p-5">
+                <div className="flex gap-4 flex-1 min-w-0">
+                  <img decoding="async" loading="lazy"
+                    src={optimizedImage(e.podcast?.cover_image_url || coverPlaceholder(e.podcast?.title || e.title), 80)}
+                    alt={e.podcast?.title || e.title}
+                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover shrink-0 bg-white/5" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-start gap-2 mb-1">
+                      <h3 className="font-semibold text-white">{e.title}</h3>
+                      <span className="text-[10px] font-semibold uppercase tracking-wide bg-pink-500/15 text-pink-300 border border-pink-500/25 px-1.5 py-0.5 rounded">Podcast</span>
+                      <StatusBadge status={e.upload_status} />
+                    </div>
+                    <p className="text-sm text-slate-400 mb-2">
+                      <span className="text-slate-300">{e.podcast?.title ?? 'Onbekende podcast'}</span>{e.duration ? ` · ${e.duration}` : ''}
+                    </p>
+                    {e.description && <p className="text-xs text-slate-500 mb-2 line-clamp-2 italic">"{e.description}"</p>}
+                    <p className="text-xs text-slate-600">Ingediend {fmt(e.created_at)}</p>
+                    <TrackPlayer src={e.audio_url} hasRealAudio={!!e.audio_url} />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 w-full sm:w-auto shrink-0 sm:self-start">
+                  {e.upload_status !== 'approved' && (
+                    <button onClick={() => review(e, 'approved')}
+                      className="flex w-full sm:w-auto items-center justify-center gap-1.5 bg-emerald-600/20 hover:bg-emerald-600/35 active:bg-emerald-600/45 text-emerald-400 border border-emerald-500/30 rounded-lg px-4 py-2.5 sm:py-1.5 text-sm font-medium transition-colors">
+                      <CheckCircle size={16} /><span>Goedkeuren</span>
+                    </button>
+                  )}
+                  {e.upload_status !== 'rejected' && (
+                    <button onClick={() => setRejectingId(e.id)}
+                      className="flex w-full sm:w-auto items-center justify-center gap-1.5 bg-red-500/15 hover:bg-red-500/25 active:bg-red-500/35 text-red-400 border border-red-500/25 rounded-lg px-4 py-2.5 sm:py-1.5 text-sm font-medium transition-colors">
+                      <XCircle size={16} /><span>Afwijzen</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+              {rejectingId === e.id && (
+                <RejectInput label="Reden voor afwijzing (optioneel)"
+                  onConfirm={async (r) => { await review(e, 'rejected', r); setRejectingId(null); }}
+                  onCancel={() => setRejectingId(null)} />
+              )}
+            </div>
+          ))}
+          {visible.length > 0 && <p className="pt-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Muziek</p>}
+        </div>
+      )}
+
+      {loading ? <LoadingState /> : visible.length === 0 ? (visibleEpisodes.length === 0 ? <EmptyState icon={<Music size={32} />} label="Geen uploads gevonden." /> : null) : (
         <div className="space-y-3">
           {visible.map(track => (
             <div key={track.id} className="bg-white/[0.03] border border-white/8 rounded-2xl overflow-hidden hover:border-white/15 transition-all">
@@ -336,50 +405,36 @@ function UsersSection() {
                     {u.verified && <span className="text-[10px] text-violet-400 bg-violet-400/10 border border-violet-400/20 rounded-full px-1.5 py-0.5">✓ Geverifieerd</span>}
                     {u.suspended && <span className="text-[10px] text-red-400 bg-red-400/10 border border-red-400/20 rounded-full px-1.5 py-0.5">Geschorst</span>}
                   </div>
-                  <p className="text-xs text-slate-500 mt-0.5">{u.role} · Lid sinds {u.joinedDate}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{u.roles.length ? u.roles.join(' + ') : u.role} · Lid sinds {u.joinedDate}</p>
                   {u.suspended && u.suspendedReason && <p className="text-xs text-red-400/70 mt-0.5">Reden: {u.suspendedReason}</p>}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  {/* Radio role toggle */}
-                  <button
-                    onClick={async () => {
-                      const newRole = u.role === 'Radio' ? 'Luisteraar' : 'Radio';
-                      try {
-                        await setUserRole(u.id, newRole);
-                        load();
-                      } catch (e: any) {
-                        addToast(e?.message || 'Rol wijzigen mislukt.', 'error');
-                      }
-                    }}
-                    title={u.role === 'Radio' ? 'Radio-rol intrekken' : 'Radio-rol toekennen'}
-                    className={`flex items-center gap-1.5 border rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                      u.role === 'Radio'
-                        ? 'bg-red-500/20 hover:bg-red-500/30 text-red-400 border-red-500/30'
-                        : 'bg-white/5 hover:bg-white/10 text-slate-500 hover:text-slate-300 border-white/10'
-                    }`}
-                  >
-                    <Radio size={12} /><span className="hidden sm:inline">{u.role === 'Radio' ? 'Intrekken' : 'Radio'}</span>
-                  </button>
-                  {/* Podcast role toggle */}
-                  <button
-                    onClick={async () => {
-                      const newRole = u.role === 'Podcast' ? 'Luisteraar' : 'Podcast';
-                      try {
-                        await setUserRole(u.id, newRole);
-                        load();
-                      } catch (e: any) {
-                        addToast(e?.message || 'Rol wijzigen mislukt.', 'error');
-                      }
-                    }}
-                    title={u.role === 'Podcast' ? 'Podcast-rol intrekken' : 'Podcast-rol toekennen'}
-                    className={`flex items-center gap-1.5 border rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                      u.role === 'Podcast'
-                        ? 'bg-violet-500/20 hover:bg-violet-500/30 text-violet-400 border-violet-500/30'
-                        : 'bg-white/5 hover:bg-white/10 text-slate-500 hover:text-slate-300 border-white/10'
-                    }`}
-                  >
-                    <Headphones size={12} /><span className="hidden sm:inline">{u.role === 'Podcast' ? 'Intrekken' : 'Podcast'}</span>
-                  </button>
+                  {/* Rollen aan/uit — per rol, de andere blijven staan */}
+                  {([['Radio', Radio], ['Podcast', Headphones]] as const).map(([r, Icon]) => {
+                    const on = u.roles.includes(r);
+                    return (
+                      <button
+                        key={r}
+                        onClick={async () => {
+                          try {
+                            await toggleUserRole(u.id, r, !on);
+                            load();
+                          } catch (e: any) {
+                            addToast(e?.message || 'Rol wijzigen mislukt.', 'error');
+                          }
+                        }}
+                        title={on ? `${r}-rol intrekken` : `${r}-rol toekennen`}
+                        aria-pressed={on}
+                        className={`flex items-center gap-1.5 border rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                          on
+                            ? 'bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 border-violet-500/30'
+                            : 'bg-white/5 hover:bg-white/10 text-slate-500 hover:text-slate-300 border-white/10'
+                        }`}
+                      >
+                        <Icon size={12} /><span className="hidden sm:inline">{r}{on ? ' ✓' : ''}</span>
+                      </button>
+                    );
+                  })}
                   {u.suspended ? (
                     <button onClick={async () => {
                       try {
@@ -1055,7 +1110,8 @@ export default function AdminPage() {
   const [eventPending, setEventPending] = useState(0);
 
   useEffect(() => {
-    getAllUploads().then(t => setUploadPending(t.filter(x => x.status === 'pending').length));
+    Promise.all([getAllUploads(), getEpisodesForReview()]).then(([t, e]) =>
+      setUploadPending(t.filter(x => x.status === 'pending').length + e.filter(x => x.upload_status === 'pending').length));
     getReports().then(r => setReportOpen(r.filter(x => x.status === 'open').length));
     getPendingEvents().then(e => setEventPending(e.filter(x => x.status === 'pending').length));
   }, [section]);

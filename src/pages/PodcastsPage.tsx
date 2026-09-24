@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { createPodcast } from '@services/podcastService';
+import { hasRole, rolesOf, saveMyRoles } from '@lib/roles';
 import { Link } from 'react-router-dom';
 import { Headphones, Settings2, CheckCircle, RefreshCw, Plus, Trash2, ChevronDown, ChevronUp, Mic } from 'lucide-react';
 import { usePodcast, type Podcast } from '@context/PodcastContext';
@@ -8,7 +10,6 @@ import { useToast } from '@components/Toast';
 import GenrePicker from '@components/GenrePicker';
 import GenreBadge from '@components/GenreBadge';
 import { coverPlaceholder } from '@utils/placeholder';
-import { notifyAdminUpload } from '@services/emailService';
 import { optimizedImage } from '@lib/image';
 
 // ─── Podcast card (public browse view) ───────────────────────────────────────
@@ -144,17 +145,16 @@ function AddPodcastForm({ onRefresh, onClose, userId }: { onRefresh: () => void;
 
   const save = async () => {
     if (!title.trim()) return;
+    if (!userId) return;
     setSaving(true);
-    const { error } = await supabase.from('podcasts').insert({
-      title, genre, description,
-      ...(userId ? { owner_id: userId } : {}),
-    });
-    setSaving(false);
-    if (error) {
-      addToast?.('Podcast toevoegen mislukt. Probeer het opnieuw.', 'error');
+    try {
+      await createPodcast(userId, { title, genre, description });
+    } catch (e) {
+      addToast?.((e as Error).message, 'error');
       return;
+    } finally {
+      setSaving(false);
     }
-    notifyAdminUpload('podcast', title, '/podcasts');
     addToast?.('Podcast toegevoegd. Voeg nu je eerste aflevering toe.', 'success');
     onRefresh();
     onClose();
@@ -198,11 +198,26 @@ function AddPodcastForm({ onRefresh, onClose, userId }: { onRefresh: () => void;
 
 export default function PodcastsPage() {
   const { podcasts, episodeCounts, fetchPodcasts } = usePodcast();
-  const { user } = useAuth();
+  const { user, updateProfile } = useAuth();
+  const toast = useToast();
   const isAdmin      = Boolean(user?.isAdmin);
-  const isPodcastHost = user?.role === 'Podcast';
+  const isPodcastHost = hasRole(user, 'Podcast');
   const isStudio     = isAdmin || isPodcastHost;
   const [showAddForm, setShowAddForm] = useState(false);
+  const [becoming, setBecoming] = useState(false);
+
+  // Zelf de Podcast-rol aanzetten, daarna meteen het formulier voor je show.
+  async function becomePodcaster() {
+    setBecoming(true);
+    try {
+      updateProfile(await saveMyRoles(user.id, [...rolesOf(user), 'Podcast'], user.role));
+      setShowAddForm(true);
+    } catch (e) {
+      toast?.((e as Error).message, 'error');
+    } finally {
+      setBecoming(false);
+    }
+  }
 
   // Admins manage all podcasts; Podcast hosts only manage their own
   const studioPodcasts = isAdmin
@@ -248,6 +263,21 @@ export default function PodcastsPage() {
             <p className="text-lg font-semibold text-white">Geen podcasts gevonden</p>
             <p className="text-slate-500 text-sm mt-1">Er zijn nog geen podcasts toegevoegd.</p>
           </div>
+        </div>
+      )}
+
+      {/* ── Zelf een podcast maken (ingelogd, nog geen podcaster) ── */}
+      {user && !isStudio && (
+        <div className="mt-6 flex flex-col sm:flex-row sm:items-center gap-4 rounded-2xl border border-violet-500/25 bg-violet-600/10 p-5">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-600/20 text-violet-300"><Mic size={20} /></div>
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-white">Maak je zelf een podcast?</p>
+            <p className="text-sm text-slate-400">Zet je podcast op h-orbit en upload je afleveringen. Maak je ook muziek? Dan houd je gewoon allebei.</p>
+          </div>
+          <button type="button" onClick={becomePodcaster} disabled={becoming}
+            className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 text-sm font-semibold text-white hover:bg-violet-500 disabled:opacity-60 transition-colors">
+            {becoming ? <RefreshCw size={15} className="animate-spin" /> : <Plus size={16} />} Start je eigen podcast
+          </button>
         </div>
       )}
 

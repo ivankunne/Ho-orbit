@@ -1,14 +1,18 @@
 import { useState } from 'react';
-import { Music, Check, ArrowRight, ChevronLeft, Headphones, Radio, Users, MapPin } from 'lucide-react';
+import { Music, Check, ArrowRight, ChevronLeft, Headphones, Radio, Users, MapPin, Mic } from 'lucide-react';
+import { labelFor, rolesOf, type CreatorRole } from '@lib/roles';
 import { useAuth } from '@context/AuthContext';
 import { supabase } from '@lib/supabase';
 import GenreChips from '@components/GenreChips';
 
 const CITIES = ['Amsterdam', 'Rotterdam', 'Den Haag', 'Utrecht', 'Eindhoven', 'Groningen', 'Tilburg', 'Breda', 'Overig'];
 
-const ROLES = [
+// `creator`: deze keuze geeft ook toegang (profiles.roles); de rest is alleen
+// een label. Meerdere keuzes kan — een muzikant met een podcast kiest er twee.
+const ROLES: { id: string; label: string; desc: string; icon: typeof Music; creator?: CreatorRole }[] = [
   { id: 'luisteraar', label: 'Muziekliefhebber', desc: 'Ik ontdek en beluister Nederlandse muziek', icon: Headphones },
-  { id: 'artiest',    label: 'Artiest',          desc: 'Ik maak en upload mijn eigen muziek',      icon: Music },
+  { id: 'artiest',    label: 'Artiest',          desc: 'Ik maak en upload mijn eigen muziek',      icon: Music, creator: 'Artiest' },
+  { id: 'podcaster',  label: 'Podcaster',        desc: 'Ik maak een podcast',                       icon: Mic,   creator: 'Podcast' },
   { id: 'organisator', label: 'Organisator',     desc: 'Ik organiseer evenementen en shows',       icon: Radio },
   { id: 'fan',        label: 'Fan & Community',  desc: 'Ik volg artiesten en ga naar shows',       icon: Users },
 ];
@@ -26,7 +30,12 @@ export default function OnboardingPage() {
   const { user, updateProfile } = useAuth();
   const [step, setStep] = useState(0);
   const [selectedGenres, setSelectedGenres] = useState([]);
-  const [selectedRole, setSelectedRole] = useState('');
+  // Voorgeselecteerd met wat al bij het aanmelden is aangevinkt.
+  const [selectedRoles, setSelectedRoles] = useState<string[]>(
+    () => ROLES.filter(r => r.creator && rolesOf(user).includes(r.creator)).map(r => r.id),
+  );
+  const toggleRole = (id: string) =>
+    setSelectedRoles(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
   const [selectedCity, setSelectedCity] = useState('');
   const [selectedDiscover, setSelectedDiscover] = useState([]);
   const [finishing, setFinishing] = useState(false);
@@ -42,14 +51,20 @@ export default function OnboardingPage() {
 
   function canNext() {
     if (step === 0) return selectedGenres.length > 0;
-    if (step === 1) return selectedRole !== '';
+    if (step === 1) return selectedRoles.length > 0;
     if (step === 2) return selectedCity !== '';
     return true;
   }
 
   async function handleFinish() {
     const location = selectedCity ? `${selectedCity}, Nederland` : user.location;
-    const role = ROLES.find(r => r.id === selectedRole)?.label || user.role;
+    const picked = ROLES.filter(r => selectedRoles.includes(r.id));
+    // Radio (door een admin gegeven) blijft staan; Artiest/Podcast volgen de keuze.
+    const roles: CreatorRole[] = [
+      ...picked.flatMap(r => (r.creator ? [r.creator] : [])),
+      ...rolesOf(user).filter(r => r === 'Radio'),
+    ];
+    const role = labelFor(picked.find(r => !r.creator)?.label ?? null, roles);
     setFinishing(true);
     setFinishError('');
     // Persist to DB first — only leave onboarding once we know the answers actually saved,
@@ -62,6 +77,7 @@ export default function OnboardingPage() {
         location: location || null,
         discover_prefs: selectedDiscover,
         role,
+        roles,
       }).eq('id', user.id);
       setFinishing(false);
       if (error) {
@@ -76,6 +92,7 @@ export default function OnboardingPage() {
       needsOnboarding: false,
       preferredGenres: selectedGenres,
       role,
+      roles,
       location,
       discoverPrefs: selectedDiscover,
     });
@@ -128,30 +145,31 @@ export default function OnboardingPage() {
         {step === 1 && (
           <div>
             <h1 className="text-2xl font-bold text-white mb-1">Wat past het beste bij jou?</h1>
-            <p className="text-slate-400 mb-6 text-sm">We passen je ervaring aan op basis van je rol.</p>
+            <p className="text-slate-400 mb-6 text-sm">Kies alles wat past — maak je muziek én een podcast, vink dan beide aan.</p>
             <div className="space-y-3 mb-8">
               {ROLES.map(r => {
                 const Icon = r.icon;
                 return (
                   <button
                     key={r.id}
-                    onClick={() => setSelectedRole(r.id)}
+                    onClick={() => toggleRole(r.id)}
+                    aria-pressed={selectedRoles.includes(r.id)}
                     className={`w-full flex items-center gap-4 p-4 rounded-xl border text-left transition-all ${
-                      selectedRole === r.id
+                      selectedRoles.includes(r.id)
                         ? 'border-violet-500/50 bg-violet-600/8'
                         : 'border-white/8 bg-white/3 hover:bg-white/5'
                     }`}
                   >
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                      selectedRole === r.id ? 'bg-violet-600/20' : 'bg-white/8'
+                      selectedRoles.includes(r.id) ? 'bg-violet-600/20' : 'bg-white/8'
                     }`}>
-                      <Icon size={18} className={selectedRole === r.id ? 'text-violet-400' : 'text-slate-400'} />
+                      <Icon size={18} className={selectedRoles.includes(r.id) ? 'text-violet-400' : 'text-slate-400'} />
                     </div>
                     <div className="flex-1">
-                      <p className={`font-semibold text-sm ${selectedRole === r.id ? 'text-violet-300' : 'text-white'}`}>{r.label}</p>
+                      <p className={`font-semibold text-sm ${selectedRoles.includes(r.id) ? 'text-violet-300' : 'text-white'}`}>{r.label}</p>
                       <p className="text-xs text-slate-500 mt-0.5">{r.desc}</p>
                     </div>
-                    {selectedRole === r.id && (
+                    {selectedRoles.includes(r.id) && (
                       <div className="w-5 h-5 rounded-full bg-violet-600 flex items-center justify-center shrink-0">
                         <Check size={11} className="text-white" />
                       </div>

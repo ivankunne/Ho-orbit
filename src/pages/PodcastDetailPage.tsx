@@ -8,8 +8,7 @@ import { useToast } from '@components/Toast';
 import { EqBars } from '@components/Waveform';
 import GenreBadge from '@components/GenreBadge';
 import { coverPlaceholder } from '@utils/placeholder';
-import { getAudioDuration, uploadAudioFile } from '@services/uploadService';
-import { notifyAdminUpload } from '@services/emailService';
+import { submitEpisode } from '@services/podcastService';
 import { optimizedImage } from '@lib/image';
 
 function EpisodeRow({
@@ -50,6 +49,12 @@ function EpisodeRow({
         </p>
         {episode.description && <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{episode.description}</p>}
         {episode.duration && <p className="text-xs text-slate-600 mt-0.5">{episode.duration}</p>}
+        {episode.upload_status === 'pending' && (
+          <span className="mt-1 inline-block rounded-md border border-amber-400/25 bg-amber-400/10 px-1.5 py-0.5 text-[11px] font-medium text-amber-300">Wacht op goedkeuring — alleen jij ziet hem</span>
+        )}
+        {episode.upload_status === 'rejected' && (
+          <span className="mt-1 inline-block rounded-md border border-red-500/25 bg-red-500/10 px-1.5 py-0.5 text-[11px] font-medium text-red-300">Afgewezen — niet zichtbaar voor anderen</span>
+        )}
       </div>
       {canManage && (
         <button onClick={remove} disabled={deleting} className="text-slate-600 hover:text-red-400 transition-colors p-1 shrink-0">
@@ -72,18 +77,10 @@ function AddEpisodeForm({ podcastId, onRefresh, onClose }: { podcastId: string; 
     if (!title.trim() || !file) return;
     setSaving(true);
     try {
-      const duration = await getAudioDuration(file);
-      const audioUrl = await uploadAudioFile(file, title, setProgress);
-      const { error } = await supabase.from('podcast_episodes').insert({
-        podcast_id: podcastId,
-        title,
-        description,
-        audio_url: audioUrl,
-        duration,
-      });
-      if (error) throw error;
-      notifyAdminUpload('podcast_episode', title, `/podcasts/${podcastId}`);
-      addToast?.('Aflevering toegevoegd.', 'success');
+      const status = await submitEpisode(podcastId, { title, description, file }, setProgress);
+      addToast?.(status === 'pending'
+        ? 'Aflevering ingediend. Na goedkeuring staat hij online.'
+        : 'Aflevering toegevoegd.', 'success');
       onRefresh();
       onClose();
     } catch {

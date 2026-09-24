@@ -100,6 +100,8 @@ export interface User {
   bio: string;
   location: string;
   role: string;
+  /** Artiest/Podcast/Radio — zie src/lib/roles.ts. */
+  roles?: string[];
   verified: boolean;
   followers: number;
   following: number;
