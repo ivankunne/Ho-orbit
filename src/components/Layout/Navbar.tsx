@@ -1,11 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  Search, Bell, ChevronDown, Menu, X,
-  Upload, Home, Users, BookOpen, Globe, MessageSquare,
-  Calendar, User, Settings, LogOut, Library,
-  Headphones, ShieldCheck, Radio,
-  Music2, Handshake, GraduationCap, Flame,
+  Search, Bell, ChevronDown, Menu, Upload, MessageSquare, User, Settings, LogOut, Library, ShieldCheck, Radio,
 } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
 import { useAuthModal } from '@context/AuthModalContext';
@@ -15,6 +11,8 @@ import SearchOverlay from '../SearchOverlay';
 import NotificationsPanel, { useNotificationCount } from '../NotificationsPanel';
 import { getUnreadMessageCount } from '@services/chatService';
 import { useRequireAuth } from '@hooks/useRequireAuth';
+import MobileMenu from './MobileMenu';
+import { navItems, communityDropdown, lerenDropdown, communityPaths, lerenPaths } from './navConfig';
 
 function useUnreadMessageCount(userId: string | undefined): number {
   const [count, setCount] = useState(0);
@@ -27,28 +25,8 @@ function useUnreadMessageCount(userId: string | undefined): number {
   return count;
 }
 
-const navItems = [
-  { label: 'Muziek', path: '/', icon: Home },
-  { label: 'Artiesten', path: '/artists', icon: Users },
-  { label: 'Evenementen', path: '/events', icon: Calendar },
-  { label: 'Podcasts', path: '/podcasts', icon: Headphones },
-  { label: 'Radio', path: '/radio', icon: Radio },
-  { label: 'Drop Demo', path: '/drop-your-demo', icon: Flame },
-  { label: 'Community', path: '/dutch-scene', icon: Globe },
-  { label: 'Leren', path: '/tutorials', icon: BookOpen },
-];
-
-const communityDropdown = [
-  { label: 'Nederlandse Scene', sub: 'Venues & bewegingen', path: '/dutch-scene', icon: Globe },
-  { label: 'Forums', sub: 'Discussie & community', path: '/forums', icon: MessageSquare },
-  { label: 'Netwerken', sub: 'Samenwerken & uitwisselen', path: '/netwerken', icon: Handshake },
-  { label: 'Band Space', sub: 'Werkruimte voor je band', path: '/bandspace', icon: Music2 },
-];
-
-const lerenDropdown = [
-  { label: 'Tutorials', sub: 'Groei als muzikant', path: '/tutorials', icon: BookOpen },
-  { label: 'Masterclass', sub: 'Van de groten leren', path: '/masterclass', icon: GraduationCap },
-];
+// navItems, communityDropdown en lerenDropdown staan in ./navConfig — gedeeld
+// met het mobiele menu.
 
 export default function Navbar({ externalShowSearch = false, onExternalSearchClose, onMobileMenuChange, variant = 'default' }) {
   const location = useLocation();
@@ -62,13 +40,12 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
   const isLandingVariant = variant === 'landing';
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
   const [showSearch, setShowSearch] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [communityOpen, setCommunityOpen] = useState(false);
-  const [mobileCommunityOpen, setMobileCommunityOpen] = useState(false);
   const communityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [lerenOpen, setLerenOpen] = useState(false);
-  const [mobileLerenOpen, setMobileLerenOpen] = useState(false);
   const lerenTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -113,6 +90,8 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
     };
   }, [isLandingVariant]);
 
+  const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), []);
+
   const handleLogout = () => {
     setUserMenuOpen(false);
     logout();
@@ -123,8 +102,8 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
   const openLeren = () => { if (lerenTimer.current) clearTimeout(lerenTimer.current); setLerenOpen(true); };
   const closeLeren = () => { lerenTimer.current = setTimeout(() => setLerenOpen(false), 120); };
 
-  const isCommunityActive = ['/dutch-scene', '/forums', '/netwerken', '/bandspace'].some(p => location.pathname.startsWith(p));
-  const isLerenActive = ['/tutorials', '/masterclass'].some(p => location.pathname.startsWith(p));
+  const isCommunityActive = communityPaths.some(p => location.pathname.startsWith(p));
+  const isLerenActive = lerenPaths.some(p => location.pathname.startsWith(p));
 
   return (
     <nav
@@ -416,10 +395,15 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
 
             {/* Mobiel menu toggle */}
             <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className={`${isLandingVariant ? '' : 'lg:hidden'} p-2 text-slate-400 hover:text-white transition-colors`}
+              ref={menuButtonRef}
+              type="button"
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label="Menu openen"
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobiel-menu"
+              className={`${isLandingVariant ? '' : 'lg:hidden'} flex h-11 w-11 items-center justify-center rounded-xl text-slate-300 hover:text-white hover:bg-white/5 active:bg-white/10 transition-colors`}
             >
-              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+              <Menu size={22} />
             </button>
           </div>
         </div>
@@ -439,170 +423,19 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
       </div>
       )}
 
-      {/* Mobiel menu uitklapbaar */}
-      {mobileMenuOpen && (
-        <div className={`${isLandingVariant ? '' : 'lg:hidden'} bg-[#231d3a] border-t border-white/5 px-4 py-3`}>
-          <div className="mb-3">
-            <button
-              onClick={() => { setMobileMenuOpen(false); setShowSearch(true); }}
-              className="w-full flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-500 hover:border-violet-500/40 transition-all"
-            >
-              <Search size={15} className="shrink-0" />
-              <span>Zoeken...</span>
-            </button>
-          </div>
-          <div className="space-y-1">
-            {navItems.map(item => {
-              const Icon = item.icon;
-
-              if (item.label === 'Community') {
-                return (
-                  <div key="community">
-                    <button
-                      onClick={() => setMobileCommunityOpen(v => !v)}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isCommunityActive ? 'bg-violet-600/15 text-violet-400' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-                    >
-                      <Globe size={16} />
-                      <span className="flex-1 text-left">Community</span>
-                      <ChevronDown size={14} className={`transition-transform duration-200 ${mobileCommunityOpen ? 'rotate-180' : ''}`} />
-                    </button>
-                    {mobileCommunityOpen && (
-                      <div className="ml-3 mt-1 pl-3 border-l border-white/8 space-y-0.5">
-                        {communityDropdown.map(drop => {
-                          const DropIcon = drop.icon;
-                          return (
-                            <Link key={drop.path} to={drop.path}
-                              onClick={() => { setMobileMenuOpen(false); setMobileCommunityOpen(false); }}
-                              className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-colors">
-                              <DropIcon size={14} className="shrink-0" />
-                              {drop.label}
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              }
-
-              if (item.label === 'Leren') {
-                return (
-                  <div key="leren">
-                    <button
-                      onClick={() => setMobileLerenOpen(v => !v)}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isLerenActive ? 'bg-violet-600/15 text-violet-400' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-                    >
-                      <BookOpen size={16} />
-                      <span className="flex-1 text-left">Leren</span>
-                      <ChevronDown size={14} className={`transition-transform duration-200 ${mobileLerenOpen ? 'rotate-180' : ''}`} />
-                    </button>
-                    {mobileLerenOpen && (
-                      <div className="ml-3 mt-1 pl-3 border-l border-white/8 space-y-0.5">
-                        {lerenDropdown.map(drop => {
-                          const DropIcon = drop.icon;
-                          return (
-                            <Link key={drop.path} to={drop.path}
-                              onClick={() => { setMobileMenuOpen(false); setMobileLerenOpen(false); }}
-                              className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-colors">
-                              <DropIcon size={14} className="shrink-0" />
-                              {drop.label}
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              }
-
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    location.pathname === item.path
-                      ? 'bg-violet-600/15 text-violet-400'
-                      : 'text-slate-400 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <Icon size={16} />
-                  <span className="flex-1">{item.label}</span>
-                  {item.label === 'Radio' && isLive && (
-                    <span className="flex items-center gap-1 bg-red-500/15 border border-red-500/30 rounded-full px-1.5 py-0.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse inline-block" />
-                      <span className="text-[9px] font-bold text-red-400 uppercase">live</span>
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-            {user ? (
-              <>
-                <Link
-                  to="/profiel"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
-                >
-                  <User size={16} /> Mijn profiel
-                </Link>
-                <Link
-                  to="/library"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
-                >
-                  <Library size={16} /> Mijn bibliotheek
-                </Link>
-                <Link
-                  to="/berichten"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
-                >
-                  <MessageSquare size={16} />
-                  <span className="flex-1">Berichten</span>
-                  {unreadMessages > 0 && (
-                    <span className="min-w-[18px] h-[18px] bg-violet-600 rounded-full text-[10px] font-bold text-white flex items-center justify-center px-1">
-                      {unreadMessages > 9 ? '9+' : unreadMessages}
-                    </span>
-                  )}
-                </Link>
-                <Link
-                  to="/upload"
-                  onClick={(e) => {
-                    setMobileMenuOpen(false);
-                    if (!user) { e.preventDefault(); requireAuth(); }
-                  }}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-violet-600 text-white mt-2"
-                >
-                  <Upload size={16} />
-                  Muziek uploaden
-                </Link>
-                <button
-                  onClick={() => { setMobileMenuOpen(false); logout(); }}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 w-full transition-colors mt-1"
-                >
-                  <LogOut size={16} /> Uitloggen
-                </button>
-              </>
-            ) : (
-              <div className="flex flex-col gap-2 mt-2 pt-2 border-t border-white/5">
-                <button
-                  onClick={() => { setMobileMenuOpen(false); openAuthModal('login'); }}
-                  className="flex items-center justify-center px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 border border-white/10 transition-colors"
-                >
-                  Inloggen
-                </button>
-                <button
-                  onClick={() => { setMobileMenuOpen(false); openAuthModal('signup'); }}
-                  className="flex items-center justify-center px-3 py-2.5 rounded-lg text-sm font-semibold bg-violet-600 hover:bg-violet-500 text-white transition-colors"
-                >
-                  Gratis aanmelden
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Schermvullend mobiel menu — via een portal, zie MobileMenu.tsx. */}
+      <MobileMenu
+        open={mobileMenuOpen}
+        onClose={closeMobileMenu}
+        returnFocusRef={menuButtonRef}
+        user={user}
+        unreadMessages={unreadMessages}
+        isLive={isLive}
+        onSearch={() => setShowSearch(true)}
+        onLogout={logout}
+        onAuth={openAuthModal}
+        onUpload={(e) => { if (!user) { e.preventDefault(); requireAuth(); } }}
+      />
 
       {showSearch && (
         <SearchOverlay onClose={() => {
