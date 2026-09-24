@@ -378,6 +378,15 @@ const NEEDS_APPROVAL = new Set(['track']);
 // Meldingen in de app en push blijven voor dit account gewoon werken.
 const NO_MAILBOX = new Set(['ivan-master-2cc51a5f@h-orbit.nl']);
 
+// Extra ontvangers van de goedkeuringsmails die geen account hebben (en ook
+// geen adminrechten nodig hebben): alleen de mail, geen melding in de app.
+// Kommagescheiden, als secret op het project — niet in de code, want de repo
+// staat op GitHub. Zet met: supabase secrets set ADMIN_NOTIFY_EMAILS=a@x.nl,b@y.nl
+const EXTRA_ADMIN_EMAILS = (Deno.env.get('ADMIN_NOTIFY_EMAILS') ?? '')
+  .split(',')
+  .map((e) => e.trim().toLowerCase())
+  .filter((e) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e) && !NO_MAILBOX.has(e));
+
 // Fans out to every admin whenever a user uploads content. Deliberately
 // ignores each admin's notification_prefs opt-out (unlike every other
 // handler here) — admins need to see all uploads, so this ships unconditionally.
@@ -405,8 +414,8 @@ async function handleUpload(
   const recipients = (admins ?? []).filter((a) => a.id !== callerId);
   const wantsEmail = NEEDS_APPROVAL.has(contentType);
 
+  // In de app + push: per admin-account.
   let pushed = 0;
-  let emailed = 0;
   await Promise.all(
     recipients.map(async (a) => {
       const adminId = a.id as string;
@@ -415,22 +424,34 @@ async function handleUpload(
       });
       const res = await sendPushToUser(admin, adminId, { title, body, url: link, tag: `upload-${contentType}` });
       pushed += res.sent;
-
-      if (!wantsEmail) return;
-      // Adres uit auth.users, niet profiles.email — zie getUserEmail.
-      const to = await getUserEmail(admin, adminId);
-      if (!to || NO_MAILBOX.has(to.toLowerCase())) return;
-      const { subject, html } = uploadForReviewEmail({
-        recipientName: displayName(a),
-        uploaderName,
-        contentLabel: label,
-        contentTitle,
-      });
-      const sent = await sendEmail({ to, subject, html });
-      if (sent.ok) emailed += 1;
-      else console.warn('[notify] upload email failed:', sent.error);
     }),
   );
+
+  // E-mail: de admin-accounts plus de extra adressen uit ADMIN_NOTIFY_EMAILS,
+  // ontdubbeld. Adressen van accounts uit auth.users, niet profiles.email —
+  // zie getUserEmail.
+  let emailed = 0;
+  if (wantsEmail) {
+    const byAddress = new Map<string, string>(); // adres → aanhef
+    await Promise.all(
+      recipients.map(async (a) => {
+        const to = (await getUserEmail(admin, a.id as string))?.toLowerCase();
+        if (to && !NO_MAILBOX.has(to)) byAddress.set(to, displayName(a));
+      }),
+    );
+    for (const to of EXTRA_ADMIN_EMAILS) if (!byAddress.has(to)) byAddress.set(to, '');
+
+    await Promise.all(
+      [...byAddress].map(async ([to, name]) => {
+        const { subject, html } = uploadForReviewEmail({
+          recipientName: name, uploaderName, contentLabel: label, contentTitle,
+        });
+        const sent = await sendEmail({ to, subject, html });
+        if (sent.ok) emailed += 1;
+        else console.warn('[notify] upload email failed:', sent.error);
+      }),
+    );
+  }
 
   return json({ ok: true, notified: recipients.length, pushed, emailed });
 }

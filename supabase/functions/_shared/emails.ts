@@ -171,7 +171,7 @@ export function uploadForReviewEmail(opts: {
       preheader: `${opts.uploaderName} uploadde "${opts.contentTitle}" — keur het goed of af in het beheerpaneel.`,
       heading: `${escapeHtml(opts.contentLabel)} wacht op goedkeuring`,
       bodyHtml: `
-        <p style="margin:0 0 16px;">Hoi ${escapeHtml(opts.recipientName)},</p>
+        <p style="margin:0 0 16px;">Hoi${opts.recipientName ? ' ' + escapeHtml(opts.recipientName) : ''},</p>
         <p style="margin:0 0 16px;"><strong style="color:#ffffff;">${escapeHtml(opts.uploaderName)}</strong> heeft
           <strong style="color:#ffffff;">&ldquo;${escapeHtml(opts.contentTitle)}&rdquo;</strong> geüpload. Het staat nog niet
           online: het wacht op jouw goedkeuring.</p>`,
