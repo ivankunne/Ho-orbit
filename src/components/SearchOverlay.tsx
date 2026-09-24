@@ -3,11 +3,12 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   Search, X, Music, Calendar, BookOpen, FileText, ArrowRight,
-  TrendingUp, Loader, Users, Music2, MessageSquare, User,
+  TrendingUp, Loader, Users, Music2, MessageSquare, User, Headphones, GraduationCap, Tag,
 } from 'lucide-react';
 import { fetchArtistProfiles } from '@utils/artistHelpers';
 import { search, type SearchResults } from '@services/searchService';
 import { usePlayer } from '@context/PlayerContext';
+import { useGenres } from '@context/GenreContext';
 import { optimizedImage } from '@lib/image';
 
 const QUICK_LINKS = [
@@ -34,6 +35,24 @@ function Hl({ text, query }: { text: string | null; query: string }) {
 
 type FlatItem = { path: string | null; label: string; action: (() => void) | null };
 
+/** Kop boven de resultaten als de zoekterm een genre is. Ook gebruikt op /zoeken. */
+export function GenreBanner({ genre }: { genre: NonNullable<SearchResults['genre']> }) {
+  const extra = genre.labels.filter(l => l !== genre.label);
+  return (
+    <div className="flex items-start gap-2.5 rounded-xl border border-violet-500/25 bg-violet-600/10 px-3 py-2.5">
+      <Tag size={15} className="text-violet-300 shrink-0 mt-0.5" />
+      <div className="min-w-0 text-sm">
+        <p className="text-white">
+          {genre.kind === 'group' ? 'Genrefamilie' : 'Genre'} <span className="font-semibold">{genre.label}</span>
+        </p>
+        {extra.length > 0 && (
+          <p className="text-xs text-slate-400 mt-0.5 line-clamp-2">Inclusief {extra.join(', ')}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function SearchOverlay({ onClose }: { onClose: () => void }) {
   const [query, setQuery]       = useState('');
   const [results, setResults]   = useState<SearchResults | null>(null);
@@ -46,6 +65,8 @@ export default function SearchOverlay({ onClose }: { onClose: () => void }) {
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navigate = useNavigate();
   const { playTrack } = usePlayer();
+  const { groups } = useGenres();
+  const requestId = useRef(0);
 
   function handlePlayTrack(t: SearchResults['tracks'][0]) {
     playTrack({
@@ -70,38 +91,56 @@ export default function SearchOverlay({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     if (debounce.current) clearTimeout(debounce.current);
+    // Nieuwe invoer maakt een lopend antwoord op de vorige zoekterm ongeldig.
+    const id = ++requestId.current;
     if (!query.trim()) { setResults(null); setLoading(false); setSearchError(false); return; }
     setLoading(true);
     setSearchError(false);
     debounce.current = setTimeout(async () => {
       try {
-        const res = await search(query);
+        const res = await search(query, { groups, limit: 5 });
+        if (id !== requestId.current) return;
         setResults(res);
         setFocusIndex(-1);
       } catch {
+        if (id !== requestId.current) return;
         setSearchError(true);
         setResults(null);
       } finally {
-        setLoading(false);
+        if (id === requestId.current) setLoading(false);
       }
     }, 180);
     return () => { if (debounce.current) clearTimeout(debounce.current); };
-  }, [query]);
+  }, [query, groups]);
 
+  // Precies dezelfde volgorde als de secties hieronder getekend worden: de
+  // pijltjes markeren op weergavevolgorde, Enter opent uit deze lijst. Die
+  // liepen uiteen (bands stonden hier achteraan), waardoor Enter iets anders
+  // opende dan er gemarkeerd was.
   const flatResults: FlatItem[] = results
     ? [
-        ...results.artists.map(a  => ({ path: `/artists/${a.slug}`, label: a.name, action: null })),
+        ...results.artists.map(a  => ({ path: `/artists/${a.slug || a.id}`, label: a.name, action: null })),
         ...results.tracks.map(t   => ({ path: null, label: t.title, action: () => handlePlayTrack(t) })),
-        ...results.events.map(e   => ({ path: `/events/${e.id}`, label: e.name, action: null })),
-        ...results.tutorials.map(t => ({ path: `/tutorials/${t.id}`, label: t.title, action: null })),
-        ...results.articles.map(a  => ({ path: `/magazine/${a.id}`, label: a.title, action: null })),
         ...results.bands.map(b    => ({ path: `/bandspace/${b.id}`, label: b.name, action: null })),
+        ...results.events.map(e   => ({ path: `/events/${e.id}`, label: e.name, action: null })),
         ...results.users.map(u    => ({ path: `/profiel/${u.username}`, label: u.display_name || u.username, action: null })),
+        ...results.tutorials.map(t => ({ path: `/tutorials/${t.id}`, label: t.title, action: null })),
+        ...results.podcasts.map(pc => ({ path: `/podcasts/${pc.id}`, label: pc.title, action: null })),
+        ...results.masterclasses.map(m => ({ path: '/masterclass', label: m.title, action: null })),
+        ...results.articles.map(a  => ({ path: `/magazine/${a.id}`, label: a.title, action: null })),
         ...results.threads.map(t  => ({ path: `/forums/thread/${t.id}`, label: t.title, action: null })),
       ]
     : [];
 
+  const allResultsPath = `/zoeken?q=${encodeURIComponent(query.trim())}`;
+
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    // Enter zonder selectie: naar de volledige resultatenpagina.
+    if (e.key === 'Enter' && focusIndex < 0 && query.trim().length >= 2) {
+      e.preventDefault();
+      navigate(allResultsPath); onClose();
+      return;
+    }
     if (flatResults.length === 0) return;
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -115,14 +154,15 @@ export default function SearchOverlay({ onClose }: { onClose: () => void }) {
       if (item.action) { item.action(); }
       else if (item.path) { navigate(item.path); onClose(); }
     }
-  }, [flatResults, focusIndex, navigate, onClose]);
+  }, [flatResults, focusIndex, navigate, onClose, query, allResultsPath]);
 
   function go(path: string) { navigate(path); onClose(); }
 
   const totalResults = results
     ? results.artists.length + results.tracks.length + results.events.length +
       results.tutorials.length + results.articles.length + results.bands.length +
-      results.users.length + results.threads.length
+      results.users.length + results.threads.length + results.podcasts.length +
+      results.masterclasses.length
     : 0;
 
   let flatIdx = -1;
@@ -148,7 +188,7 @@ export default function SearchOverlay({ onClose }: { onClose: () => void }) {
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Zoek artiesten, nummers, bands, events..."
+            placeholder="Zoek artiesten, nummers, genres, events..."
             className="flex-1 bg-transparent text-white placeholder-slate-500 text-base focus:outline-none"
           />
           {query && (
@@ -201,20 +241,30 @@ export default function SearchOverlay({ onClose }: { onClose: () => void }) {
 
           {query && !loading && !searchError && totalResults === 0 && (
             <div className="py-10 text-center">
-              <p className="text-slate-400 text-sm">Geen resultaten voor <span className="text-white font-medium">"{query}"</span></p>
-              <p className="text-slate-600 text-xs mt-1">Probeer een andere zoekterm</p>
+              {results?.genre ? (
+                <>
+                  <p className="text-slate-400 text-sm">Nog niets in het genre <span className="text-white font-medium">{results.genre.label}</span></p>
+                  <p className="text-slate-600 text-xs mt-1">Zodra iemand iets in dit genre uploadt of plant, verschijnt het hier.</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-slate-400 text-sm">Geen resultaten voor <span className="text-white font-medium">"{query}"</span></p>
+                  <p className="text-slate-600 text-xs mt-1">Probeer een andere zoekterm</p>
+                </>
+              )}
             </div>
           )}
 
           {query && !searchError && totalResults > 0 && (
             <div className="space-y-4">
+              {results!.genre && <GenreBanner genre={results!.genre} />}
               {results!.artists.length > 0 && (
                 <section>
                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-2 mb-1.5">Artiesten</p>
                   {results!.artists.map(a => {
                     const fi = nextIdx();
                     return (
-                      <button key={a.id} onClick={() => go(`/artists/${a.slug}`)}
+                      <button key={a.id} onClick={() => go(`/artists/${a.slug || a.id}`)}
                         className={`flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 w-full text-left transition-colors group ${fi === focusIndex ? 'bg-white/8' : ''}`}>
                         {a.image_url
                           ? <img decoding="async" loading="lazy" src={optimizedImage(a.image_url, 36)} alt={a.name} className="w-9 h-9 rounded-full object-cover shrink-0" />
@@ -344,6 +394,47 @@ export default function SearchOverlay({ onClose }: { onClose: () => void }) {
                 </section>
               )}
 
+              {results!.podcasts.length > 0 && (
+                <section>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-2 mb-1.5">Podcasts</p>
+                  {results!.podcasts.map(pc => {
+                    const fi = nextIdx();
+                    return (
+                      <button key={pc.id} onClick={() => go(`/podcasts/${pc.id}`)}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 w-full text-left transition-colors group ${fi === focusIndex ? 'bg-white/8' : ''}`}>
+                        {pc.cover_image_url
+                          ? <img decoding="async" loading="lazy" src={optimizedImage(pc.cover_image_url, 36)} alt={pc.title} className="w-9 h-9 rounded-xl object-cover shrink-0" />
+                          : <div className="w-9 h-9 bg-pink-500/15 rounded-xl flex items-center justify-center shrink-0"><Headphones size={16} className="text-pink-400" /></div>
+                        }
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-white truncate"><Hl text={pc.title} query={query} /></p>
+                          <p className="text-xs text-slate-500 truncate">Podcast{pc.genre ? ` · ${pc.genre}` : ''}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </section>
+              )}
+
+              {results!.masterclasses.length > 0 && (
+                <section>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-2 mb-1.5">Masterclasses</p>
+                  {results!.masterclasses.map(m => {
+                    const fi = nextIdx();
+                    return (
+                      <button key={m.id} onClick={() => go('/masterclass')}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 w-full text-left transition-colors group ${fi === focusIndex ? 'bg-white/8' : ''}`}>
+                        <div className="w-9 h-9 bg-emerald-500/15 rounded-xl flex items-center justify-center shrink-0"><GraduationCap size={16} className="text-emerald-400" /></div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-white truncate"><Hl text={m.title} query={query} /></p>
+                          <p className="text-xs text-slate-500 truncate">Masterclass{m.instructor_name ? ` · ${m.instructor_name}` : ''}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </section>
+              )}
+
               {results!.articles.length > 0 && (
                 <section>
                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-2 mb-1.5">Artikelen</p>
@@ -387,6 +478,11 @@ export default function SearchOverlay({ onClose }: { onClose: () => void }) {
                   })}
                 </section>
               )}
+
+              <button type="button" onClick={() => go(allResultsPath)}
+                className="flex w-full items-center justify-center gap-2 min-h-[44px] rounded-xl border border-white/10 text-sm font-medium text-violet-300 hover:bg-white/5 hover:text-violet-200 transition-colors">
+                Alle resultaten voor &ldquo;{query.trim()}&rdquo; <ArrowRight size={14} />
+              </button>
             </div>
           )}
         </div>

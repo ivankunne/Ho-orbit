@@ -232,6 +232,7 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
             {/* Zoekknop (mobiel) */}
             <button
               onClick={() => setShowSearch(true)}
+              aria-label="Zoeken"
               className={`${isLandingVariant ? '' : 'md:hidden'} p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors`}
             >
               <Search size={18} />
@@ -417,7 +418,7 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
           className="w-full max-w-2xl flex items-center gap-3 bg-white/[0.06] border border-white/10 hover:border-violet-500/50 hover:bg-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-400 hover:text-slate-300 transition-all duration-200 group"
         >
           <Search size={16} className="text-violet-400 shrink-0" />
-          <span className="flex-1 text-left">Zoek artiesten, nummers, evenementen...</span>
+          <span className="flex-1 text-left">Zoek artiesten, nummers, genres, evenementen...</span>
           <kbd className="hidden lg:inline-flex items-center gap-1 text-[11px] text-slate-600 border border-white/10 rounded-md px-1.5 py-0.5 shrink-0 font-sans">⌘K</kbd>
         </button>
       </div>

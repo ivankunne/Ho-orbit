@@ -84,6 +84,11 @@ const ROUTES: [string, RouteSeo][] = [
     description: 'Luister naar de radiostations van H-orbit met muziek van Nederlandse artiesten.',
     noindex: true,
   }],
+  ['/zoeken', {
+    title: 'Zoeken',
+    description: 'Zoek naar Nederlandse artiesten, nummers, genres, bands en evenementen op H-orbit.',
+    noindex: true,
+  }],
   ['/podcasts/:id', {
     title: 'Podcast',
     description: 'Luister naar deze podcast over de Nederlandse muziekscene.',
