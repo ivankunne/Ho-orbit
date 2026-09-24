@@ -52,8 +52,17 @@ export function optimizedImage(url: string | null | undefined, opts: ImageOption
   const params = new URLSearchParams(query);
   params.set('width', String(step(width * dpr)));
   if (height) {
+    // Vaste uitsnede (avatars): vullen en bijsnijden is hier juist de bedoeling.
     params.set('height', String(step(height * dpr)));
     params.set('resize', 'cover');
+  } else {
+    // Alleen een breedte: 'contain' is verplicht. De standaard is 'cover', en
+    // zonder height neemt Supabase dan de óriginele hoogte — een vierkante hoes
+    // van 2160 px werd zo een strook van 480×2160 uit het midden, die de pagina
+    // daarna uitrekte tot een extreem ingezoomd beeld. 'contain' past binnen
+    // breedte × originele hoogte, en omdat die hoogte nooit de beperkende is,
+    // blijft de verhouding altijd behouden (en wordt er nooit vergroot).
+    params.set('resize', 'contain');
   }
   params.set('quality', String(quality));
 
