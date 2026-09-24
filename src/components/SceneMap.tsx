@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents, ZoomControl } from 'react-leaflet';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, ZoomControl } from 'react-leaflet';
+import { ChevronDown, X } from 'lucide-react';
 import MapAttributionNl from '@components/MapAttributionNl';
 import L from 'leaflet';
 import { Link } from 'react-router-dom';
@@ -27,6 +28,14 @@ interface SceneLocation {
   lng: number;
 }
 
+// Keeps the map locked to the Netherlands — panning/zooming further out
+// reaches tiles outside our basemap's coverage (shown as broken "API key
+// required" tiles), so we hard-stop the viewport at the border instead.
+const NL_BOUNDS: [[number, number], [number, number]] = [
+  [50.4, 2.9],
+  [53.8, 7.5],
+];
+
 const TYPE_COLORS: Record<string, string> = {
   'Pop/Heavy':        '#7c3aed',
   'Cultuur':          '#3b82f6',
@@ -41,18 +50,59 @@ const TYPE_COLORS: Record<string, string> = {
   'Commercieel':      '#f97316',
 };
 
-const LEGEND_TYPES: [string, string][] = [
-  ['Pop/Heavy',        'Poppodium / Studio'],
-  ['Cultuur',          'Cultuurcentrum'],
-  ['Erfgoed',          'Erfgoed / Kerk'],
-  ['Dorpshuis',        'Dorpshuis'],
-  ['Gemeenschapshuis', 'Gemeenschapshuis'],
-  ['Maatschappij',     'Scouting / Sociaal'],
-  ['MFA',              'Multifunctioneel'],
+/**
+ * Legenda-groepen. Gebaseerd op de types die echt in scene_locations staan,
+ * niet op een vaste lijst: de oude legenda had 7 regels voor 11 types, waardoor
+ * Broedplaats, Commercieel en Koepel nergens stonden, en "Cultuurcentrum"
+ * eigenlijk naar het type 'Cultuur' wees terwijl 'Cultuurcentrum' ook bestaat.
+ * Als filter zou dat locaties onvindbaar maken.
+ *
+ * Een type dat hier niet in staat (bv. een nieuw type in de database) valt in
+ * "Overig", zodat het nooit buiten het filter kan vallen.
+ */
+const LEGEND_GROUPS: { id: string; label: string; types: string[] }[] = [
+  { id: 'pop',          label: 'Poppodium / Studio', types: ['Pop/Heavy'] },
+  { id: 'cultuur',      label: 'Cultuurcentrum',     types: ['Cultuur', 'Cultuurcentrum'] },
+  { id: 'erfgoed',      label: 'Erfgoed / Kerk',     types: ['Erfgoed'] },
+  { id: 'dorpshuis',    label: 'Dorpshuis',          types: ['Dorpshuis'] },
+  { id: 'sociaal',      label: 'Scouting / Sociaal', types: ['Maatschappij'] },
+  { id: 'gemeenschap',  label: 'Gemeenschapshuis',   types: ['Gemeenschapshuis'] },
+  { id: 'mfa',          label: 'Multifunctioneel',   types: ['MFA'] },
+  { id: 'broedplaats',  label: 'Broedplaats',        types: ['Broedplaats'] },
+  { id: 'commercieel',  label: 'Commercieel',        types: ['Commercieel'] },
+  { id: 'koepel',       label: 'Koepelorganisatie',  types: ['Koepel'] },
 ];
+const OTHER_GROUP = { id: 'overig', label: 'Overig', types: [] as string[] };
+const OTHER_COLOR = '#94a3b8';
+
+function groupOf(type: string): string {
+  return LEGEND_GROUPS.find(g => g.types.includes(type))?.id ?? OTHER_GROUP.id;
+}
 
 function getColor(type: string) {
-  return TYPE_COLORS[type] ?? '#7c3aed';
+  // Onbekende types krijgen dezelfde kleur als "Overig" in de legenda, zodat
+  // een marker altijd terug te vinden is in de legenda.
+  return TYPE_COLORS[type] ?? OTHER_COLOR;
+}
+
+function groupColor(id: string) {
+  const g = LEGEND_GROUPS.find(x => x.id === id);
+  return g ? getColor(g.types[0]) : OTHER_COLOR;
+}
+
+/** Zoomt naar de zichtbare markers als het filter verandert; bij "alles" terug
+ *  naar heel Nederland. Doet niets bij het eerste laden. */
+function FitToVisible({ points, active }: { points: [number, number][]; active: string | null }) {
+  const map = useMap();
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) { first.current = false; return; }
+    if (!active || points.length === 0) { map.flyToBounds(NL_BOUNDS, { duration: 0.6 }); return; }
+    if (points.length === 1) { map.flyTo(points[0], 11, { duration: 0.6 }); return; }
+    map.flyToBounds(L.latLngBounds(points), { padding: [48, 48], maxZoom: 11, duration: 0.6 });
+    // Alleen reageren op een ándere keuze, niet op elke nieuwe array.
+  }, [active]); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
 }
 
 function createLocationIcon(type: string) {
@@ -78,17 +128,30 @@ function ZoomTracker({ onZoom }: { onZoom: (z: number) => void }) {
   return null;
 }
 
-// Keeps the map locked to the Netherlands — panning/zooming further out
-// reaches tiles outside our basemap's coverage (shown as broken "API key
-// required" tiles), so we hard-stop the viewport at the border instead.
-const NL_BOUNDS: [[number, number], [number, number]] = [
-  [50.4, 2.9],
-  [53.8, 7.5],
-];
-
 export default function SceneMap() {
   const [zoom, setZoom] = useState(7);
   const [locations, setLocations] = useState<SceneLocation[]>([]);
+  const [active, setActive] = useState<string | null>(null);
+  // Op mobiel dichtgeklapt: elf regels zouden anders een groot deel van de kaart
+  // afdekken. Op grotere schermen staat hij open.
+  const [legendOpen, setLegendOpen] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 640px)').matches,
+  );
+
+  const groups = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const l of locations) counts.set(groupOf(l.type), (counts.get(groupOf(l.type)) ?? 0) + 1);
+    return [...LEGEND_GROUPS, OTHER_GROUP]
+      .map(g => ({ ...g, count: counts.get(g.id) ?? 0 }))
+      .filter(g => g.count > 0);
+  }, [locations]);
+
+  const visible = useMemo(
+    () => (active ? locations.filter(l => groupOf(l.type) === active) : locations),
+    [locations, active],
+  );
+  const activeLabel = groups.find(g => g.id === active)?.label;
+  const toggle = (id: string) => setActive(cur => (cur === id ? null : id));
 
   useEffect(() => {
     supabase
@@ -105,22 +168,67 @@ export default function SceneMap() {
     <div className="relative rounded-2xl overflow-hidden border border-white/10 scene-map-wrapper" style={{ height: '540px' }}>
       {/* Hint */}
       <div className="absolute top-3 left-3 z-10 bg-[#231d3a]/90 backdrop-blur-sm border border-white/10 text-xs text-slate-400 px-3 py-2 rounded-lg pointer-events-none">
-        {locations.length > 0
-          ? `🎵 ${locations.length} locaties — klik een marker voor details`
-          : '🗺️ Kaart laden...'}
+        {locations.length === 0
+          ? '🗺️ Kaart laden...'
+          : active
+            ? `🎵 ${visible.length} van ${locations.length} locaties — ${activeLabel}`
+            : `🎵 ${locations.length} locaties — klik een marker voor details`}
       </div>
 
-      {/* Legend */}
-      <div className="absolute bottom-3 right-3 z-10 bg-[#231d3a]/90 backdrop-blur-sm border border-white/10 rounded-xl p-3">
-        <p className="text-xs text-slate-400 font-semibold mb-2 uppercase tracking-wider">Legenda</p>
-        <div className="space-y-1.5">
-          {LEGEND_TYPES.map(([key, label]) => (
-            <div key={key} className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full shrink-0" style={{ background: getColor(key) }} />
-              <span className="text-xs text-slate-300">{label}</span>
-            </div>
-          ))}
-        </div>
+      {/* Legenda — tegelijk het filter. Klik een type om alleen dat type te
+          tonen; nog eens klikken of "Alles tonen" zet het terug. */}
+      <div className="absolute bottom-3 right-3 z-10 max-w-[calc(100%-1.5rem)] bg-[#231d3a]/95 backdrop-blur-sm border border-white/10 rounded-xl shadow-xl">
+        <button
+          type="button"
+          onClick={() => setLegendOpen(o => !o)}
+          aria-expanded={legendOpen}
+          aria-controls="kaart-legenda"
+          className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
+        >
+          <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Legenda</span>
+          {active && !legendOpen && (
+            <span className="flex min-w-0 items-center gap-1.5 rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-white">
+              <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: groupColor(active) }} />
+              <span className="truncate">{activeLabel}</span>
+            </span>
+          )}
+          <ChevronDown size={14} className={`ml-auto shrink-0 text-slate-400 transition-transform ${legendOpen ? 'rotate-180' : ''}`} />
+        </button>
+        {legendOpen && (
+          <div id="kaart-legenda" className="px-2 pb-2">
+            <ul className="max-h-[260px] overflow-y-auto overscroll-contain space-y-0.5" aria-label="Filter op type locatie">
+              {groups.map(g => {
+                const on = active === g.id;
+                const dim = active !== null && !on;
+                return (
+                  <li key={g.id}>
+                    <button
+                      type="button"
+                      onClick={() => toggle(g.id)}
+                      aria-pressed={on}
+                      className={`flex w-full min-h-[34px] items-center gap-2 rounded-lg px-2 text-left transition-colors ${
+                        on ? 'bg-white/10' : 'hover:bg-white/5'
+                      } ${dim ? 'opacity-45' : ''}`}
+                    >
+                      <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: groupColor(g.id) }} />
+                      <span className="flex-1 text-xs text-slate-200">{g.label}</span>
+                      <span className="text-[11px] tabular-nums text-slate-500">{g.count}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+            {active && (
+              <button
+                type="button"
+                onClick={() => setActive(null)}
+                className="mt-1 flex w-full min-h-[34px] items-center justify-center gap-1.5 rounded-lg border border-white/10 text-xs font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
+              >
+                <X size={12} /> Alles tonen
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <MapContainer
@@ -145,7 +253,9 @@ export default function SceneMap() {
           maxZoom={19}
         />
 
-        {locations.map(loc => (
+        <FitToVisible points={visible.map(l => [l.lat, l.lng] as [number, number])} active={active} />
+
+        {visible.map(loc => (
           <Marker
             key={loc.id}
             position={[loc.lat, loc.lng]}
