@@ -21,7 +21,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 import { sendEmail } from '../_shared/resend.ts';
-import { newFollowerEmail, newMessageEmail, bandInviteEmail } from '../_shared/emails.ts';
+import { newFollowerEmail, newMessageEmail, bandInviteEmail, uploadForReviewEmail } from '../_shared/emails.ts';
 import { sendPushToUser } from '../_shared/push.ts';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -356,7 +356,7 @@ async function handleBandInvite(
 }
 
 const UPLOAD_LABELS: Record<string, string> = {
-  track: 'Nieuwe track',
+  track: 'Nieuw nummer',
   album: 'Nieuw album',
   podcast: 'Nieuwe podcast',
   podcast_episode: 'Nieuwe aflevering',
@@ -364,6 +364,12 @@ const UPLOAD_LABELS: Record<string, string> = {
   radio_recording: 'Nieuwe radio-opname',
   event: 'Nieuw evenement',
 };
+
+// Uploads die pas online komen nadat een admin ze goedkeurt. Alleen daarvoor
+// gaat er ook een e-mail uit — voor al het andere (podcastafleveringen,
+// radio-opnames…) is de melding in de app + push genoeg, anders krijgen admins
+// voor elke kleinigheid een mail.
+const NEEDS_APPROVAL = new Set(['track']);
 
 // Fans out to every admin whenever a user uploads content. Deliberately
 // ignores each admin's notification_prefs opt-out (unlike every other
@@ -382,25 +388,42 @@ async function handleUpload(
 
   const [{ data: uploader }, { data: admins }] = await Promise.all([
     admin.from('profiles').select('display_name, username').eq('id', callerId).single(),
-    admin.from('profiles').select('id').eq('is_admin', true),
+    admin.from('profiles').select('id, display_name, username').eq('is_admin', true),
   ]);
 
   const uploaderName = displayName(uploader);
   const title = `${label} geüpload`;
   const body = `${uploaderName} uploadde "${contentTitle}"`;
 
-  const recipients = (admins ?? []).map((a) => a.id as string).filter((id) => id !== callerId);
+  const recipients = (admins ?? []).filter((a) => a.id !== callerId);
+  const wantsEmail = NEEDS_APPROVAL.has(contentType);
 
   let pushed = 0;
+  let emailed = 0;
   await Promise.all(
-    recipients.map(async (adminId) => {
+    recipients.map(async (a) => {
+      const adminId = a.id as string;
       await admin.from('notifications').insert({
         user_id: adminId, type: 'admin_upload', title, body, link,
       });
       const res = await sendPushToUser(admin, adminId, { title, body, url: link, tag: `upload-${contentType}` });
       pushed += res.sent;
+
+      if (!wantsEmail) return;
+      // Adres uit auth.users, niet profiles.email — zie getUserEmail.
+      const to = await getUserEmail(admin, adminId);
+      if (!to) return;
+      const { subject, html } = uploadForReviewEmail({
+        recipientName: displayName(a),
+        uploaderName,
+        contentLabel: label,
+        contentTitle,
+      });
+      const sent = await sendEmail({ to, subject, html });
+      if (sent.ok) emailed += 1;
+      else console.warn('[notify] upload email failed:', sent.error);
     }),
   );
 
-  return json({ ok: true, notified: recipients.length, pushed });
+  return json({ ok: true, notified: recipients.length, pushed, emailed });
 }

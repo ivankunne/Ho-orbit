@@ -16,9 +16,15 @@ interface LayoutParams {
   bodyHtml: string;
   ctaLabel: string;
   ctaUrl: string;
+  /** Vervangt de standaardregel over meldingsvoorkeuren — voor mails die
+   *  bewust níet aan die voorkeuren gebonden zijn (admin-meldingen). */
+  footerNoteHtml?: string;
 }
 
-function layout({ preheader, heading, bodyHtml, ctaLabel, ctaUrl }: LayoutParams): string {
+const DEFAULT_FOOTER_NOTE = `Wil je deze meldingen niet meer ontvangen? Pas je voorkeuren aan onder
+                <a href="https://h-orbit.nl/account" style="color:#a78bfa;text-decoration:none;">Account &rarr; Meldingen</a>.`;
+
+function layout({ preheader, heading, bodyHtml, ctaLabel, ctaUrl, footerNoteHtml = DEFAULT_FOOTER_NOTE }: LayoutParams): string {
   const font = `-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif`;
   return `<!DOCTYPE html>
 <html lang="nl" xmlns="http://www.w3.org/1999/xhtml">
@@ -69,11 +75,10 @@ function layout({ preheader, heading, bodyHtml, ctaLabel, ctaUrl }: LayoutParams
           <tr>
             <td align="center" style="background-color:#120f22;padding:26px 40px;border-top:1px solid rgba(255,255,255,0.05);">
               <p style="margin:0 0 10px;font-family:${font};font-size:12px;color:rgba(255,255,255,0.3);line-height:1.6;">
-                Wil je deze meldingen niet meer ontvangen? Pas je voorkeuren aan onder
-                <a href="https://h-orbit.nl/account" style="color:#a78bfa;text-decoration:none;">Account &rarr; Meldingen</a>.
+                ${footerNoteHtml}
               </p>
               <p style="margin:0;font-family:${font};font-size:12px;color:rgba(255,255,255,0.2);line-height:1.6;">
-                &copy; 2025 h-orbit &mdash; Nederlandse muziekgemeenschap<br />
+                &copy; ${new Date().getFullYear()} h-orbit &mdash; Nederlandse muziekgemeenschap<br />
                 Vragen? Mail <a href="mailto:support@h-orbit.nl" style="color:rgba(255,255,255,0.35);text-decoration:none;">support@h-orbit.nl</a>
               </p>
             </td>
@@ -149,3 +154,31 @@ export function newFollowerEmail(opts: {
     }),
   };
 }
+
+/**
+ * Naar elke admin zodra er een nummer is geüpload dat op goedkeuring wacht.
+ * De knop gaat naar /admin, waar "Muziek goedkeuren" het standaardscherm is.
+ */
+export function uploadForReviewEmail(opts: {
+  recipientName: string;
+  uploaderName: string;
+  contentLabel: string;   // bv. "Nieuw nummer"
+  contentTitle: string;
+}): { subject: string; html: string } {
+  return {
+    subject: `${opts.contentLabel} wacht op goedkeuring: "${opts.contentTitle}"`,
+    html: layout({
+      preheader: `${opts.uploaderName} uploadde "${opts.contentTitle}" — keur het goed of af in het beheerpaneel.`,
+      heading: `${escapeHtml(opts.contentLabel)} wacht op goedkeuring`,
+      bodyHtml: `
+        <p style="margin:0 0 16px;">Hoi ${escapeHtml(opts.recipientName)},</p>
+        <p style="margin:0 0 16px;"><strong style="color:#ffffff;">${escapeHtml(opts.uploaderName)}</strong> heeft
+          <strong style="color:#ffffff;">&ldquo;${escapeHtml(opts.contentTitle)}&rdquo;</strong> geüpload. Het staat nog niet
+          online: het wacht op jouw goedkeuring.</p>`,
+      ctaLabel: 'Bekijken en goedkeuren',
+      ctaUrl: `${SITE_URL}/admin`,
+      footerNoteHtml: 'Je ontvangt deze mail omdat je admin bent op h-orbit. Admin-meldingen over uploads staan altijd aan.',
+    }),
+  };
+}
+
