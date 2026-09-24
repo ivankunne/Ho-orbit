@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import { MapContainer, Marker } from 'react-leaflet';
+import DarkTileLayer from '@components/DarkTileLayer';
 import L from 'leaflet';
 import { Check, X, Loader2, MapPin, Globe, Mail, ArrowLeft } from 'lucide-react';
 import { submissionAction, type Submission } from '@services/sceneLocationService';
@@ -89,8 +90,7 @@ export default function SceneSubmissionReviewPage() {
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden">
             <div className="h-52 border-b border-white/10">
               <MapContainer center={[s.lat, s.lng]} zoom={15} style={{ height: '100%', width: '100%', background: '#1a1528' }} scrollWheelZoom={false}>
-                <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" subdomains="abcd" maxZoom={19}
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>' />
+                <DarkTileLayer />
                 <Marker position={[s.lat, s.lng]} icon={pin} />
               </MapContainer>
             </div>

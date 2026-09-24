@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, ZoomControl } from 'react-leaflet';
+import { MapContainer, Marker, Popup, useMap, useMapEvents, ZoomControl } from 'react-leaflet';
+import DarkTileLayer from '@components/DarkTileLayer';
 import { ChevronDown, X, Plus, Pencil, MapPinPlus } from 'lucide-react';
 import MapAttributionNl from '@components/MapAttributionNl';
 import L from 'leaflet';
@@ -17,9 +18,8 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-// Keeps the map locked to the Netherlands — panning/zooming further out
-// reaches tiles outside our basemap's coverage (shown as broken "API key
-// required" tiles), so we hard-stop the viewport at the border instead.
+// Keeps the map locked to the Netherlands: it's a map of the Dutch scene, so
+// panning off into the North Sea or Germany only loses people.
 const NL_BOUNDS: [[number, number], [number, number]] = [
   [50.4, 2.9],
   [53.8, 7.5],
@@ -267,12 +267,7 @@ export default function SceneMap() {
         <ZoomTracker onZoom={setZoom} />
 
         <MapAttributionNl />
-        <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
-          subdomains="abcd"
-          maxZoom={19}
-        />
+        <DarkTileLayer />
 
         <FitToVisible points={visible.map(l => [l.lat, l.lng] as [number, number])} active={active} />
 

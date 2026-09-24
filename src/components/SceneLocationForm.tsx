@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, Marker, useMap, useMapEvents } from 'react-leaflet';
+import DarkTileLayer from '@components/DarkTileLayer';
 import L from 'leaflet';
 import { Loader2, MapPin, Search, Trash2 } from 'lucide-react';
 import { useToast } from '@components/Toast';
@@ -225,8 +226,7 @@ export default function SceneLocationForm({ mode = 'admin', location, typeOption
         <div className="h-56 overflow-hidden rounded-xl border border-white/10">
           <MapContainer center={pos ?? [52.2, 5.3]} zoom={pos ? 15 : 7} minZoom={6} maxZoom={18}
             style={{ height: '100%', width: '100%', background: '#1a1528' }}>
-            <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" subdomains="abcd" maxZoom={19}
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>' />
+            <DarkTileLayer />
             <FixSize />
             <ClickToPlace onPick={setPos} />
             <FollowPin pos={pos} token={jump} />

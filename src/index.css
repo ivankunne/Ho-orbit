@@ -189,3 +189,10 @@ body::before {
 img[decoding="async"] {
   background-color: rgb(255 255 255 / 0.04);
 }
+
+/* Donkere kaarttegels (zie DarkTileLayer.tsx): de lichte OSM-tegels omgekeerd,
+   met de kleuren teruggedraaid zodat water blauw blijft, en getint naar de
+   paarse achtergrond van de site. */
+.leaflet-container .dark-tiles {
+  filter: invert(1) hue-rotate(180deg) brightness(0.82) contrast(0.92) saturate(0.22);
+}

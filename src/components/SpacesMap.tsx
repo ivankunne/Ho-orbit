@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents, ZoomControl } from 'react-leaflet';
+import { MapContainer, Marker, Popup, useMapEvents, ZoomControl } from 'react-leaflet';
+import DarkTileLayer from '@components/DarkTileLayer';
 import MapAttributionNl from '@components/MapAttributionNl';
 import L from 'leaflet';
 const rehearsalSpaceCities = [];
@@ -134,12 +135,7 @@ export default function SpacesMap() {
 
         {/* Donkere kaarttegels */}
         <MapAttributionNl />
-        <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
-          subdomains="abcd"
-          maxZoom={19}
-        />
+        <DarkTileLayer />
 
         {/* Stadsmarkeringen */}
         {showCities && rehearsalSpaceCities.map(city => (
