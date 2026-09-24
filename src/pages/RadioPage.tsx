@@ -9,6 +9,7 @@ import GenrePicker from '@components/GenrePicker';
 import GenreBadge from '@components/GenreBadge';
 import { getAudioDuration, uploadAudioFile, uploadRadioCoverFile } from '@services/uploadService';
 import { notifyAdminUpload } from '@services/emailService';
+import { optimizedImage } from '@lib/image';
 
 // Fetches + subscribes to one station's past recordings. Shared by the public
 // StationCard (listen back) and the Studio row (upload/manage).
@@ -70,7 +71,7 @@ function StationCard({ station, recordingCount }: { station: RadioStation; recor
         }`}>
           {station.cover_url ? (
             <>
-              <img src={station.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+              <img decoding="async" loading="lazy" src={optimizedImage(station.cover_url, 200)} alt="" className="absolute inset-0 w-full h-full object-cover" />
               {isThisPlaying && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/40">
                   <EqBars playing />

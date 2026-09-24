@@ -57,6 +57,7 @@ import {
   getBandNote, saveBandNote,
   getMentionCounts, markMentionsRead, createMentionNotifications,
 } from '@services/orbitService';
+import { optimizedImage } from '@lib/image';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -1363,7 +1364,7 @@ export default function BandSpaceDetailPage() {
           </Link>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600/40 to-violet-900/60 border border-violet-500/25 flex items-center justify-center shrink-0">
-              {band.image_url ? <img src={band.image_url} alt={band.name} className="w-full h-full object-cover rounded-xl" /> : <Music size={16} className="text-violet-400" />}
+              {band.image_url ? <img decoding="async" loading="lazy" src={optimizedImage(band.image_url, 400)} alt={band.name} className="w-full h-full object-cover rounded-xl" /> : <Music size={16} className="text-violet-400" />}
             </div>
             <div className="min-w-0">
               <p className="text-sm font-bold text-white truncate">{band.name}</p>
@@ -1491,8 +1492,8 @@ export default function BandSpaceDetailPage() {
           <div className="flex-1 overflow-y-auto">
             {/* Band hero */}
             <div className={`relative overflow-hidden group ${isAdmin ? 'cursor-pointer' : ''}`} style={{ minHeight: 220 }} onClick={() => isAdmin && coverInputRef.current?.click()}>
-              <img
-                src={band.cover_url || coverPlaceholder(String(band.id ?? band.name))}
+              <img decoding="async"
+                src={optimizedImage(band.cover_url || coverPlaceholder(String(band.id ?? band.name)), 640)}
                 alt=""
                 className="absolute inset-0 w-full h-full object-cover"
                 onError={(e) => { (e.currentTarget as HTMLImageElement).src = coverPlaceholder(String(band.id ?? band.name)); }}
@@ -1511,8 +1512,8 @@ export default function BandSpaceDetailPage() {
               )}
               <div className="relative px-6 lg:px-10 pt-10 pb-8 flex flex-col lg:flex-row lg:items-end gap-5">
                 <div className="relative w-20 h-20 lg:w-24 lg:h-24 rounded-2xl bg-white/10 border border-white/20 backdrop-blur-sm shrink-0 shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-                  <img
-                    src={band.image_url || avatarPlaceholder(band.name)}
+                  <img decoding="async" loading="lazy"
+                    src={optimizedImage(band.image_url || avatarPlaceholder(band.name), 400)}
                     alt={band.name}
                     className={`w-full h-full object-cover transition-opacity ${avatarUploading ? 'opacity-50' : ''}`}
                     onError={(e) => { (e.currentTarget as HTMLImageElement).src = avatarPlaceholder(band.name); }}
@@ -1729,7 +1730,7 @@ export default function BandSpaceDetailPage() {
                         className="w-full bg-transparent text-sm text-white placeholder-slate-500 focus:outline-none resize-none leading-relaxed" />
                       {postImageUrl && (
                         <div className="relative mt-3 inline-block">
-                          <img src={postImageUrl} alt="" className="max-h-48 rounded-xl object-cover" />
+                          <img decoding="async" loading="lazy" src={optimizedImage(postImageUrl, 400)} alt="" className="max-h-48 rounded-xl object-cover" />
                           <button onClick={() => setPostImageUrl('')} className="absolute top-1 right-1 bg-black/60 rounded-full p-0.5 text-white hover:bg-black/80"><X size={12} /></button>
                         </div>
                       )}
@@ -1800,7 +1801,7 @@ export default function BandSpaceDetailPage() {
                           <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">{post.content}</p>
                         </div>
                         {post.image_url && (
-                          <img src={post.image_url} alt="" className="w-full max-h-80 object-cover cursor-pointer hover:opacity-95 transition-opacity"
+                          <img decoding="async" loading="lazy" src={optimizedImage(post.image_url, 640)} alt="" className="w-full max-h-80 object-cover cursor-pointer hover:opacity-95 transition-opacity"
                             onClick={() => window.open(post.image_url!, '_blank')} />
                         )}
                       </article>
@@ -2265,7 +2266,7 @@ export default function BandSpaceDetailPage() {
                                   {msg.attachment_url && (
                                     <div className="mt-2.5">
                                       {msg.attachment_type === 'image'
-                                        ? <img src={msg.attachment_url} alt="bijlage" className="max-w-[280px] rounded-xl cursor-pointer hover:opacity-90 transition-opacity" onClick={() => window.open(msg.attachment_url, '_blank')} />
+                                        ? <img decoding="async" loading="lazy" src={optimizedImage(msg.attachment_url, 400)} alt="bijlage" className="max-w-[280px] rounded-xl cursor-pointer hover:opacity-90 transition-opacity" onClick={() => window.open(msg.attachment_url, '_blank')} />
                                         : msg.attachment_type === 'video'
                                         ? <video src={msg.attachment_url} controls className="max-w-[320px] rounded-xl" />
                                         : <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs bg-white/10 hover:bg-white/20 rounded-xl px-3 py-2.5 border border-white/10 transition-colors"><FileIcon size={13} className="shrink-0" /><span className="truncate">Bijlage</span></a>
@@ -2705,7 +2706,7 @@ export default function BandSpaceDetailPage() {
                                   {msg.attachment_url && (
                                     <div className="mt-2.5">
                                       {msg.attachment_type === 'image'
-                                        ? <img src={msg.attachment_url} alt="bijlage" className="max-w-[280px] rounded-xl cursor-pointer hover:opacity-90 transition-opacity" onClick={() => window.open(msg.attachment_url, '_blank')} />
+                                        ? <img decoding="async" loading="lazy" src={optimizedImage(msg.attachment_url, 400)} alt="bijlage" className="max-w-[280px] rounded-xl cursor-pointer hover:opacity-90 transition-opacity" onClick={() => window.open(msg.attachment_url, '_blank')} />
                                         : msg.attachment_type === 'video'
                                         ? <video src={msg.attachment_url} controls className="max-w-[320px] rounded-xl" />
                                         : <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs bg-white/10 hover:bg-white/20 rounded-xl px-3 py-2.5 border border-white/10 transition-colors"><FileIcon size={13} className="shrink-0" /><span className="truncate">Bijlage</span></a>
@@ -3261,7 +3262,7 @@ export default function BandSpaceDetailPage() {
             <div className="flex items-center gap-3 mb-5 p-3 bg-white/5 rounded-xl border border-white/8">
               <div className="w-10 h-10 rounded-xl bg-violet-600/20 border border-violet-500/20 flex items-center justify-center shrink-0">
                 {band.image_url
-                  ? <img src={band.image_url} alt={band.name} className="w-full h-full object-cover rounded-xl" />
+                  ? <img decoding="async" loading="lazy" src={optimizedImage(band.image_url, 400)} alt={band.name} className="w-full h-full object-cover rounded-xl" />
                   : <Music size={16} className="text-violet-400" />
                 }
               </div>

@@ -15,6 +15,7 @@ import { Button } from '@components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@components/ui/dialog';
 import GenreChips from '@components/GenreChips';
 import { SOCIAL_PLATFORMS } from '@data/socialPlatforms';
+import { optimizedImage } from '@lib/image';
 
 const sidebarItems = [
   { key: 'profiel', label: 'Profiel', icon: User },
@@ -406,7 +407,7 @@ function ProfielSection({ user, updateProfile, userId }: { user: any; updateProf
         <div>
           <label className="block text-sm font-medium text-slate-300 mb-2">Bannerfoto</label>
           <div className="relative rounded-xl overflow-hidden h-28 bg-white/5 border border-white/8 group cursor-pointer" onClick={() => bannerInputRef.current?.click()}>
-            {user.banner && <img src={user.banner} alt="Banner" className="w-full h-full object-cover" />}
+            {user.banner && <img decoding="async" loading="lazy" src={optimizedImage(user.banner, 640)} alt="Banner" className="w-full h-full object-cover" />}
             <div className={`absolute inset-0 flex items-center justify-center transition-colors ${bannerUploading ? 'bg-black/60' : 'bg-black/30 group-hover:bg-black/50'}`}>
               <div className="flex items-center gap-2 text-white text-sm font-medium">
                 {bannerUploading ? <Loader size={14} className="animate-spin" /> : <Camera size={14} />}

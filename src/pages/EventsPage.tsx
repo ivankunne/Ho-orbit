@@ -9,6 +9,8 @@ import BlurImage from '@components/BlurImage';
 import { uploadEventPoster } from '@services/uploadService';
 import { notifyAdminUpload } from '@services/emailService';
 import { useRequirePlan } from '@hooks/useRequirePlan';
+import { optimizedImage } from '@lib/image';
+import { Skeleton, TileSkeletons } from '@components/Skeleton';
 
 function calcCountdown(dateStr, nowMs) {
   const diff = new Date(dateStr + 'T00:00:00').getTime() - nowMs;
@@ -55,7 +57,7 @@ function EventCard({ event, featured = false, rsvpd, onToggleRsvp, now }) {
   if (featured) {
     return (
       <div className="relative rounded-2xl overflow-hidden mb-10">
-        <img src={event.poster_url} alt={event.name} className="w-full h-64 lg:h-80 object-cover" />
+        <img decoding="async" src={optimizedImage(event.poster_url, 640)} alt={event.name} className="w-full h-64 lg:h-80 object-cover" />
         <div className="absolute inset-0 bg-gradient-to-r from-[#1a1528] via-[#1a1528]/60 to-transparent" />
         <div className="absolute inset-0 flex items-center px-8 lg:px-12">
           <div className="max-w-lg">
@@ -140,12 +142,14 @@ export default function EventsPage() {
   const [view, setView] = useState('list');
   const [now, setNow] = useState(() => Date.now());
   const [events, setEvents] = useState([]);
+  const [loaded, setLoaded] = useState(false);
   const { rsvpEvents, toggleRsvp } = useAppState();
   const addToast = useToast();
 
   function fetchEvents() {
     supabase.from('events').select('*').order('date', { ascending: true }).then(({ data }) => {
       if (data) setEvents(data);
+      setLoaded(true);
     });
   }
 
@@ -214,7 +218,15 @@ export default function EventsPage() {
         <>
           {featured && <EventCard event={featured} featured rsvpd={rsvpEvents.includes(featured.id)} onToggleRsvp={() => handleRsvp(featured)} now={now} />}
 
-          {events.length === 0 && (
+          {!loaded && (
+            <div role="status" aria-busy="true" aria-label="Evenementen laden…" className="space-y-4">
+              <Skeleton className="h-64 lg:h-80 w-full rounded-2xl" />
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <TileSkeletons count={3} imageClassName="h-40" />
+              </div>
+            </div>
+          )}
+          {loaded && events.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <Calendar size={40} className="text-slate-600 mb-4" />
               <p className="text-base font-semibold text-white mb-1">Nog geen evenementen</p>

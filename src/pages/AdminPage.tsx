@@ -26,6 +26,7 @@ import { supabase } from '@/lib/supabase';
 import { getThreadsByCategory } from '@services/forumService';
 import { coverPlaceholder } from '@utils/placeholder';
 import { useToast } from '@components/Toast';
+import { optimizedImage } from '@lib/image';
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -215,8 +216,8 @@ function UploadsSection({ adminId }: { adminId: string }) {
             <div key={track.id} className="bg-white/[0.03] border border-white/8 rounded-2xl overflow-hidden hover:border-white/15 transition-all">
               <div className="flex flex-col sm:flex-row gap-4 p-4 sm:p-5">
                 <div className="flex gap-4 flex-1 min-w-0">
-                <img
-                  src={track.cover || coverPlaceholder(track.title)}
+                <img decoding="async" loading="lazy"
+                  src={optimizedImage(track.cover || coverPlaceholder(track.title), 80)}
                   onError={e => { (e.target as HTMLImageElement).src = coverPlaceholder(track.title); }}
                   alt={track.title}
                   className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover shrink-0 bg-white/5"
@@ -327,7 +328,7 @@ function UsersSection() {
           {visible.map(u => (
             <div key={u.id} className={`bg-white/[0.03] border rounded-xl overflow-hidden transition-all ${u.suspended ? 'border-red-500/20' : 'border-white/8 hover:border-white/15'}`}>
               <div className="flex items-center gap-3 px-4 py-3">
-                <img src={u.avatar} alt={u.displayName} className={`w-10 h-10 rounded-full object-cover shrink-0 ${u.suspended ? 'opacity-50 grayscale' : ''}`} />
+                <img decoding="async" loading="lazy" src={optimizedImage(u.avatar, 40)} alt={u.displayName} className={`w-10 h-10 rounded-full object-cover shrink-0 ${u.suspended ? 'opacity-50 grayscale' : ''}`} />
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium text-white text-sm">{u.displayName}</span>
@@ -475,7 +476,7 @@ function ForumSection() {
             const isHid = hidden.some(h => h.type === 'thread' && h.id === thread.id);
             return (
               <div key={thread.id} className={`bg-white/[0.03] border rounded-xl px-4 py-3 flex items-start gap-3 transition-all ${isHid ? 'border-amber-500/20 opacity-60' : 'border-white/8 hover:border-white/15'}`}>
-                <img src={thread.author.avatar} alt="" className="w-8 h-8 rounded-full object-cover shrink-0 mt-0.5" />
+                <img decoding="async" loading="lazy" src={optimizedImage(thread.author.avatar, 32)} alt="" className="w-8 h-8 rounded-full object-cover shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-white line-clamp-1">{thread.title}</p>
                   <p className="text-xs text-slate-500 mt-0.5">{thread.author.name} · {thread.replies} reacties · {thread.views} views</p>
@@ -502,7 +503,7 @@ function ForumSection() {
                 const isHid = hidden.some(h => h.type === 'reply' && h.id === reply.id);
                 return (
                   <div key={reply.id} className={`bg-white/[0.02] border rounded-xl px-4 py-3 flex items-start gap-3 transition-all ${isHid ? 'border-amber-500/20 opacity-60' : 'border-white/6 hover:border-white/12'}`}>
-                    <img src={reply.author.avatar} alt="" className="w-7 h-7 rounded-full object-cover shrink-0 mt-0.5" />
+                    <img decoding="async" loading="lazy" src={optimizedImage(reply.author.avatar, 28)} alt="" className="w-7 h-7 rounded-full object-cover shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-slate-300 line-clamp-2">{reply.content}</p>
                       <p className="text-[10px] text-slate-600 mt-1">{reply.author.name} · {fmt(reply.createdAt)}</p>
@@ -593,7 +594,7 @@ function EventsSection() {
           {visible.map(evt => (
             <div key={evt.id} className="bg-white/[0.03] border border-white/8 rounded-2xl overflow-hidden hover:border-white/15 transition-all">
               <div className="flex gap-4 p-4 sm:p-5">
-                <img src={evt.poster} alt={evt.title} className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover shrink-0 bg-white/5" />
+                <img decoding="async" loading="lazy" src={optimizedImage(evt.poster, 80)} alt={evt.title} className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover shrink-0 bg-white/5" />
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-start gap-2 mb-1">
                     <h3 className="font-semibold text-white">{evt.title}</h3>
@@ -605,7 +606,7 @@ function EventsSection() {
                   <p className="text-xs text-slate-500 mb-1">{evt.genre}</p>
                   {evt.description && <p className="text-xs text-slate-500 line-clamp-2 italic">"{evt.description}"</p>}
                   <div className="flex items-center gap-2 mt-2">
-                    <img src={evt.submittedByAvatar} alt="" className="w-4 h-4 rounded-full" />
+                    <img decoding="async" loading="lazy" src={optimizedImage(evt.submittedByAvatar, 16)} alt="" className="w-4 h-4 rounded-full" />
                     <p className="text-xs text-slate-600">Ingediend door @{evt.submittedBy} · {fmt(evt.submittedAt)}</p>
                   </div>
                   {evt.status === 'rejected' && evt.rejectionReason && <p className="text-xs text-red-400/80 mt-1">Reden: {evt.rejectionReason}</p>}
@@ -699,7 +700,7 @@ function ReportsSection() {
                     <p className="text-sm text-slate-300 mb-1 line-clamp-1">{report.targetTitle}</p>
                     {report.details && <p className="text-xs text-slate-500 mb-2 line-clamp-2">"{report.details}"</p>}
                     <div className="flex items-center gap-2">
-                      <img src={report.reportedByAvatar} alt="" className="w-4 h-4 rounded-full" />
+                      <img decoding="async" loading="lazy" src={optimizedImage(report.reportedByAvatar, 16)} alt="" className="w-4 h-4 rounded-full" />
                       <p className="text-xs text-slate-600">Gemeld door @{report.reportedBy} · {fmt(report.createdAt)}</p>
                     </div>
                     {report.adminNotes && <p className="text-xs text-emerald-400/70 mt-1">Notitie: {report.adminNotes}</p>}
@@ -803,7 +804,7 @@ function RadioSection() {
               <div className="flex items-center gap-3">
                 <div className={`relative w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shrink-0 ${station.is_live ? 'bg-red-500/20 border border-red-500/30' : 'bg-white/5 border border-white/10'}`}>
                   {station.cover_url ? (
-                    <img src={station.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                    <img decoding="async" loading="lazy" src={optimizedImage(station.cover_url, 400)} alt="" className="absolute inset-0 w-full h-full object-cover" />
                   ) : (
                     <Radio size={16} className={station.is_live ? 'text-red-400' : 'text-slate-500'} />
                   )}

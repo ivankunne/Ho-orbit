@@ -6,6 +6,8 @@ import { useAuth } from '@context/AuthContext';
 import { useToast } from '@components/Toast';
 import { avatarPlaceholder } from '@utils/placeholder';
 import { useRequireAuth } from '@hooks/useRequireAuth';
+import { optimizedImage } from '@lib/image';
+import { RowListSkeleton } from '@components/Skeleton';
 
 const iconMap = { MessageSquare, Sliders, Users, Calendar, Coffee };
 const colorMap = {
@@ -55,7 +57,7 @@ function ThreadRow({ thread, canManage, onDelete }) {
       to={`/forums/thread/${thread.id}`}
       className="flex items-center gap-4 p-4 bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl transition-colors group"
     >
-      <img src={thread.author.avatar || avatarPlaceholder(thread.author.name)} alt={thread.author.name} className="w-10 h-10 rounded-full object-cover shrink-0" />
+      <img decoding="async" loading="lazy" src={optimizedImage(thread.author.avatar || avatarPlaceholder(thread.author.name), 40)} alt={thread.author.name} className="w-10 h-10 rounded-full object-cover shrink-0" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           {thread.pinned && <Pin size={12} className="text-violet-400 shrink-0" />}
@@ -259,11 +261,12 @@ export default function ForumsPage() {
   const [showNewThread, setShowNewThread] = useState(false);
   const [newThreadCategory, setNewThreadCategory] = useState(null);
   const [categories, setCategories] = useState([]);
+  const [categoriesLoaded, setCategoriesLoaded] = useState(false);
   const [threads, setThreads] = useState([]);
   const [localThreads, setLocalThreads] = useState([]);
 
   useEffect(() => {
-    getCategories().then(setCategories);
+    getCategories().then(setCategories).finally(() => setCategoriesLoaded(true));
     getThreadsByCategory().then(setThreads);
   }, []);
 
@@ -325,7 +328,9 @@ export default function ForumsPage() {
             </button>
           </div>
 
-          {categories.length === 0 ? (
+          {!categoriesLoaded ? (
+            <RowListSkeleton count={5} thumb={40} divided={false} />
+          ) : categories.length === 0 ? (
             <p className="text-slate-500 text-sm">Nog geen categorieën beschikbaar.</p>
           ) : (
             <div className="space-y-3">
@@ -349,7 +354,7 @@ export default function ForumsPage() {
                     to={`/forums/thread/${thread.id}`}
                     className="flex items-center gap-3 p-3 hover:bg-white/4 rounded-xl transition-colors group"
                   >
-                    <img src={thread.author.avatar || avatarPlaceholder(thread.author.name)} alt={thread.author.name} className="w-8 h-8 rounded-full shrink-0 object-cover" />
+                    <img decoding="async" loading="lazy" src={optimizedImage(thread.author.avatar || avatarPlaceholder(thread.author.name), 32)} alt={thread.author.name} className="w-8 h-8 rounded-full shrink-0 object-cover" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-white group-hover:text-violet-300 transition-colors truncate">{thread.title}</p>
                       <p className="text-xs text-slate-500">{thread.author.name} · {thread.lastPost?.time}</p>

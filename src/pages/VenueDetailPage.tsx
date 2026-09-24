@@ -8,6 +8,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@context/AuthContext';
 import { getReviewStats, submitReview, type ReviewStats } from '@services/reviewService';
+import { optimizedImage } from '@lib/image';
 
 function StarRating({ rating, size = 16 }) {
   return (
@@ -77,7 +78,7 @@ export default function VenueDetailPage() {
     <div className="min-h-screen bg-[#1a1528]">
       {/* Hero */}
       <div className="relative h-72 lg:h-96 overflow-hidden">
-        <img src={venue.image} alt={venue.name} className="w-full h-full object-cover" />
+        <img decoding="async" src={optimizedImage(venue.image, 640)} alt={venue.name} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#1a1528] via-[#1a1528]/50 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-r from-[#1a1528]/40 to-transparent" />
 
@@ -148,8 +149,8 @@ export default function VenueDetailPage() {
                     onClick={() => setActiveGalleryIdx(i)}
                     className="relative aspect-[4/3] overflow-hidden rounded-xl group"
                   >
-                    <img
-                      src={src}
+                    <img decoding="async" loading="lazy"
+                      src={optimizedImage(src, 400)}
                       alt={`${venue.name} ${i + 1}`}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
@@ -178,8 +179,8 @@ export default function VenueDetailPage() {
                   <div key={t.id} className="relative p-6 bg-white/3 border border-white/8 rounded-2xl">
                     <Quote size={28} className="absolute top-5 right-5 text-white/5" />
                     <div className="flex items-start gap-4">
-                      <img
-                        src={t.avatar}
+                      <img decoding="async" loading="lazy"
+                        src={optimizedImage(t.avatar, 48)}
                         alt={t.author}
                         className="w-12 h-12 rounded-full object-cover ring-2 ring-violet-500/20 shrink-0"
                       />
@@ -385,8 +386,8 @@ export default function VenueDetailPage() {
           >
             ✕
           </button>
-          <img
-            src={(venue.gallery_urls ?? [])[activeGalleryIdx]}
+          <img decoding="async"
+            src={optimizedImage((venue.gallery_urls ?? [])[activeGalleryIdx], 960)}
             alt=""
             className="max-w-4xl max-h-[85vh] w-full object-contain rounded-xl"
             onClick={e => e.stopPropagation()}

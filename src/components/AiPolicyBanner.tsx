@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { ShieldBan, X } from 'lucide-react';
 
 // One-time policy statement, not a recurring nag — once dismissed it stays
@@ -6,15 +6,11 @@ import { ShieldBan, X } from 'lucide-react';
 const DISMISS_KEY = 'ho_ai_policy_banner_dismissed';
 
 export default function AiPolicyBanner() {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    try {
-      if (localStorage.getItem(DISMISS_KEY) !== '1') setVisible(true);
-    } catch {
-      setVisible(true);
-    }
-  }, []);
+  // Synchroon bij de eerste render beslissen, niet in een effect: anders
+  // verschijnt de balk pas ná de eerste paint en schuift de pagina omlaag.
+  const [visible, setVisible] = useState(() => {
+    try { return localStorage.getItem(DISMISS_KEY) !== '1'; } catch { return true; }
+  });
 
   function dismiss() {
     setVisible(false);

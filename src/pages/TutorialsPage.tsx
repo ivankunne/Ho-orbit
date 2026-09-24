@@ -4,6 +4,7 @@ import { Play, Clock, Eye, CheckCircle, RotateCcw } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAppState } from '@context/AppStateContext';
 import EmptyState from '@components/EmptyState';
+import { optimizedImage } from '@lib/image';
 
 const difficultyColors = {
   Beginner:  'bg-green-500/20 text-green-400',
@@ -70,7 +71,7 @@ export default function TutorialsPage() {
       {/* Uitgelichte tutorial */}
       {featured && (
         <Link to={`/tutorials/${featured.id}`} className="mb-10 group relative rounded-2xl overflow-hidden cursor-pointer block">
-          <img src={featured.thumbnail_url} alt={featured.title} className="w-full h-64 lg:h-80 object-cover group-hover:scale-105 transition-transform duration-500" />
+          <img decoding="async" src={optimizedImage(featured.thumbnail_url, 640)} alt={featured.title} className="w-full h-64 lg:h-80 object-cover group-hover:scale-105 transition-transform duration-500" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#1a1528] via-[#1a1528]/50 to-transparent" />
           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
             <div className="w-16 h-16 bg-violet-600 rounded-full flex items-center justify-center">
@@ -106,7 +107,7 @@ export default function TutorialsPage() {
                 <div key={tutorial.id} className="group bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl overflow-hidden transition-all">
                   <Link to={`/tutorials/${tutorial.id}`} className="block">
                     <div className="relative aspect-video overflow-hidden">
-                      <img src={tutorial.thumbnail_url} alt={tutorial.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      <img decoding="async" loading="lazy" src={optimizedImage(tutorial.thumbnail_url, 240)} alt={tutorial.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                         <div className="w-10 h-10 bg-violet-600 rounded-full flex items-center justify-center">
                           <Play size={16} className="text-white ml-0.5" fill="white" />
@@ -208,8 +209,8 @@ export default function TutorialsPage() {
               className="group bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl overflow-hidden cursor-pointer transition-all hover:-translate-y-0.5 block"
             >
               <div className="relative aspect-video overflow-hidden">
-                <img
-                  src={tutorial.thumbnail_url}
+                <img decoding="async" loading="lazy"
+                  src={optimizedImage(tutorial.thumbnail_url, 240)}
                   alt={tutorial.title}
                   className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${watched ? 'brightness-50' : ''}`}
                 />

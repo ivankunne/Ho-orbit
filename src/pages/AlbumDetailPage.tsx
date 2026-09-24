@@ -11,6 +11,7 @@ import { getAlbum, type Album } from '@services/albumService';
 import { getAlbumTracks, type UploadedTrack } from '@services/uploadService';
 import Seo from '@components/Seo';
 import { absoluteUrl } from '@lib/seo';
+import { optimizedImage } from '@lib/image';
 
 interface OwnerProfile {
   username: string | null;
@@ -102,8 +103,8 @@ export default function AlbumDetailPage() {
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row gap-5 mb-8">
-        <img
-          src={album.coverUrl || coverPlaceholder(album.title)}
+        <img decoding="async" loading="lazy"
+          src={optimizedImage(album.coverUrl || coverPlaceholder(album.title), 192)}
           alt={album.title}
           className="w-full sm:w-48 h-48 rounded-2xl object-cover shrink-0 shadow-2xl shadow-black/40"
         />

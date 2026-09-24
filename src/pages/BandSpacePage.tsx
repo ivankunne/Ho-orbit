@@ -9,6 +9,7 @@ import { useAuth } from '@context/AuthContext';
 import { useToast } from '@components/Toast';
 import GenrePicker from '@components/GenrePicker';
 import BandSeatWarning from '@components/BandSeatWarning';
+import { optimizedImage } from '@lib/image';
 
 // Preview chips for the hero — mirrors the 6 Orbit channels inside a band
 // workspace (BandSpaceDetailPage's CHANNELS), kept as a local display-only
@@ -374,7 +375,7 @@ function BandCard({
       <div className="flex items-start gap-4 mb-3">
         <div className="w-12 h-12 rounded-xl bg-violet-600/20 border border-violet-500/20 flex items-center justify-center shrink-0">
           {band.image_url
-            ? <img src={band.image_url} alt={band.name} className="w-full h-full object-cover rounded-xl" />
+            ? <img decoding="async" loading="lazy" src={optimizedImage(band.image_url, 200)} alt={band.name} className="w-full h-full object-cover rounded-xl" />
             : <Music size={20} className="text-violet-400" />
           }
         </div>

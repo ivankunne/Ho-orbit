@@ -13,6 +13,7 @@ import { getWaveform, EqBars } from '@components/Waveform';
 import { useToast } from '@components/Toast';
 import { coverPlaceholder } from '@utils/placeholder';
 import { shareContent, buildShareUrl } from '@utils/share';
+import { optimizedImage } from '@lib/image';
 
 function formatTime(secs) {
   if (!secs || isNaN(secs)) return '0:00';
@@ -155,7 +156,7 @@ export default function MusicPlayer({ hidden = false }: { hidden?: boolean }) {
               <div className="flex flex-col items-center py-4 gap-5">
                 <div className="relative w-32 h-32 rounded-2xl overflow-hidden bg-red-500/10 border border-red-500/20 flex items-center justify-center">
                   {currentStation?.cover_url ? (
-                    <img src={currentStation.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                    <img decoding="async" loading="lazy" src={optimizedImage(currentStation.cover_url, 128)} alt="" className="absolute inset-0 w-full h-full object-cover" />
                   ) : (
                     <Radio size={48} className="text-red-400" />
                   )}
@@ -192,7 +193,7 @@ export default function MusicPlayer({ hidden = false }: { hidden?: boolean }) {
                       onClick={() => playTrack(t)}
                       className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 cursor-pointer transition-colors group"
                     >
-                      <img src={artworkOf(t)} onError={e => { (e.target as HTMLImageElement).src = coverPlaceholder(String(t.id)); }} alt={t.title} className="w-9 h-9 rounded-lg object-cover" />
+                      <img decoding="async" loading="lazy" src={optimizedImage(artworkOf(t), 36)} onError={e => { (e.target as HTMLImageElement).src = coverPlaceholder(String(t.id)); }} alt={t.title} className="w-9 h-9 rounded-lg object-cover" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-white font-medium truncate group-hover:text-violet-300 transition-colors">{t.title}</p>
                         <p className="text-xs text-slate-500 truncate">{t.artist}</p>
@@ -216,8 +217,8 @@ export default function MusicPlayer({ hidden = false }: { hidden?: boolean }) {
 
             ) : track ? (
               <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
-                <img
-                  src={artworkOf(track)}
+                <img decoding="async" loading="lazy"
+                  src={optimizedImage(artworkOf(track), 128)}
                   onError={e => { (e.target as HTMLImageElement).src = coverPlaceholder(String(track.id)); }}
                   alt={track.title}
                   className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl object-cover shadow-2xl shadow-black/60 shrink-0 mx-auto sm:mx-0"
@@ -304,7 +305,7 @@ export default function MusicPlayer({ hidden = false }: { hidden?: boolean }) {
                 <div className="relative shrink-0">
                   <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-red-500/15 border border-red-500/25 flex items-center justify-center">
                     {currentStation?.cover_url ? (
-                      <img src={currentStation.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                      <img decoding="async" loading="lazy" src={optimizedImage(currentStation.cover_url, 128)} alt="" className="absolute inset-0 w-full h-full object-cover" />
                     ) : (
                       <Radio size={18} className="text-red-400" />
                     )}
@@ -352,7 +353,7 @@ export default function MusicPlayer({ hidden = false }: { hidden?: boolean }) {
                 onClick={() => setExpanded(e => !e)}
               >
                 <div className="relative shrink-0">
-                  <img src={artworkOf(track)} onError={e => { (e.target as HTMLImageElement).src = coverPlaceholder(String(track.id)); }} alt={track.title} className="w-10 h-10 rounded-lg object-cover" />
+                  <img decoding="async" loading="lazy" src={optimizedImage(artworkOf(track), 40)} onError={e => { (e.target as HTMLImageElement).src = coverPlaceholder(String(track.id)); }} alt={track.title} className="w-10 h-10 rounded-lg object-cover" />
                   {isPlaying && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg">
                       <EqBars playing={isPlaying} />

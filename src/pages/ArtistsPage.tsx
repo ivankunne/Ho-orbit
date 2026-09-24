@@ -5,6 +5,7 @@ import { fetchArtistProfiles } from '@utils/artistHelpers';
 import GenreBadge from '@components/GenreBadge';
 import EmptyState from '@components/EmptyState';
 import BlurImage from '@components/BlurImage';
+import { TileSkeletons } from '@components/Skeleton';
 
 function formatFollowers(n) {
   if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
@@ -23,9 +24,12 @@ export default function ArtistsPage() {
   const [genreFilter, setGenreFilter] = useState('Alle genres');
   const [sortBy, setSortBy] = useState('trending');
   const [artists, setArtists] = useState([]);
+  // Zonder dit toonde de pagina tijdens het laden "Geen artiesten gevonden —
+  // probeer een andere stad of genre", alsof de bezoeker alles weggefilterd had.
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    fetchArtistProfiles(100).then(setArtists);
+    fetchArtistProfiles(100).then(setArtists).finally(() => setLoaded(true));
   }, []);
 
   const locations = useMemo(() => {
@@ -80,7 +84,7 @@ export default function ArtistsPage() {
             <span className="text-violet-400 text-xs font-bold uppercase tracking-widest">Uitgelichte artiest</span>
           </div>
           <div className="relative rounded-2xl overflow-hidden h-56 lg:h-72">
-            <BlurImage src={featuredArtist.cover_url} alt={featuredArtist.name} className="w-full h-full" imgClassName="object-cover" />
+            <BlurImage src={featuredArtist.cover_url} alt={featuredArtist.name} width={640} priority className="w-full h-full" imgClassName="object-cover" />
             <div className="absolute inset-0 bg-gradient-to-r from-[#1a1528] via-[#1a1528]/60 to-transparent" />
             <div className="absolute inset-0 flex items-center px-8 lg:px-12">
               <div className="flex items-center gap-6">
@@ -132,6 +136,11 @@ export default function ArtistsPage() {
               {loc}
             </button>
           ))}
+          {/* De chips komen uit de artiestendata; zonder plaatshouders groeit
+              deze rij na het laden en schuift het raster eronder omlaag. */}
+          {!loaded && Array.from({ length: 4 }, (_, i) => (
+            <span key={'loc' + i} aria-hidden className="skeleton inline-block h-[34px] rounded-full" style={{ width: 64 + ((i * 29) % 40) }} />
+          ))}
         </div>
         <div className="w-px bg-white/10 hidden sm:block" />
         <div className="flex gap-2 flex-wrap">
@@ -148,13 +157,18 @@ export default function ArtistsPage() {
               {g}
             </button>
           ))}
+          {!loaded && Array.from({ length: 4 }, (_, i) => (
+            <span key={'genre' + i} aria-hidden className="skeleton inline-block h-[34px] rounded-full" style={{ width: 64 + ((i * 29) % 40) }} />
+          ))}
         </div>
       </div>
 
       {/* Result count + sort */}
       <div className="flex items-center justify-between mb-6">
         <p className="text-sm text-slate-500">
-          <span className="text-white font-medium">{sorted.length}</span> artiest{sorted.length !== 1 ? 'en' : ''} gevonden
+          {loaded
+            ? <><span className="text-white font-medium">{sorted.length}</span> artiest{sorted.length !== 1 ? 'en' : ''} gevonden</>
+            : <span className="skeleton inline-block h-3.5 w-28 rounded align-middle" aria-hidden />}
         </p>
         <div className="flex items-center gap-2">
           <ArrowUpDown size={14} className="text-slate-500" />
@@ -171,8 +185,13 @@ export default function ArtistsPage() {
       </div>
 
       {/* Artiesten raster */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {sorted.length === 0 && (
+      <div
+        className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+        aria-busy={!loaded}
+        aria-label={loaded ? undefined : 'Artiesten laden…'}
+      >
+        {!loaded && <TileSkeletons count={8} />}
+        {loaded && sorted.length === 0 && (
           <EmptyState
             title="Geen artiesten gevonden"
             subtitle="Er zijn geen artiesten die overeenkomen met deze filters. Probeer een andere stad of genre."

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { optimizedImage } from '@lib/image';
 
 /**
  * Drop-in image replacement with blur-up loading effect.
@@ -8,8 +9,10 @@ import { useState } from 'react';
  *
  * Usage:
  *   <BlurImage src={url} alt="..." className="w-full h-48 rounded-xl" imgClassName="object-cover" />
+ *
+ * width        → weergavebreedte in CSS-px, voor de verkleinde versie (zie lib/image)
  */
-export default function BlurImage({ src, alt, className = '', imgClassName = '', priority = false }) {
+export default function BlurImage({ src, alt, className = '', imgClassName = '', priority = false, width = 400 }) {
   const [loaded, setLoaded] = useState(false);
 
   return (
@@ -23,8 +26,9 @@ export default function BlurImage({ src, alt, className = '', imgClassName = '',
         }}
       />
       <img
-        src={src}
+        src={optimizedImage(src, width)}
         alt={alt}
+        decoding="async"
         loading={priority ? 'eager' : 'lazy'}
         fetchPriority={priority ? 'high' : undefined}
         onLoad={() => setLoaded(true)}

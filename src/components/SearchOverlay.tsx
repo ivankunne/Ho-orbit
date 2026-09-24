@@ -8,6 +8,7 @@ import {
 import { fetchArtistProfiles } from '@utils/artistHelpers';
 import { search, type SearchResults } from '@services/searchService';
 import { usePlayer } from '@context/PlayerContext';
+import { optimizedImage } from '@lib/image';
 
 const QUICK_LINKS = [
   { label: 'Artiesten', path: '/artists',   icon: Music },
@@ -181,7 +182,7 @@ export default function SearchOverlay({ onClose }: { onClose: () => void }) {
                       <button key={a.id} onClick={() => go(`/artists/${a.slug || a.id}`)}
                         className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/5 w-full text-left transition-colors">
                         <TrendingUp size={14} className="text-slate-600 shrink-0" />
-                        <img src={a.image_url} alt={a.name} className="w-7 h-7 rounded-full object-cover shrink-0" />
+                        <img decoding="async" loading="lazy" src={optimizedImage(a.image_url, 28)} alt={a.name} className="w-7 h-7 rounded-full object-cover shrink-0" />
                         <span className="text-sm text-slate-300">{a.name}</span>
                         <span className="text-xs text-slate-600 ml-auto">{a.genre}</span>
                       </button>
@@ -216,7 +217,7 @@ export default function SearchOverlay({ onClose }: { onClose: () => void }) {
                       <button key={a.id} onClick={() => go(`/artists/${a.slug}`)}
                         className={`flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 w-full text-left transition-colors group ${fi === focusIndex ? 'bg-white/8' : ''}`}>
                         {a.image_url
-                          ? <img src={a.image_url} alt={a.name} className="w-9 h-9 rounded-full object-cover shrink-0" />
+                          ? <img decoding="async" loading="lazy" src={optimizedImage(a.image_url, 36)} alt={a.name} className="w-9 h-9 rounded-full object-cover shrink-0" />
                           : <div className="w-9 h-9 rounded-full bg-violet-600/20 flex items-center justify-center shrink-0"><Music size={16} className="text-violet-400" /></div>
                         }
                         <div className="min-w-0">
@@ -239,7 +240,7 @@ export default function SearchOverlay({ onClose }: { onClose: () => void }) {
                       <button key={t.id} onClick={() => handlePlayTrack(t)}
                         className={`flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 w-full text-left transition-colors group ${fi === focusIndex ? 'bg-white/8' : ''}`}>
                         {t.cover_url
-                          ? <img src={t.cover_url} alt={t.title} className="w-9 h-9 rounded-lg object-cover shrink-0" />
+                          ? <img decoding="async" loading="lazy" src={optimizedImage(t.cover_url, 36)} alt={t.title} className="w-9 h-9 rounded-lg object-cover shrink-0" />
                           : <div className="w-9 h-9 rounded-lg bg-violet-600/15 flex items-center justify-center shrink-0"><Music size={16} className="text-violet-400" /></div>
                         }
                         <div className="min-w-0">
@@ -262,7 +263,7 @@ export default function SearchOverlay({ onClose }: { onClose: () => void }) {
                       <button key={b.id} onClick={() => go(`/bandspace/${b.id}`)}
                         className={`flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 w-full text-left transition-colors group ${fi === focusIndex ? 'bg-white/8' : ''}`}>
                         {b.image_url
-                          ? <img src={b.image_url} alt={b.name} className="w-9 h-9 rounded-xl object-cover shrink-0" />
+                          ? <img decoding="async" loading="lazy" src={optimizedImage(b.image_url, 36)} alt={b.name} className="w-9 h-9 rounded-xl object-cover shrink-0" />
                           : <div className="w-9 h-9 rounded-xl bg-violet-600/15 flex items-center justify-center shrink-0"><Music2 size={16} className="text-violet-400" /></div>
                         }
                         <div className="min-w-0">
@@ -307,7 +308,7 @@ export default function SearchOverlay({ onClose }: { onClose: () => void }) {
                       <button key={u.id} onClick={() => go(`/profiel/${u.username}`)}
                         className={`flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 w-full text-left transition-colors group ${fi === focusIndex ? 'bg-white/8' : ''}`}>
                         {u.avatar_url
-                          ? <img src={u.avatar_url} alt={u.display_name || u.username} className="w-9 h-9 rounded-full object-cover shrink-0" />
+                          ? <img decoding="async" loading="lazy" src={optimizedImage(u.avatar_url, 36)} alt={u.display_name || u.username} className="w-9 h-9 rounded-full object-cover shrink-0" />
                           : <div className="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center shrink-0"><User size={16} className="text-slate-400" /></div>
                         }
                         <div className="min-w-0">

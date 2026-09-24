@@ -6,6 +6,7 @@ import {
   fetchDemos, fetchMyVotes, submitDemo, voteDemo, deleteDemo, getWeekLabel,
   type DemoSubmission, type VoteType,
 } from '@services/demoService';
+import { optimizedImage } from '@lib/image';
 
 const FIRE_THRESHOLD = 0.8;
 const MIN_VOTES_FOR_BADGE = 10;
@@ -77,7 +78,7 @@ function DemoCard({
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-10 h-10 rounded-xl bg-orange-500/15 border border-orange-500/25 flex items-center justify-center shrink-0 overflow-hidden">
             {demo.avatarUrl ? (
-              <img src={demo.avatarUrl} alt={demo.artistName} className="w-full h-full object-cover" />
+              <img decoding="async" loading="lazy" src={optimizedImage(demo.avatarUrl, 400)} alt={demo.artistName} className="w-full h-full object-cover" />
             ) : (
               <Mic2 size={18} className="text-orange-400" />
             )}

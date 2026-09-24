@@ -5,10 +5,13 @@ import { supabase } from '@/lib/supabase';
 import { fetchArtistProfiles } from '@utils/artistHelpers';
 import SceneMap from '@components/SceneMap';
 import GenreBadge from '@components/GenreBadge';
+import { optimizedImage } from '@lib/image';
+import { TileSkeletons } from '@components/Skeleton';
 
 export default function DutchScenePage() {
   const navigate = useNavigate();
   const [cities, setCities] = useState([]);
+  const [ready, setReady] = useState({ cities: false, artists: false });
   const [artists, setArtists] = useState([]);
   const [newsArticles, setNewsArticles] = useState([]);
 
@@ -16,8 +19,8 @@ export default function DutchScenePage() {
     supabase
       .from('dutch_cities')
       .select('*, dutch_city_artists(artists(id, name, image_url, genre, location))')
-      .then(({ data }) => setCities(data ?? []));
-    fetchArtistProfiles(50).then(setArtists);
+      .then(({ data }) => { setCities(data ?? []); setReady(r => ({ ...r, cities: true })); });
+    fetchArtistProfiles(50).then(setArtists).finally(() => setReady(r => ({ ...r, artists: true })));
     supabase.from('articles').select('*').order('published_at', { ascending: false }).limit(3)
       .then(({ data }) => setNewsArticles(data ?? []));
   }, []);
@@ -70,7 +73,11 @@ export default function DutchScenePage() {
         <p className="text-slate-400 text-sm mb-6 max-w-2xl">
           Every Dutch city has its own musical identity. Here's what's happening where.
         </p>
-        {cities.length === 0 ? (
+        {!ready.cities ? (
+          <div role="status" aria-busy="true" aria-label="Steden laden…" className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <TileSkeletons count={3} imageClassName="h-40" />
+          </div>
+        ) : cities.length === 0 ? (
           <p className="text-slate-500 text-sm">Nog geen steden beschikbaar.</p>
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -83,8 +90,8 @@ export default function DutchScenePage() {
                   className="group bg-white/3 hover:bg-white/6 border border-white/5 rounded-2xl overflow-hidden cursor-pointer transition-all hover:-translate-y-0.5"
                 >
                   <div className="relative h-40 overflow-hidden">
-                    <img
-                      src={city.image_url}
+                    <img decoding="async" loading="lazy"
+                      src={optimizedImage(city.image_url, 240)}
                       alt={city.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
@@ -133,7 +140,7 @@ export default function DutchScenePage() {
                               onClick={e => { e.preventDefault(); navigate(`/artists/${a.id}`); }}
                               className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 rounded-full px-2 py-1 transition-colors"
                             >
-                              <img src={a.image_url} alt={a.name} className="w-5 h-5 rounded-full object-cover" />
+                              <img decoding="async" loading="lazy" src={optimizedImage(a.image_url, 20)} alt={a.name} className="w-5 h-5 rounded-full object-cover" />
                               <span className="text-xs text-slate-300">{a.name.split(' ')[0]}</span>
                             </button>
                           ))}
@@ -159,7 +166,11 @@ export default function DutchScenePage() {
             View all →
           </Link>
         </div>
-        {artists.length === 0 ? (
+        {!ready.artists ? (
+          <div role="status" aria-busy="true" aria-label="Artiesten laden…" className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <TileSkeletons count={4} imageClassName="h-40" />
+          </div>
+        ) : artists.length === 0 ? (
           <p className="text-slate-500 text-sm">Nog geen artiesten beschikbaar.</p>
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -169,7 +180,7 @@ export default function DutchScenePage() {
                 to={`/artists/${artist.id}`}
                 className="group flex items-center gap-3 p-3 bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl transition-colors"
               >
-                <img src={artist.image_url} alt={artist.name} className="w-12 h-12 rounded-full object-cover shrink-0" />
+                <img decoding="async" loading="lazy" src={optimizedImage(artist.image_url, 48)} alt={artist.name} className="w-12 h-12 rounded-full object-cover shrink-0" />
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-white truncate">{artist.name}</p>
                   <div className="mt-0.5"><GenreBadge genre={artist.genre} className="text-[10px] px-1.5" /></div>
@@ -201,8 +212,8 @@ export default function DutchScenePage() {
                 className="group bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl overflow-hidden cursor-pointer transition-all"
               >
                 <div className="relative aspect-video overflow-hidden">
-                  <img
-                    src={item.cover_url}
+                  <img decoding="async" loading="lazy"
+                    src={optimizedImage(item.cover_url, 240)}
                     alt={item.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />

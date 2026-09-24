@@ -10,6 +10,7 @@ import GenreBadge from '@components/GenreBadge';
 import { coverPlaceholder } from '@utils/placeholder';
 import { getAudioDuration, uploadAudioFile } from '@services/uploadService';
 import { notifyAdminUpload } from '@services/emailService';
+import { optimizedImage } from '@lib/image';
 
 function EpisodeRow({
   podcast, episode, canManage, onRefresh,
@@ -195,8 +196,8 @@ export default function PodcastDetailPage() {
       </Link>
 
       <div className="flex items-center gap-4 mb-8">
-        <img
-          src={podcast.cover_image_url || coverPlaceholder(podcast.title)}
+        <img decoding="async" loading="lazy"
+          src={optimizedImage(podcast.cover_image_url || coverPlaceholder(podcast.title), 80)}
           alt={podcast.title}
           className="w-20 h-20 rounded-2xl object-cover shrink-0 border border-white/10"
         />

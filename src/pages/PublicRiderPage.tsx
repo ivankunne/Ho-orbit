@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Loader2, FileText, Download, AlertCircle, Printer } from 'lucide-react';
 import { getPublicRider, type PublicRider } from '@services/riderService';
 import { avatarPlaceholder } from '@utils/placeholder';
+import { optimizedImage } from '@lib/image';
 
 const RIDER_TYPE_LABELS: Record<string, string> = {
   technical: 'Technical Rider',
@@ -71,7 +72,7 @@ export default function PublicRiderPage() {
       <div className="max-w-2xl mx-auto px-6 py-10 print:py-0 print:px-0">
         <div className="flex items-center gap-3 mb-8 print:mb-6">
           <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/10 border border-white/15 print:border-slate-300 shrink-0">
-            <img src={rider.band_image_url || avatarPlaceholder(rider.band_name)} alt={rider.band_name} className="w-full h-full object-cover" />
+            <img decoding="async" loading="lazy" src={optimizedImage(rider.band_image_url || avatarPlaceholder(rider.band_name), 400)} alt={rider.band_name} className="w-full h-full object-cover" />
           </div>
           <div>
             <p className="text-sm text-slate-400 print:text-slate-600">{rider.band_name}</p>
@@ -98,7 +99,7 @@ export default function PublicRiderPage() {
               if (isImage) {
                 return (
                   <div key={f.id}>
-                    <img src={f.file_url} alt={f.file_name} className="w-full rounded-xl border border-white/10 print:border-slate-300" />
+                    <img decoding="async" loading="lazy" src={optimizedImage(f.file_url, 400)} alt={f.file_name} className="w-full rounded-xl border border-white/10 print:border-slate-300" />
                     <p className="text-xs text-slate-500 mt-1.5">{f.file_name}</p>
                   </div>
                 );

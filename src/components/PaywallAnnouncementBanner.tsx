@@ -8,23 +8,40 @@ import { usePaywallSettings } from '@hooks/usePaywallSettings';
 // point the real paywall screens do the talking, an advance-notice banner
 // is no longer relevant.
 const DISMISS_KEY = 'ho_paywall_announcement_dismissed';
+// Laatst bekende stand van de paywall-schakelaar.
+const LIVE_CACHE_KEY = 'ho_paywall_live_cache';
 
+function readStorage(key: string): string | null {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+
+/**
+ * Waarom de zichtbaarheid synchroon wordt bepaald: deze balk staat bovenaan
+ * elke pagina. Wachtte hij op de paywall-instelling uit Supabase, dan
+ * verscheen hij pas een fractie later en duwde hij de hele pagina 69px omlaag
+ * — de grootste layout-shift van de site, op iedere pagina.
+ *
+ * Nu beslist hij bij de eerste render al, op basis van de laatst bekende
+ * stand (of, bij een allereerste bezoek, de aanname dat de paywall nog niet
+ * live is — zo stond hij tot nu toe). Als de echte stand binnenkomt en anders
+ * blijkt, past hij zich alsnog aan.
+ */
 export default function PaywallAnnouncementBanner() {
   const { enabled: paywallLive, loading } = usePaywallSettings();
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(() => readStorage(DISMISS_KEY) === '1');
 
   useEffect(() => {
-    try {
-      if (localStorage.getItem(DISMISS_KEY) === '1') setDismissed(true);
-    } catch { /* ignore */ }
-  }, []);
+    if (loading) return;
+    try { localStorage.setItem(LIVE_CACHE_KEY, paywallLive ? '1' : '0'); } catch { /* ignore */ }
+  }, [loading, paywallLive]);
 
   function dismiss() {
     setDismissed(true);
     try { localStorage.setItem(DISMISS_KEY, '1'); } catch { /* ignore */ }
   }
 
-  if (loading || paywallLive || dismissed) return null;
+  const live = loading ? readStorage(LIVE_CACHE_KEY) === '1' : paywallLive;
+  if (live || dismissed) return null;
 
   return (
     <div className="w-full bg-violet-500/10 border-b border-violet-500/20">

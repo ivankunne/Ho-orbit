@@ -18,6 +18,7 @@ import AlbumModal from '@components/AlbumModal';
 import AddTracksToAlbumModal from '@components/AddTracksToAlbumModal';
 import ExpandableText from '@components/ExpandableText';
 import { SOCIAL_PLATFORM_MAP } from '@data/socialPlatforms';
+import { optimizedImage } from '@lib/image';
 
 // Tracks come back from the DB ordered by upload date; within an album (or
 // within the "no album" group) the artist's chosen order lives in sortOrder.
@@ -304,8 +305,8 @@ export default function ProfilePage() {
     return (
       <div key={track.id} className="flex items-center gap-4 p-3 hover:bg-white/4 rounded-xl transition-colors">
         <span className="w-5 text-center text-sm text-slate-600 shrink-0">{i + 1}</span>
-        <img
-          src={track.cover || coverPlaceholder(String(track.id))}
+        <img decoding="async" loading="lazy"
+          src={optimizedImage(track.cover || coverPlaceholder(String(track.id)), 40)}
           alt={track.title}
           className="w-10 h-10 rounded-lg object-cover shrink-0"
         />
@@ -382,7 +383,7 @@ export default function ProfilePage() {
     <div>
       {/* Banner */}
       <div className="relative h-48 lg:h-64 overflow-hidden">
-        <img src={profileUser.banner} alt="Banner" className="w-full h-full object-cover" />
+        <img decoding="async" src={optimizedImage(profileUser.banner, 640)} alt="Banner" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#1a1528] via-[#1a1528]/20 to-transparent" />
       </div>
 
@@ -530,8 +531,8 @@ export default function ProfilePage() {
                     <div key={album.id}>
                       <div className="flex items-center gap-3 mb-3">
                         <Link to={`/albums/${album.id}`} className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition-opacity">
-                          <img
-                            src={album.coverUrl || coverPlaceholder(album.title)}
+                          <img decoding="async" loading="lazy"
+                            src={optimizedImage(album.coverUrl || coverPlaceholder(album.title), 48)}
                             alt={album.title}
                             className="w-12 h-12 rounded-xl object-cover shrink-0"
                           />
@@ -627,7 +628,7 @@ export default function ProfilePage() {
                 {likedTrackList.map((track, i) => (
                   <div key={track.id} className="flex items-center gap-4 p-3 hover:bg-white/4 rounded-xl group cursor-pointer transition-colors">
                     <span className="w-5 text-center text-sm text-slate-600">{i + 1}</span>
-                    <img src={track.cover_url} alt={track.title} className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                    <img decoding="async" loading="lazy" src={optimizedImage(track.cover_url, 40)} alt={track.title} className="w-10 h-10 rounded-lg object-cover shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-white truncate">{track.title}</p>
                       <p className="text-xs text-slate-400">{track.artist}</p>
@@ -658,7 +659,7 @@ export default function ProfilePage() {
                     to={`/events/${event.id}`}
                     className="flex items-center gap-4 p-4 bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl transition-colors"
                   >
-                    <img src={event.poster_url} alt={event.name} className="w-14 h-20 object-cover rounded-lg shrink-0" />
+                    <img decoding="async" loading="lazy" src={optimizedImage(event.poster_url, 80)} alt={event.name} className="w-14 h-20 object-cover rounded-lg shrink-0" />
                     <div>
                       <p className="text-sm font-semibold text-white mb-1">{event.name}</p>
                       <p className="text-xs text-violet-400">{event.date} · {event.time}</p>
@@ -689,7 +690,7 @@ export default function ProfilePage() {
                     to={`/artists/${artist.id}`}
                     className="flex items-center gap-4 p-4 bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl transition-all group"
                   >
-                    <img src={artist.image_url} alt={artist.name} className="w-12 h-12 rounded-full object-cover shrink-0 ring-2 ring-violet-500/20" />
+                    <img decoding="async" loading="lazy" src={optimizedImage(artist.image_url, 48)} alt={artist.name} className="w-12 h-12 rounded-full object-cover shrink-0 ring-2 ring-violet-500/20" />
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-white truncate">{artist.name}</p>
                       <p className="text-xs text-violet-400 truncate">{artist.genre}</p>

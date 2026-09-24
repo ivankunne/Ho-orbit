@@ -9,6 +9,7 @@ import CommentSection from '@components/CommentSection';
 import { shareContent, buildShareUrl } from '@utils/share';
 import UserAvatar from '@components/UserAvatar';
 import GenreBadge from '@components/GenreBadge';
+import { optimizedImage } from '@lib/image';
 
 function safeExternalUrl(url) {
   if (!url) return null;
@@ -130,7 +131,7 @@ export default function EventDetailPage() {
         {/* Hoofdinhoud */}
         <div className="lg:col-span-2 min-w-0">
           <div className="relative rounded-2xl overflow-hidden mb-6">
-            <img src={event.poster_url} alt={event.name} className="w-full h-64 lg:h-80 object-cover" />
+            <img decoding="async" src={optimizedImage(event.poster_url, 960)} alt={event.name} className="w-full h-64 lg:h-80 object-cover" />
             {event.featured && (
               <div className="absolute top-4 left-4 bg-violet-600 text-white text-xs font-bold px-3 py-1 rounded-full">
                 Uitgelicht evenement
@@ -189,7 +190,7 @@ export default function EventDetailPage() {
                 to={`/artists/${artist.slug || artist.id}`}
                 className="flex items-center gap-4 p-4 bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl transition-colors"
               >
-                <img src={artist.image_url} alt={artist.name} className="w-14 h-14 rounded-full object-cover shrink-0" />
+                <img decoding="async" loading="lazy" src={optimizedImage(artist.image_url, 56)} alt={artist.name} className="w-14 h-14 rounded-full object-cover shrink-0" />
                 <div className="min-w-0">
                   <p className="font-semibold text-white truncate">{artist.name}</p>
                   <p className="text-sm text-violet-400 truncate">{artist.genre}</p>

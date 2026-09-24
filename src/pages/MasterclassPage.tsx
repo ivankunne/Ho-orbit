@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { formatPlays } from '@utils/format';
+import { optimizedImage } from '@lib/image';
 
 const CATEGORIES = [
   { key: 'all',      label: 'Alles' },
@@ -146,7 +147,7 @@ export default function MasterclassPage() {
             <div className="mb-10 bg-white/3 border border-white/8 rounded-2xl overflow-hidden lg:flex">
               <div className="lg:w-96 aspect-video lg:aspect-auto bg-white/5 relative shrink-0 flex items-center justify-center">
                 {featured.thumbnail_url
-                  ? <img src={featured.thumbnail_url} alt={featured.title} className="w-full h-full object-cover" />
+                  ? <img decoding="async" src={optimizedImage(featured.thumbnail_url, 640)} alt={featured.title} className="w-full h-full object-cover" />
                   : <CategoryPlaceholder category={featured.category} large />
                 }
                 <PlayOverlay free={featured.is_free} />
@@ -193,7 +194,7 @@ function MasterclassCard({ mc }: { mc: Masterclass }) {
     <div className="group bg-white/3 hover:bg-white/5 border border-white/8 rounded-2xl overflow-hidden cursor-pointer transition-all">
       <div className="relative aspect-video bg-white/5 flex items-center justify-center overflow-hidden">
         {mc.thumbnail_url
-          ? <img src={mc.thumbnail_url} alt={mc.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+          ? <img decoding="async" loading="lazy" src={optimizedImage(mc.thumbnail_url, 240)} alt={mc.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
           : <CategoryPlaceholder category={mc.category} />
         }
         <PlayOverlay free={mc.is_free} />

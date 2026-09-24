@@ -12,6 +12,7 @@ import GenreBadge from '@components/GenreBadge';
 import { Textarea } from '@components/ui/textarea';
 import { Button } from '@components/ui/button';
 import { getReviewStats, submitReview, type ReviewStats } from '@services/reviewService';
+import { optimizedImage } from '@lib/image';
 
 function RatingBar({ label, pct }) {
   return (
@@ -85,8 +86,8 @@ export default function SceneDetailPage() {
     <div className="min-h-screen bg-[#1a1528]">
       {/* Hero */}
       <div className="relative h-72 lg:h-96 overflow-hidden">
-        <img
-          src={scene.cover_image_url}
+        <img decoding="async"
+          src={optimizedImage(scene.cover_image_url, 640)}
           alt={scene.name}
           className="w-full h-full object-cover"
         />
@@ -175,8 +176,8 @@ export default function SceneDetailPage() {
                       onClick={() => setActiveGalleryIdx(i)}
                       className="relative aspect-[4/3] overflow-hidden rounded-xl group"
                     >
-                      <img
-                        src={src}
+                      <img decoding="async" loading="lazy"
+                        src={optimizedImage(src, 400)}
                         alt={`${scene.name} ${i + 1}`}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
@@ -226,8 +227,8 @@ export default function SceneDetailPage() {
                     <div key={t.id} className="relative p-6 bg-white/3 border border-white/8 rounded-2xl">
                       <Quote size={28} className="absolute top-5 right-5 text-white/5" />
                       <div className="flex items-start gap-4">
-                        <img
-                          src={t.avatar}
+                        <img decoding="async" loading="lazy"
+                          src={optimizedImage(t.avatar, 48)}
                           alt={t.author}
                           className="w-12 h-12 rounded-full object-cover ring-2 ring-violet-500/20 shrink-0"
                         />
@@ -411,7 +412,7 @@ export default function SceneDetailPage() {
                       to={`/artists/${a.id}`}
                       className="flex items-center gap-3 hover:bg-white/5 rounded-xl p-2 -mx-2 transition-colors"
                     >
-                      <img src={a.image_url} alt={a.name} className="w-10 h-10 rounded-full object-cover shrink-0" />
+                      <img decoding="async" loading="lazy" src={optimizedImage(a.image_url, 40)} alt={a.name} className="w-10 h-10 rounded-full object-cover shrink-0" />
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-white truncate">{a.name}</p>
                         <div className="mt-0.5"><GenreBadge genre={a.genre} className="text-[10px] px-1.5" /></div>
@@ -465,8 +466,8 @@ export default function SceneDetailPage() {
           >
             ✕
           </button>
-          <img
-            src={(scene.gallery_urls ?? [])[activeGalleryIdx]}
+          <img decoding="async"
+            src={optimizedImage((scene.gallery_urls ?? [])[activeGalleryIdx], 960)}
             alt=""
             className="max-w-4xl max-h-[85vh] w-full object-contain rounded-xl"
             onClick={e => e.stopPropagation()}

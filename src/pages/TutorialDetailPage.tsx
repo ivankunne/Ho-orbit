@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { Play, Clock, Eye, ChevronLeft, BookOpen, Video, CheckCircle2, Wrench } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import CommentSection from '@components/CommentSection';
+import { optimizedImage } from '@lib/image';
 
 const difficultyColors = {
   Beginner: 'bg-green-500/20 text-green-400 border-green-500/30',
@@ -125,8 +126,8 @@ export default function TutorialDetailPage() {
             <div>
               {/* Video placeholder */}
               <div className="relative rounded-2xl overflow-hidden bg-[#231d3a] border border-white/8 mb-6 aspect-video flex items-center justify-center">
-                <img
-                  src={tutorial.thumbnail_url}
+                <img decoding="async"
+                  src={optimizedImage(tutorial.thumbnail_url, 640)}
                   alt={tutorial.title}
                   className="absolute inset-0 w-full h-full object-cover opacity-30"
                 />
@@ -310,8 +311,8 @@ export default function TutorialDetailPage() {
                   to={`/tutorials/${t.id}`}
                   className="flex items-center gap-3 group"
                 >
-                  <img
-                    src={t.thumbnail_url}
+                  <img decoding="async" loading="lazy"
+                    src={optimizedImage(t.thumbnail_url, 64)}
                     alt={t.title}
                     className="w-16 h-10 rounded-lg object-cover shrink-0 group-hover:opacity-80 transition-opacity"
                   />

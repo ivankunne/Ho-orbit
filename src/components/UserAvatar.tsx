@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { optimizedImage } from '@lib/image';
 
 const PALETTE = [
   'bg-violet-600',
@@ -45,8 +46,12 @@ export default function UserAvatar({ src, name = '', size = 32, className = '', 
   if (src && !imgError) {
     return (
       <img
-        src={src}
+        src={optimizedImage(src, { width: size, height: size })}
         alt={alt ?? name}
+        loading="lazy"
+        decoding="async"
+        width={size}
+        height={size}
         style={style}
         className={`rounded-full object-cover shrink-0 ${className}`}
         onError={() => setImgError(true)}

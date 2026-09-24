@@ -28,6 +28,7 @@ import AlbumModal from '@components/AlbumModal';
 import AddTracksToAlbumModal from '@components/AddTracksToAlbumModal';
 import Seo from '@components/Seo';
 import { breadcrumbLd, musicGroupLd, clampDescription } from '@lib/seo';
+import { optimizedImage } from '@lib/image';
 
 export default function ArtistDetailPage() {
   const { slug } = useParams();
@@ -304,8 +305,8 @@ export default function ArtistDetailPage() {
       {/* Header — one large hero image, artist name overlaid at the bottom
           (Spotify-style single-image hero, no separate circular avatar). */}
       <div className="relative h-[42vh] min-h-[320px] max-h-[480px] overflow-hidden">
-        <img
-          src={artist.cover_url}
+        <img decoding="async"
+          src={optimizedImage(artist.cover_url, 640)}
           alt=""
           fetchPriority="high"
           className="w-full h-full object-cover"
@@ -507,8 +508,8 @@ export default function ArtistDetailPage() {
                       ? <Play size={14} className="text-violet-400 w-5 shrink-0" fill="currentColor" />
                       : <span className="w-5 text-center text-sm text-slate-500 shrink-0 group-hover:hidden">{i + 1}</span>
                     }
-                    <img
-                      src={track.cover_url || coverPlaceholder(track.title)}
+                    <img decoding="async" loading="lazy"
+                      src={optimizedImage(track.cover_url || coverPlaceholder(track.title), 40)}
                       alt=""
                       className="w-10 h-10 rounded-md object-cover shrink-0"
                     />
@@ -646,8 +647,8 @@ export default function ArtistDetailPage() {
                     >
                       <Link to={`/albums/${album.id}`} className="block cursor-pointer">
                         <div className="relative aspect-square overflow-hidden">
-                          <img
-                            src={album.coverUrl || coverPlaceholder(album.title)}
+                          <img decoding="async" loading="lazy"
+                            src={optimizedImage(album.coverUrl || coverPlaceholder(album.title), 200)}
                             alt={album.title}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />
@@ -707,7 +708,7 @@ export default function ArtistDetailPage() {
                   to={`/events/${event.id}`}
                   className="flex flex-col sm:flex-row gap-4 p-4 bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl transition-colors"
                 >
-                  <img src={event.poster_url} alt={event.name} className="w-full sm:w-20 sm:h-28 object-cover rounded-lg" />
+                  <img decoding="async" loading="lazy" src={optimizedImage(event.poster_url, 112)} alt={event.name} className="w-full sm:w-20 sm:h-28 object-cover rounded-lg" />
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <Calendar size={14} className="text-violet-400" />
@@ -730,8 +731,8 @@ export default function ArtistDetailPage() {
           {/* Tab: Over */}
           <TabsContent value="over" className="max-w-2xl">
             <div className="relative rounded-2xl overflow-hidden min-h-[280px] border border-white/5">
-              <img
-                src={artist.cover_url}
+              <img decoding="async" loading="lazy"
+                src={optimizedImage(artist.cover_url, 400)}
                 alt=""
                 aria-hidden="true"
                 className="absolute inset-0 w-full h-full object-cover opacity-25 scale-110 blur-[2px]"

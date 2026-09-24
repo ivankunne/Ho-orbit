@@ -6,6 +6,7 @@ import CommentSection from '@components/CommentSection';
 import { useToast } from '@components/Toast';
 import { shareContent, buildShareUrl } from '@utils/share';
 import { avatarPlaceholder } from '@utils/placeholder';
+import { optimizedImage } from '@lib/image';
 
 function getBody(article: { body?: string; excerpt?: string }): string[] {
   if (article.body && article.body.trim()) {
@@ -68,8 +69,8 @@ export default function ArticleDetailPage() {
 
           {/* Author row */}
           <div className="flex items-center gap-4 py-4 border-y border-white/8 mb-8">
-            <img
-              src={avatarPlaceholder(article.author ?? 'Auteur')}
+            <img decoding="async" loading="lazy"
+              src={optimizedImage(avatarPlaceholder(article.author ?? 'Auteur'), 40)}
               alt={article.author}
               className="w-10 h-10 rounded-full object-cover"
             />
@@ -104,7 +105,7 @@ export default function ArticleDetailPage() {
 
           {/* Cover image */}
           <div className="rounded-2xl overflow-hidden mb-8 aspect-video">
-            <img src={article.cover_url} alt={article.title} className="w-full h-full object-cover" />
+            <img decoding="async" src={optimizedImage(article.cover_url, 640)} alt={article.title} className="w-full h-full object-cover" />
           </div>
 
           {/* Body */}
@@ -134,8 +135,8 @@ export default function ArticleDetailPage() {
           <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">Over de auteur</p>
             <div className="flex items-center gap-3 mb-3">
-              <img
-                src={avatarPlaceholder(article.author ?? 'Auteur')}
+              <img decoding="async" loading="lazy"
+                src={optimizedImage(avatarPlaceholder(article.author ?? 'Auteur'), 48)}
                 alt={article.author}
                 className="w-12 h-12 rounded-full object-cover"
               />
@@ -173,7 +174,7 @@ export default function ArticleDetailPage() {
                     to={`/magazine/${a.id}`}
                     className="flex gap-3 group"
                   >
-                    <img src={a.cover_url} alt={a.title} className="w-16 h-16 rounded-xl object-cover shrink-0" />
+                    <img decoding="async" loading="lazy" src={optimizedImage(a.cover_url, 64)} alt={a.title} className="w-16 h-16 rounded-xl object-cover shrink-0" />
                     <div className="min-w-0">
                       <p className="text-xs text-violet-400 mb-0.5">{a.category}</p>
                       <p className="text-sm text-white font-medium leading-snug line-clamp-2 group-hover:text-violet-300 transition-colors">

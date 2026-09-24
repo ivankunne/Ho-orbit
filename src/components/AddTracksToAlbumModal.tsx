@@ -4,6 +4,7 @@ import { updateTrack, type UploadedTrack } from '@services/uploadService';
 import { type Album } from '@services/albumService';
 import { Button } from '@components/ui/button';
 import { coverPlaceholder } from '@utils/placeholder';
+import { optimizedImage } from '@lib/image';
 
 export default function AddTracksToAlbumModal({
   album, tracks, existingTrackCount, userId, onClose, onAdded, isAdmin = false,
@@ -76,8 +77,8 @@ export default function AddTracksToAlbumModal({
                   onChange={() => toggle(track.id)}
                   className="w-4 h-4 rounded border-white/20 bg-white/5 text-violet-600 focus:ring-violet-500/50 shrink-0"
                 />
-                <img
-                  src={track.cover || coverPlaceholder(String(track.id))}
+                <img decoding="async" loading="lazy"
+                  src={optimizedImage(track.cover || coverPlaceholder(String(track.id)), 36)}
                   alt={track.title}
                   className="w-9 h-9 rounded-lg object-cover shrink-0"
                 />

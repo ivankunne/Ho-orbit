@@ -8,6 +8,7 @@ import { addNotification } from '@services/notificationService';
 import { avatarPlaceholder } from '@utils/placeholder';
 import AuthPrompt from '@components/AuthPrompt';
 import { useRequireAuth } from '@hooks/useRequireAuth';
+import { optimizedImage } from '@lib/image';
 
 const MAX_CHARS = 500;
 
@@ -196,8 +197,8 @@ export default function CommentSection({ resourceType, resourceId, resourceTitle
 
             return (
               <div key={comment.id} className="flex gap-3">
-                <img
-                  src={comment.authorAvatar || avatarPlaceholder(comment.authorName)}
+                <img decoding="async" loading="lazy"
+                  src={optimizedImage(comment.authorAvatar || avatarPlaceholder(comment.authorName), 36)}
                   alt={comment.authorName}
                   className="w-9 h-9 rounded-full object-cover shrink-0"
                 />

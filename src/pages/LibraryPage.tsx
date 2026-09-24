@@ -14,6 +14,7 @@ import { formatPlays } from '@utils/format';
 import { AddToPlaylistPopover } from '@components/AddToPlaylistPopover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@components/ui/tabs';
 import { Button } from '@components/ui/button';
+import { optimizedImage } from '@lib/image';
 
 const tabList = [
   { key: 'nummers',        label: 'Gelikte nummers',  icon: Heart },
@@ -32,7 +33,7 @@ function TrackRow({ track, index, toggleLike }) {
     <div className="flex items-center gap-4 p-3 hover:bg-white/4 rounded-xl group transition-colors relative">
       <span className="w-5 text-center text-sm text-slate-600 shrink-0">{index + 1}</span>
       <div className="relative shrink-0">
-        <img src={track.cover_url} alt={track.title} className="w-11 h-11 rounded-lg object-cover" />
+        <img decoding="async" loading="lazy" src={optimizedImage(track.cover_url, 44)} alt={track.title} className="w-11 h-11 rounded-lg object-cover" />
         {isCurrentTrack && isPlaying ? (
           <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg">
             <div className="flex items-end gap-[2px] h-4">
@@ -97,13 +98,13 @@ function PlaylistCard({ playlist, tracks: allTracks }) {
             <Music size={28} className="text-slate-700" />
           </div>
         ) : coverTracks.length === 1 ? (
-          <img src={coverTracks[0].cover_url} alt="" className="w-full h-full object-cover" />
+          <img decoding="async" loading="lazy" src={optimizedImage(coverTracks[0].cover_url, 400)} alt="" className="w-full h-full object-cover" />
         ) : (
           <div className="grid grid-cols-2 w-full h-full">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="overflow-hidden">
                 {coverTracks[i]
-                  ? <img src={coverTracks[i].cover_url} alt="" className="w-full h-full object-cover" />
+                  ? <img decoding="async" loading="lazy" src={optimizedImage(coverTracks[i].cover_url, 400)} alt="" className="w-full h-full object-cover" />
                   : <div className="w-full h-full bg-white/5" />
                 }
               </div>
@@ -225,7 +226,7 @@ export default function LibraryPage() {
                   to={`/artists/${artist.id}`}
                   className="flex items-center gap-4 p-4 bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl transition-all group"
                 >
-                  <img src={artist.image_url} alt={artist.name} className="w-14 h-14 rounded-full object-cover shrink-0 ring-2 ring-violet-500/20" />
+                  <img decoding="async" loading="lazy" src={optimizedImage(artist.image_url, 56)} alt={artist.name} className="w-14 h-14 rounded-full object-cover shrink-0 ring-2 ring-violet-500/20" />
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-white truncate">{artist.name}</p>
                     <p className="text-xs text-violet-400 truncate">{artist.genre}</p>
@@ -258,7 +259,7 @@ export default function LibraryPage() {
                   to={`/events/${event.id}`}
                   className="flex items-center gap-4 p-4 bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl transition-all group"
                 >
-                  <img src={event.poster_url} alt={event.name} className="w-14 h-20 object-cover rounded-lg shrink-0" />
+                  <img decoding="async" loading="lazy" src={optimizedImage(event.poster_url, 80)} alt={event.name} className="w-14 h-20 object-cover rounded-lg shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-white mb-1 truncate">{event.name}</p>
                     <p className="text-xs text-violet-400">{event.date} · {event.time}</p>

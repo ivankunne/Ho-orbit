@@ -4,6 +4,7 @@ import { usePlayer } from '@context/PlayerContext';
 import { useAppState } from '@context/AppStateContext';
 import { formatPlays } from '@utils/format';
 import { MovementBadge } from '@components/MovementBadge';
+import { optimizedImage } from '@lib/image';
 
 function TrendingRowInner({ track, rank, queue, prevPosition }) {
   const { playTrack, track: currentTrack, isPlaying } = usePlayer();
@@ -21,7 +22,7 @@ function TrendingRowInner({ track, rank, queue, prevPosition }) {
         <MovementBadge prevPosition={prevPosition} rank={rank} />
       </div>
       <div className="relative w-10 h-10 shrink-0">
-        <img src={track.cover_url || track.cover} alt={track.title} className="w-full h-full object-cover rounded-lg" />
+        <img decoding="async" loading="lazy" src={optimizedImage(track.cover_url || track.cover, 40)} alt={track.title} className="w-full h-full object-cover rounded-lg" />
         <div className={`absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center transition-opacity ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
           {isActive && isPlaying
             ? <span className="w-3 h-3 flex gap-[2px] items-end"><span className="w-0.5 bg-white rounded-sm h-2" /><span className="w-0.5 bg-white rounded-sm h-3" /><span className="w-0.5 bg-white rounded-sm h-1.5" /></span>

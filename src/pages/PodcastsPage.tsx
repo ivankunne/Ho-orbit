@@ -9,6 +9,7 @@ import GenrePicker from '@components/GenrePicker';
 import GenreBadge from '@components/GenreBadge';
 import { coverPlaceholder } from '@utils/placeholder';
 import { notifyAdminUpload } from '@services/emailService';
+import { optimizedImage } from '@lib/image';
 
 // ─── Podcast card (public browse view) ───────────────────────────────────────
 
@@ -19,8 +20,8 @@ function PodcastCard({ podcast, episodeCount }: { podcast: Podcast; episodeCount
       className="flex flex-col gap-4 p-5 rounded-2xl border bg-white/[0.03] border-white/10 hover:border-white/20 transition-all"
     >
       <div className="flex items-center gap-4">
-        <img
-          src={podcast.cover_image_url || coverPlaceholder(podcast.title)}
+        <img decoding="async" loading="lazy"
+          src={optimizedImage(podcast.cover_image_url || coverPlaceholder(podcast.title), 56)}
           alt={podcast.title}
           className="w-14 h-14 rounded-2xl object-cover shrink-0 border border-white/10"
         />
@@ -80,8 +81,8 @@ function StudioRow({ podcast, onRefresh }: { podcast: Podcast; onRefresh: () => 
   return (
     <div className="bg-white/[0.03] border border-white/8 rounded-2xl overflow-hidden">
       <div className="flex items-center gap-3 px-4 py-3">
-        <img
-          src={podcast.cover_image_url || coverPlaceholder(podcast.title)}
+        <img decoding="async" loading="lazy"
+          src={optimizedImage(podcast.cover_image_url || coverPlaceholder(podcast.title), 32)}
           alt={podcast.title}
           className="w-8 h-8 rounded-lg object-cover shrink-0 border border-white/10"
         />

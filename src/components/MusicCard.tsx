@@ -4,6 +4,7 @@ import { usePlayer } from '@context/PlayerContext';
 import { useAppState } from '@context/AppStateContext';
 import { useToast } from '@components/Toast';
 import { formatPlays } from '@utils/format';
+import { optimizedImage } from '@lib/image';
 
 function MusicCardInner({ track, queue }) {
   const { playTrack, track: currentTrack, isPlaying } = usePlayer();
@@ -18,8 +19,8 @@ function MusicCardInner({ track, queue }) {
       className="group relative bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl overflow-hidden transition-all cursor-pointer p-3"
     >
       <div className="relative overflow-hidden rounded-lg aspect-square mb-3">
-        <img
-          src={track.cover_url || track.cover}
+        <img decoding="async" loading="lazy"
+          src={optimizedImage(track.cover_url || track.cover, 200)}
           alt={track.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />

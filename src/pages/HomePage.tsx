@@ -20,6 +20,8 @@ import { useRadio } from '@context/RadioContext';
 import { Radio } from 'lucide-react';
 import { FILTER_GENRES, genreLabelById } from '@data/genres';
 import { fetchNetworkingPosts } from '@services/networkingService';
+import { optimizedImage } from '@lib/image';
+import { Skeleton, CardGridSkeleton, RowListSkeleton, TextCardGridSkeleton } from '@components/Skeleton';
 
 const GENRES = ['Alles', ...FILTER_GENRES];
 
@@ -57,6 +59,12 @@ export default function HomePage() {
   const [localPosts, setLocalPosts] = useState<any[]>([]);
   const [discoverPool, setDiscoverPool] = useState<any[]>([]);
   const [discoverMix, setDiscoverMix] = useState<any[]>([]);
+  // Per bron: is hij al binnen? Een lege array betekent nog níet "niets
+  // gevonden" — zonder dit onderscheid toonde elke sectie eerst zijn lege
+  // toestand ("Nog geen artiesten beschikbaar") en schoot de inhoud er daarna
+  // in. Nu staat er een skeleton tot de query terug is.
+  const [ready, setReady] = useState({ artists: false, tracks: false, pool: false, posts: false });
+  const markReady = (key: keyof typeof ready) => setReady(r => (r[key] ? r : { ...r, [key]: true }));
 
   const { user } = useAuth();
   const { playTrack, track: currentTrack, isPlaying } = usePlayer();
@@ -67,8 +75,8 @@ export default function HomePage() {
   const preferredGenres = user?.preferredGenres || [];
 
   useEffect(() => {
-    fetchArtistProfiles(12).then(setArtists);
-    supabase.from('tracks').select('*').or('is_user_upload.is.null,is_user_upload.eq.false,upload_status.eq.approved').order('plays', { ascending: false }).limit(100).then(({ data }) => setTracks((data ?? []).map(t => ({ ...t, artist: t.artist || t.artist_name || '' }))));
+    fetchArtistProfiles(12).then(setArtists).finally(() => markReady('artists'));
+    supabase.from('tracks').select('*').or('is_user_upload.is.null,is_user_upload.eq.false,upload_status.eq.approved').order('plays', { ascending: false }).limit(100).then(({ data }) => { setTracks((data ?? []).map(t => ({ ...t, artist: t.artist || t.artist_name || '' }))); markReady('tracks'); });
     // Separate, un-ranked pool for the Discover mix — the query above is
     // sorted by plays, which would keep surfacing already-popular tracks and
     // defeat the point of a "discover new music" row. Ordering by id (a
@@ -77,13 +85,13 @@ export default function HomePage() {
     supabase.from('tracks').select('id, title, artist_name, uploaded_by, cover_url, stream_url, duration, plays, genre')
       .or('is_user_upload.is.null,is_user_upload.eq.false,upload_status.eq.approved')
       .order('id').limit(300)
-      .then(({ data }) => setDiscoverPool((data ?? []).map(t => ({ ...t, artist: t.artist_name || '', cover: t.cover_url }))));
+      .then(({ data }) => { setDiscoverPool((data ?? []).map(t => ({ ...t, artist: t.artist_name || '', cover: t.cover_url }))); markReady('pool'); });
     supabase.from('dutch_cities').select('*').limit(6).then(({ data }) => setCities(data ?? []));
     supabase.from('articles').select('*').order('published_at', { ascending: false }).limit(3).then(({ data }) => setNewsArticles(data ?? []));
     // Via networking_posts_public: de oproep zelf is voor iedereen zichtbaar,
     // de contactgegevens erin niet. Zonder dat zou dit blok leeglopen zodra de
     // paywall live gaat — uitgerekend op de startpagina.
-    fetchNetworkingPosts({ limit: 6 }).then(setLocalPosts);
+    fetchNetworkingPosts({ limit: 6 }).then(setLocalPosts).finally(() => markReady('posts'));
   }, []);
 
   function matchArtistsForGenre(genreId: string) {
@@ -192,8 +200,8 @@ export default function HomePage() {
 
       {/* ── Hero — discovery-focused ── */}
       <section className="relative overflow-hidden">
-        <img
-          src={featuredArtist?.cover_url}
+        <img decoding="async"
+          src={optimizedImage(featuredArtist?.cover_url, 640)}
           alt=""
           aria-hidden="true"
           fetchPriority="high"
@@ -220,11 +228,23 @@ export default function HomePage() {
                 vind, ontdek, maak connecties.
               </p>
 
-              {/* Featured artist inline */}
+              {/* Featured artist inline — staat boven de vouw, dus direct laden
+                  en tijdens het ophalen dezelfde ruimte vasthouden. */}
+              {!ready.artists && (
+                <div role="status" aria-busy="true" aria-label="Artiest van de week laden…" className="flex items-center gap-4 p-4 bg-white/5 border border-white/10 rounded-2xl max-w-md">
+                  <Skeleton className="w-16 h-16 rounded-xl shrink-0" />
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <Skeleton className="h-2.5 w-24" />
+                    <Skeleton className="h-4 w-36" />
+                    <Skeleton className="h-3 w-28" />
+                  </div>
+                  <Skeleton className="w-10 h-10 rounded-full shrink-0" />
+                </div>
+              )}
               {featuredArtist && (
                 <div className="flex items-center gap-4 p-4 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-sm max-w-md">
-                  <img
-                    src={featuredArtist.image_url}
+                  <img decoding="async"
+                    src={optimizedImage(featuredArtist.image_url, 64)}
                     alt={featuredArtist.name}
                     className="w-16 h-16 rounded-xl object-cover shrink-0"
                   />
@@ -294,7 +314,9 @@ export default function HomePage() {
               Alle artiesten <ChevronRight size={15} />
             </Link>
           </div>
-          {artists.length === 0 ? (
+          {!ready.artists ? (
+            <CardGridSkeleton count={6} />
+          ) : artists.length === 0 ? (
             <p className="text-sm text-slate-500 py-4">Nog geen artiesten beschikbaar.</p>
           ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
@@ -306,7 +328,7 @@ export default function HomePage() {
                   className="group bg-white/3 hover:bg-white/6 border border-white/5 rounded-2xl overflow-hidden transition-all hover:-translate-y-0.5"
                 >
                   <div className="relative aspect-square overflow-hidden">
-                    <img src={artist.image_url} alt={artist.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                    <img decoding="async" loading="lazy" src={optimizedImage(artist.image_url, 200)} alt={artist.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                     <div className="absolute top-2 left-2 flex items-center gap-1 bg-black/50 rounded-full px-1.5 py-0.5">
                       <Flame size={9} className="text-amber-400" fill="currentColor" />
@@ -348,7 +370,9 @@ export default function HomePage() {
           <p className="text-slate-400 text-sm mb-5 max-w-2xl">
             Grote carrières beginnen klein. Ontdek veelbelovende artiesten aan het begin van hun muzikale avontuur.
           </p>
-          {risingArtists.length === 0 ? (
+          {!ready.artists ? (
+            <CardGridSkeleton count={6} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3" />
+          ) : risingArtists.length === 0 ? (
             <p className="text-sm text-slate-500 py-4">Nog geen nieuwe artiesten beschikbaar.</p>
           ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -362,7 +386,7 @@ export default function HomePage() {
                 >
                   <Link to={`/artists/${artist.id}`} className="block">
                     <div className="relative aspect-square overflow-hidden">
-                      <img src={artist.image_url} alt={artist.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                      <img decoding="async" loading="lazy" src={optimizedImage(artist.image_url, 200)} alt={artist.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
                       <div className="absolute top-2 left-2">
                         <span className="text-[9px] font-bold bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded-full">
@@ -429,7 +453,7 @@ export default function HomePage() {
                       className="group bg-white/3 hover:bg-white/6 border border-white/5 rounded-2xl overflow-hidden transition-all hover:-translate-y-0.5"
                     >
                       <div className="relative aspect-square overflow-hidden">
-                        <img src={artist.image_url} alt={artist.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                        <img decoding="async" loading="lazy" src={optimizedImage(artist.image_url, 200)} alt={artist.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                       </div>
                       <div className="p-3">
@@ -471,7 +495,9 @@ export default function HomePage() {
           </div>
           <p className="text-sm text-slate-500 mb-4">Willekeurige mix van verschillende artiesten — elke bezoek weer anders.</p>
 
-          {discoverMix.length === 0 ? (
+          {!ready.pool ? (
+            <CardGridSkeleton count={6} variant="track" />
+          ) : discoverMix.length === 0 ? (
             <div className="py-10 text-center text-slate-500 text-sm bg-white/2 border border-white/5 rounded-2xl">
               Nog geen nummers om te ontdekken. Kom later terug!
             </div>
@@ -531,7 +557,9 @@ export default function HomePage() {
                 <span className="w-8" />
               </div>
               <div className="bg-white/2 border border-white/5 rounded-2xl overflow-hidden">
-                {tracks.length === 0 ? (
+                {!ready.tracks ? (
+                  <RowListSkeleton count={10} />
+                ) : tracks.length === 0 ? (
                   <div className="py-12 text-center text-slate-500 text-sm">Nog geen nummers beschikbaar. Kom later terug!</div>
                 ) : top10Tracks.length === 0 ? (
                   <div className="py-12 text-center text-slate-500 text-sm">Geen nummers gevonden voor dit genre.</div>
@@ -558,8 +586,8 @@ export default function HomePage() {
                     to={`/artists/${artist.id}`}
                     className="flex items-center gap-3 p-3 bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl transition-colors group"
                   >
-                    <img
-                      src={artist.image_url}
+                    <img decoding="async" loading="lazy"
+                      src={optimizedImage(artist.image_url, 48)}
                       alt={artist.name}
                       className="w-12 h-12 rounded-full object-cover shrink-0"
                     />
@@ -583,8 +611,8 @@ export default function HomePage() {
               {/* Featured artist card */}
               {spotlightArtist && (
                 <div className="relative rounded-2xl overflow-hidden">
-                  <img
-                    src={spotlightArtist?.cover_url}
+                  <img decoding="async" loading="lazy"
+                    src={optimizedImage(spotlightArtist?.cover_url, 160)}
                     alt="Uitgelichte artiest"
                     className="w-full h-40 object-cover"
                   />
@@ -620,8 +648,8 @@ export default function HomePage() {
                   className="group shrink-0 w-72 bg-white/3 hover:bg-white/6 border border-white/5 rounded-2xl overflow-hidden transition-all hover:-translate-y-0.5"
                 >
                   <div className="relative h-36 overflow-hidden">
-                    <img
-                      src={city.image_url}
+                    <img decoding="async" loading="lazy"
+                      src={optimizedImage(city.image_url, 240)}
                       alt={city.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
@@ -657,7 +685,9 @@ export default function HomePage() {
               Alles bekijken <ChevronRight size={15} />
             </Link>
           </div>
-          {localPosts.length === 0 ? (
+          {!ready.posts ? (
+            <TextCardGridSkeleton count={3} />
+          ) : localPosts.length === 0 ? (
             <div className="bg-white/2 border border-white/6 rounded-2xl px-6 py-10 text-center">
               <Handshake size={32} className="mx-auto mb-3 text-slate-600" />
               <p className="text-slate-400 font-medium mb-1">Geen posts gevonden</p>
@@ -722,8 +752,8 @@ export default function HomePage() {
                   className="group bg-white/3 hover:bg-white/6 border border-white/5 rounded-xl overflow-hidden cursor-pointer transition-all"
                 >
                   <div className="relative aspect-video overflow-hidden">
-                    <img
-                      src={item.cover_url}
+                    <img decoding="async" loading="lazy"
+                      src={optimizedImage(item.cover_url, 240)}
                       alt={item.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
