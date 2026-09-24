@@ -53,6 +53,8 @@ Deno.serve(async (req) => {
     const session = await stripeRequest<{ url: string }>('POST', '/billing_portal/sessions', {
       customer: profile.stripe_customer_id,
       return_url: `${SITE_URL}/account`,
+      // Zelfde reden als in stripe-checkout: niet de browsertaal laten beslissen.
+      locale: 'nl',
     });
 
     return json({ url: session.url });

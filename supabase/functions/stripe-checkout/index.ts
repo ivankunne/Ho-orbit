@@ -84,6 +84,9 @@ Deno.serve(async (req) => {
     const session = await stripeRequest<{ url: string }>('POST', '/checkout/sessions', {
       mode: 'subscription',
       customer: customerId,
+      // Anders kiest Stripe de taal van de browser: een Nederlandse bezoeker
+      // met een Engelstalige telefoon kreeg een Engelse betaalpagina.
+      locale: 'nl',
       line_items: [{ price: priceId, quantity: 1 }],
       // Managed Payments doesn't support iDEAL — essential for a Dutch
       // audience — and makes Stripe/Link the merchant of record (their

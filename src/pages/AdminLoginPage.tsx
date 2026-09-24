@@ -51,7 +51,7 @@ export default function AdminLoginPage() {
             <div className="w-12 h-12 rounded-2xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center mb-3">
               <ShieldCheck size={24} className="text-violet-400" />
             </div>
-            <h1 className="text-2xl font-bold text-white">Admin login</h1>
+            <h1 className="text-2xl font-bold text-white">Inloggen als beheerder</h1>
             <p className="text-sm text-slate-500 mt-1">Alleen voor beheerders van h-orbit.</p>
           </div>
 

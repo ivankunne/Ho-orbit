@@ -358,7 +358,7 @@ export default function Navbar({ externalShowSearch = false, onExternalSearchClo
                               onClick={() => setUserMenuOpen(false)}
                               className="flex items-center gap-3 w-full px-3 py-2 text-sm text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors"
                             >
-                              <ShieldCheck size={15} /> Admin Panel
+                              <ShieldCheck size={15} /> Beheerpaneel
                             </Link>
                           </div>
                         )}

@@ -10,11 +10,11 @@ import {
 } from '@services/riderService';
 
 const RIDER_TYPES: { value: RiderType; label: string; plural: string }[] = [
-  { value: 'technical', label: 'Technical Rider', plural: 'Technical Riders' },
-  { value: 'hospitality', label: 'Hospitality Rider', plural: 'Hospitality Riders' },
-  { value: 'stage_plot', label: 'Stage Plot', plural: 'Stage Plots' },
-  { value: 'input_list', label: 'Input List', plural: 'Input Lists' },
-  { value: 'lighting', label: 'Lighting Rider', plural: 'Lighting Riders' },
+  { value: 'technical', label: 'Technische rider', plural: 'Technische riders' },
+  { value: 'hospitality', label: 'Hospitality rider', plural: 'Hospitality riders' },
+  { value: 'stage_plot', label: 'Stageplot', plural: 'Stageplots' },
+  { value: 'input_list', label: 'Inputlijst', plural: 'Inputlijsten' },
+  { value: 'lighting', label: 'Lichtrider', plural: 'Lichtriders' },
   { value: 'other', label: 'Overig document', plural: 'Overige documenten' },
 ];
 

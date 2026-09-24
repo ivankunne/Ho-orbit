@@ -1074,7 +1074,7 @@ export default function AdminPage() {
           <ShieldCheck size={20} className="text-violet-400" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-white">Admin Panel</h1>
+          <h1 className="text-2xl font-bold text-white">Beheerpaneel</h1>
           <p className="text-sm text-slate-500">Beheer & moderatie — ingelogd als <span className="text-slate-400">{user?.displayName}</span></p>
         </div>
       </div>

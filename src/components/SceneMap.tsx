@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, ZoomControl } from 'react-leaflet';
+import MapAttributionNl from '@components/MapAttributionNl';
 import L from 'leaflet';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -136,6 +137,7 @@ export default function SceneMap() {
         <ZoomControl position="topright" />
         <ZoomTracker onZoom={setZoom} />
 
+        <MapAttributionNl />
         <TileLayer
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'

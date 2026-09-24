@@ -679,7 +679,7 @@ export default function HomePage() {
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
               <Handshake size={18} className="text-violet-400" />
-              <h2 className="text-xl font-bold text-white">Support your locals</h2>
+              <h2 className="text-xl font-bold text-white">Steun lokaal talent</h2>
             </div>
             <Link to="/netwerken" className="flex items-center gap-1 text-sm text-violet-400 hover:text-violet-300 transition-colors">
               Alles bekijken <ChevronRight size={15} />

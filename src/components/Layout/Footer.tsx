@@ -18,7 +18,7 @@ export default function Footer() {
         </div>
 
         <p>
-          Made by{' '}
+          Gemaakt door{' '}
           <a
             href="https://www.frameflow.no/prosjekter/h-orbit"
             target="_blank"

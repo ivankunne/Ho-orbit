@@ -265,7 +265,7 @@ export default function NetworkingPage() {
             <div className="space-y-4">
               {/* Type selector */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Type post</label>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Soort oproep</label>
                 <div className="grid grid-cols-3 gap-2">
                   {(['wanted', 'jump_on_track', 'open_call'] as const).map(t => {
                     const meta = TYPE_META[t];

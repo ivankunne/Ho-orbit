@@ -35,13 +35,13 @@ export default function DutchScenePage() {
             <div>
               <div className="flex items-center gap-3 mb-4">
                 <span className="text-3xl">🇳🇱</span>
-                <span className="text-violet-400 text-xs font-bold uppercase tracking-widest">Dutch Music Scene</span>
+                <span className="text-violet-400 text-xs font-bold uppercase tracking-widest">Nederlandse muziekscene</span>
               </div>
               <h1 className="text-2xl sm:text-3xl lg:text-5xl font-bold text-white mb-3">
-                Made in the Netherlands
+                Muziek van eigen bodem
               </h1>
               <p className="text-slate-300 max-w-xl text-sm sm:text-base leading-relaxed">
-                From Rotterdam hip-hop to Amsterdam jazz, Den Haag pop to Nijmegen blues — explore the cities and sounds that define Dutch music.
+                Van Rotterdamse hiphop tot Amsterdamse jazz, van Haagse pop tot Nijmeegse blues — ontdek de steden en de sound die de Nederlandse muziek maken.
               </p>
             </div>
           </div>
@@ -69,9 +69,9 @@ export default function DutchScenePage() {
 
       {/* Cities / Regions */}
       <section className="mb-14">
-        <h2 className="text-xl font-bold text-white mb-2">Cities & Their Sounds</h2>
+        <h2 className="text-xl font-bold text-white mb-2">Steden & hun geluid</h2>
         <p className="text-slate-400 text-sm mb-6 max-w-2xl">
-          Every Dutch city has its own musical identity. Here's what's happening where.
+          Elke Nederlandse stad heeft een eigen muzikale identiteit. Dit is wat er waar gebeurt.
         </p>
         {!ready.cities ? (
           <div role="status" aria-busy="true" aria-label="Steden laden…" className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -118,7 +118,7 @@ export default function DutchScenePage() {
                     {/* Venues */}
                     {(city.highlights ?? []).length > 0 && (
                       <div className="mb-3">
-                        <p className="text-xs text-slate-500 mb-1.5 uppercase tracking-wider">Key Venues</p>
+                        <p className="text-xs text-slate-500 mb-1.5 uppercase tracking-wider">Belangrijke podia</p>
                         <div className="flex flex-wrap gap-1">
                           {city.highlights.map(v => (
                             <span key={v} className="text-xs bg-white/6 text-slate-300 px-2 py-0.5 rounded">
@@ -160,10 +160,10 @@ export default function DutchScenePage() {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <Music size={18} className="text-violet-400" />
-            <h2 className="text-xl font-bold text-white">Dutch Artists on h-orbit</h2>
+            <h2 className="text-xl font-bold text-white">Nederlandse artiesten op H-orbit</h2>
           </div>
           <Link to="/artists" className="text-sm text-violet-400 hover:text-violet-300 transition-colors">
-            View all →
+            Alles bekijken →
           </Link>
         </div>
         {!ready.artists ? (
@@ -199,7 +199,7 @@ export default function DutchScenePage() {
       <section>
         <div className="flex items-center gap-2 mb-6">
           <Newspaper size={18} className="text-violet-400" />
-          <h2 className="text-xl font-bold text-white">Dutch Scene News</h2>
+          <h2 className="text-xl font-bold text-white">Nieuws uit de scene</h2>
         </div>
         {newsArticles.length === 0 ? (
           <p className="text-slate-500 text-sm">Nog geen nieuws beschikbaar.</p>
