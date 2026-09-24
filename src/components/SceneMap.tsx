@@ -48,6 +48,7 @@ const TYPE_COLORS: Record<string, string> = {
   'Gemeenschapshuis': '#ec4899',
   'Koepel':           '#14b8a6',
   'Commercieel':      '#f97316',
+  'Oefenruimte':      '#facc15',
 };
 
 /**
@@ -62,6 +63,7 @@ const TYPE_COLORS: Record<string, string> = {
  */
 const LEGEND_GROUPS: { id: string; label: string; types: string[] }[] = [
   { id: 'pop',          label: 'Poppodium / Studio', types: ['Pop/Heavy'] },
+  { id: 'oefenruimte',  label: 'Oefenruimte',        types: ['Oefenruimte'] },
   { id: 'cultuur',      label: 'Cultuurcentrum',     types: ['Cultuur', 'Cultuurcentrum'] },
   { id: 'erfgoed',      label: 'Erfgoed / Kerk',     types: ['Erfgoed'] },
   { id: 'dorpshuis',    label: 'Dorpshuis',          types: ['Dorpshuis'] },
