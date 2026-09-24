@@ -203,10 +203,12 @@ export default function UploadPage() {
 
   if (type === 'podcast' && uploadState !== 'success') {
     return (
-      <div className="w-full max-w-3xl mx-auto px-4 lg:px-6 py-10">
-        <h1 className="text-2xl font-bold text-white mb-2">Uploaden</h1>
-        <p className="text-slate-400 mb-6">Podcastafleveringen komen na goedkeuring op je podcastpagina.</p>
-        <UploadTypeTabs type={type} onChange={setType} />
+      <div className="w-full max-w-7xl mx-auto px-4 lg:px-6 py-10">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-white mb-2">Uploaden</h1>
+          <p className="text-slate-400 mb-6">Podcastafleveringen komen na goedkeuring op je podcastpagina.</p>
+          <UploadTypeTabs type={type} onChange={setType} />
+        </div>
         <PodcastUploadForm />
       </div>
     );
