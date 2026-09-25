@@ -27,7 +27,12 @@ const sidebarItems = [
 
 export default function AccountPage() {
   const { user, updateProfile, logout } = useAuth();
-  const [activeSection, setActiveSection] = useState('profiel');
+  // ?tab=abonnement opent meteen dat onderdeel (link in e-mails, bv. de
+  // aankondiging dat Pro live is).
+  const [activeSection, setActiveSection] = useState(() => {
+    const tab = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null;
+    return sidebarItems.some(i => i.key === tab) ? (tab as string) : 'profiel';
+  });
   const [avatarUploading, setAvatarUploading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 

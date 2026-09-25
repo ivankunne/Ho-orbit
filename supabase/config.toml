@@ -50,3 +50,10 @@ entrypoint = "./functions/stripe-plan/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/scene-submission/index.ts"
+
+# Eenmalige servicemail aan alle accounts. De function controleert zelf dat
+# de aanroeper de service-role key gebruikt; niet aan te roepen vanuit de app.
+[functions.announce]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/announce/index.ts"

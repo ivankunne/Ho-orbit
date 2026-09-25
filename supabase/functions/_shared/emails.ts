@@ -236,3 +236,41 @@ export function sceneApprovedEmail(opts: { contactName: string; placeName: strin
     }),
   };
 }
+
+/** Eenmalige aankondiging: de bètaperiode is voorbij, Pro is live. */
+export function launchAnnouncementEmail(opts: {
+  recipientName: string;
+  hasPro: boolean;
+  monthPrice: string;   // bv. "€10"
+  yearPrice: string;    // bv. "€100"
+  freeFeatures: string[];
+  proFeatures: string[];
+}): { subject: string; html: string } {
+  const item = (t: string, mark: string, color: string) =>
+    `<tr><td style="padding:3px 10px 3px 0;vertical-align:top;color:${color};font-weight:700;">${mark}</td><td style="padding:3px 0;">${escapeHtml(t)}</td></tr>`;
+  const list = (items: string[], mark: string, color: string) =>
+    `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;font-size:14px;line-height:1.5;">${items.map((t) => item(t, mark, color)).join('')}</table>`;
+  return {
+    subject: 'De bètaperiode zit erop: h-orbit is live',
+    html: layout({
+      preheader: opts.hasPro
+        ? 'h-orbit is officieel live. Jij hebt Pro al, dus je hoeft niets te doen.'
+        : `h-orbit is officieel live. Alles wat je nu doet blijft gratis; met Pro (${opts.monthPrice}/maand) haal je er alles uit.`,
+      heading: 'h-orbit is live',
+      bodyHtml: `
+        <p style="margin:0 0 16px;">Hoi${opts.recipientName ? ' ' + escapeHtml(opts.recipientName) : ''},</p>
+        <p style="margin:0 0 16px;">Bedankt dat je er tijdens de bètaperiode bij was! Jullie feedback heeft h-orbit gemaakt tot wat het nu is. Vanaf vandaag zijn we officieel live.</p>
+        <p style="margin:0 0 8px;color:#ffffff;font-weight:600;">Dit blijft gratis</p>
+        ${list(opts.freeFeatures, '&#10003;', '#34d399')}
+        <p style="margin:0 0 8px;color:#ffffff;font-weight:600;">Met Pro krijg je er dit bij</p>
+        ${list(opts.proFeatures, '&#9733;', '#a78bfa')}
+        ${opts.hasPro
+          ? `<p style="margin:0 0 16px;">Jij hebt Pro al, dus je hoeft niets te doen. Bedankt voor je steun!</p>`
+          : `<p style="margin:0 0 16px;">Pro kost <strong style="color:#ffffff;">${opts.monthPrice} per maand</strong> of <strong style="color:#ffffff;">${opts.yearPrice} per jaar</strong> (inclusief btw), en je zegt het op wanneer je wilt.</p>`}
+        <p style="margin:0 0 16px;">Vragen of feedback? Beantwoord gewoon deze mail.</p>`,
+      ctaLabel: opts.hasPro ? 'Naar h-orbit' : 'Bekijk Pro',
+      ctaUrl: opts.hasPro ? SITE_URL : `${SITE_URL}/account?tab=abonnement`,
+      footerNoteHtml: 'Je ontvangt deze eenmalige mail omdat je een account hebt bij h-orbit. Het is een servicebericht over je account, geen nieuwsbrief.',
+    }),
+  };
+}
