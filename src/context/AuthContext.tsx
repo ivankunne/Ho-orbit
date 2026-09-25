@@ -35,6 +35,9 @@ function mapProfile(profile: any, authUser: any) {
     // Synced by the stripe-webhook Edge Function only — see
     // protect_subscription_columns() in stripe_subscriptions_migration.sql.
     plan: profile?.plan || 'free',
+    // Pro gekregen van h-orbit (pro_granted_migration.sql): plan blijft 'paid'
+    // los van Stripe.
+    proGranted: profile?.pro_granted ?? false,
     subscriptionStatus: profile?.subscription_status || null,
     currentPeriodEnd: profile?.current_period_end || null,
     cancelAtPeriodEnd: profile?.cancel_at_period_end ?? false,

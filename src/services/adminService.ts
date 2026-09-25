@@ -13,6 +13,8 @@ export interface ManagedUser {
   role: string;
   /** Wat iemand maakt: Artiest/Podcast/Radio (zie src/lib/roles.ts). */
   roles: CreatorRole[];
+  /** Pro cadeau van h-orbit, los van Stripe. */
+  proGranted: boolean;
   verified: boolean;
   joinedDate: string;
   suspended: boolean;
@@ -95,6 +97,12 @@ export async function unsuspendUser(userId: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+/** Pro cadeau geven of intrekken (blijft staan, wat Stripe ook doet). */
+export async function setProGranted(userId: string, granted: boolean): Promise<void> {
+  const { error } = await supabase.rpc('admin_set_pro_granted', { target_user_id: userId, granted });
+  if (error) throw new Error(error.message);
+}
+
 /** Eén rol (Artiest/Podcast/Radio) aan- of uitzetten; de andere rollen blijven staan. */
 export async function toggleUserRole(userId: string, role: CreatorRole, enabled: boolean): Promise<void> {
   const { error } = await supabase.rpc('admin_toggle_user_role', {
@@ -118,6 +126,7 @@ function mapProfile(d: Record<string, unknown>): ManagedUser {
       ? new Date(d.joined_date as string).toLocaleDateString('nl-NL', { month: 'long', year: 'numeric' })
       : 'Onbekend',
     suspended: (d.suspended as boolean) ?? false,
+    proGranted: (d.pro_granted as boolean) ?? false,
     suspendedAt: (d.suspended_at as string) ?? null,
     suspendedReason: (d.suspended_reason as string) ?? null,
   };

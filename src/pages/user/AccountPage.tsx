@@ -221,7 +221,12 @@ function AbonnementSection({ user }: { user: any }) {
           Upgrade geannuleerd. Je kunt het op elk moment opnieuw proberen.
         </div>
       )}
-      {isPaid && cancelAtPeriodEnd && (
+      {user?.proGranted && (
+        <div className="mb-4 px-4 py-3 rounded-xl bg-violet-600/10 border border-violet-500/25 text-violet-200 text-sm">
+          Je hebt Pro gekregen van h-orbit. Je hoeft niets te betalen, en dat blijft zo.
+        </div>
+      )}
+      {isPaid && cancelAtPeriodEnd && !user?.proGranted && (
         <div className="mb-4 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 text-sm">
           Je abonnement is opgezegd{periodEndLabel ? ` en blijft actief tot ${periodEndLabel}` : ''}. Je kunt dit nog ongedaan maken via "Abonnement beheren".
         </div>

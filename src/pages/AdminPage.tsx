@@ -3,7 +3,7 @@ import {
   ShieldCheck, Music, Users, Calendar, Flag, MessageSquare,
   CheckCircle, XCircle, Clock, Search, RefreshCw,
   Ban, UserCheck, Eye, EyeOff, AlertTriangle,
-  Play, Pause, Volume2, Radio, Headphones, Lock, LockOpen,
+  Play, Pause, Volume2, Radio, Headphones, Lock, LockOpen, Crown,
 } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
 import { usePaywallSettings } from '@hooks/usePaywallSettings';
@@ -16,7 +16,7 @@ import {
   type UploadedTrack,
 } from '@services/uploadService';
 import {
-  getUsers, suspendUser, unsuspendUser, toggleUserRole,
+  getUsers, suspendUser, unsuspendUser, toggleUserRole, setProGranted,
   getPendingEvents, approveEvent, rejectEvent,
   getReports, resolveReport, dismissReport,
   getHiddenItems, hideForumItem, unhideForumItem,
@@ -410,6 +410,27 @@ function UsersSection() {
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {/* Rollen aan/uit — per rol, de andere blijven staan */}
+                  {/* Pro cadeau: gratis Pro, los van Stripe */}
+                  <button
+                    onClick={async () => {
+                      try {
+                        await setProGranted(u.id, !u.proGranted);
+                        addToast(u.proGranted ? 'Pro cadeau ingetrokken' : 'Pro cadeau gegeven', 'success');
+                        load();
+                      } catch (e: any) {
+                        addToast(e?.message || 'Pro wijzigen mislukt.', 'error');
+                      }
+                    }}
+                    title={u.proGranted ? 'Gratis Pro intrekken' : 'Gratis Pro geven'}
+                    aria-pressed={u.proGranted}
+                    className={`flex items-center gap-1.5 border rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                      u.proGranted
+                        ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border-amber-500/30'
+                        : 'bg-white/5 hover:bg-white/10 text-slate-500 hover:text-slate-300 border-white/10'
+                    }`}
+                  >
+                    <Crown size={12} /><span className="hidden sm:inline">Pro{u.proGranted ? ' ✓' : ''}</span>
+                  </button>
                   {([['Radio', Radio], ['Podcast', Headphones]] as const).map(([r, Icon]) => {
                     const on = u.roles.includes(r);
                     return (
