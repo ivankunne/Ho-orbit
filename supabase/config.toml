@@ -57,3 +57,11 @@ entrypoint = "./functions/scene-submission/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/announce/index.ts"
+
+# Inloggen met gebruikersnaam: de server zoekt het e-mailadres op, zodat
+# profiles.email niet meer publiek hoeft te zijn. Uit: je bent nog niet
+# ingelogd als je deze aanroept.
+[functions.login-username]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/login-username/index.ts"

@@ -192,16 +192,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let email = emailOrUsername.trim();
 
     try {
+      // Gebruikersnaam: de server zoekt het e-mailadres op en logt in
+      // (edge function login-username). Het adres komt nooit in de browser —
+      // vroeger las die het uit profiles.email, dat daardoor voor iedereen
+      // leesbaar moest zijn.
       if (!email.includes('@')) {
         const res = await Promise.race([
-          supabase.from('profiles').select('email').eq('username', email).maybeSingle(),
-          new Promise<never>((_, r) => setTimeout(() => r(new Error('timeout')), 10_000)),
+          supabase.functions.invoke('login-username', { body: { username: email, password } }),
+          new Promise<never>((_, r) => setTimeout(() => r(new Error('timeout')), 15_000)),
         ]);
-        if (!res.data?.email) {
-          setError('Onjuiste gebruikersnaam of wachtwoord.');
+        const body = res.data ?? await (res.error as { context?: Response })?.context?.json?.().catch(() => null);
+        if (!body?.access_token) {
+          setError(body?.error === 'email_not_confirmed'
+            ? translateError('Email not confirmed')
+            : 'Onjuiste gebruikersnaam of wachtwoord.');
           return false;
         }
-        email = res.data.email;
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: body.access_token, refresh_token: body.refresh_token,
+        });
+        if (sessionError) {
+          setError(translateError(sessionError.message));
+          return false;
+        }
+        return true;
       }
 
       const result = await Promise.race([
@@ -270,7 +284,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         id: authData.user.id,
         username: data.username,
         display_name: data.displayName || data.username,
-        email: data.email,
         location: data.location || null,
         roles: signupRoles(data),
         role: signupRoles(data)[0] ?? 'Luisteraar',
