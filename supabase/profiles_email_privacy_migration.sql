@@ -21,6 +21,9 @@
 
 begin;
 
+-- De kolom was verplicht (not null); leeg kan pas als dat eraf is.
+alter table public.profiles alter column email drop not null;
+
 create or replace function public.clear_profile_email()
 returns trigger
 language plpgsql
