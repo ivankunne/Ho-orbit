@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
     users.push(...data.users);
     if (data.users.length < 200) break;
   }
-  const { data: profiles } = await admin.from('profiles').select('id, display_name, username, plan, suspended');
+  const { data: profiles } = await admin.from('profiles').select('id, display_name, username, suspended');
   const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
   const skipSet = new Set((skip as string[]).map((e) => e.toLowerCase()));
 
@@ -48,25 +48,21 @@ Deno.serve(async (req) => {
     .map((u) => ({ email: u.email!.toLowerCase(), p: byId.get(u.id) }))
     .filter((r) => !NO_MAILBOX.has(r.email) && !SKIP_DOMAINS.test(r.email) && !skipSet.has(r.email) && !r.p?.suspended);
 
-  const build = (name: string, hasPro: boolean) =>
-    launchAnnouncementEmail({ recipientName: name, hasPro, monthPrice, yearPrice, freeFeatures, proFeatures });
+  const build = (name: string) =>
+    launchAnnouncementEmail({ recipientName: name, monthPrice, yearPrice, freeFeatures, proFeatures });
 
   if (mode === 'dry-run') {
-    return json({ count: recipients.length, pro: recipients.filter((r) => r.p?.plan === 'paid').length });
+    return json({ count: recipients.length });
   }
   if (mode === 'test') {
     if (!to) return json({ error: 'to verplicht' }, 400);
-    const results = [];
-    for (const hasPro of [false, true]) {
-      const { subject, html } = build('Ivan', hasPro);
-      results.push(await sendEmail({ to, subject: `[TEST${hasPro ? ' — Pro-versie' : ''}] ${subject}`, html }));
-    }
-    return json({ results });
+    const { subject, html } = build('Ivan');
+    return json({ result: await sendEmail({ to, subject: `[TEST] ${subject}`, html }) });
   }
   if (mode === 'all') {
     let sent = 0; const failed: string[] = [];
     for (const r of recipients) {
-      const { subject, html } = build(r.p?.display_name || r.p?.username || '', r.p?.plan === 'paid');
+      const { subject, html } = build(r.p?.display_name || r.p?.username || '');
       const res = await sendEmail({ to: r.email, subject, html });
       if (res.ok) sent++; else failed.push(`${r.email}: ${res.error}`);
       await new Promise((ok) => setTimeout(ok, 600)); // Resend: max ~2 per seconde
